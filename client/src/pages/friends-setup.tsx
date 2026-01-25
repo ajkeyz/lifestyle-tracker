@@ -19,7 +19,7 @@ import {
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 
-type ViewMode = "main" | "search" | "contacts";
+type ViewMode = "main" | "search" | "contacts" | "contacts-granted";
 
 export default function FriendsSetup() {
   const [, navigate] = useLocation();
@@ -103,7 +103,7 @@ export default function FriendsSetup() {
             <Button
               size="lg"
               className="w-full"
-              onClick={handleContinue}
+              onClick={() => setViewMode("contacts-granted")}
               data-testid="button-allow-contacts"
             >
               <Contact className="w-5 h-5 mr-2" />
@@ -120,6 +120,58 @@ export default function FriendsSetup() {
               Back
             </Button>
           </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (viewMode === "contacts-granted") {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
+        <header className="flex items-center justify-between gap-2 p-4 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-md bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+              <TrendingUp className="w-5 h-5 text-white" />
+            </div>
+            <span className="font-bold text-lg" data-testid="text-app-title">Lifestyle Creep</span>
+          </div>
+          <ThemeToggle />
+        </header>
+
+        <main className="container max-w-md mx-auto p-4 space-y-6">
+          <div className="text-center py-8">
+            <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-green-500/20 flex items-center justify-center">
+              <Check className="w-10 h-10 text-green-500" />
+            </div>
+            <h1 className="text-2xl md:text-3xl font-bold mb-2" data-testid="text-contacts-granted-title">
+              Contacts Enabled
+            </h1>
+            <p className="text-muted-foreground" data-testid="text-contacts-granted-description">
+              We'll notify you when friends join the game
+            </p>
+          </div>
+
+          <Card className="p-6">
+            <div className="flex items-center gap-3 p-4 bg-muted/30 rounded-md" data-testid="contacts-status">
+              <Shield className="w-5 h-5 text-green-500 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium" data-testid="text-contacts-status-title">No contacts found yet</p>
+                <p className="text-xs text-muted-foreground" data-testid="text-contacts-status-detail">
+                  We'll let you know when your contacts start playing
+                </p>
+              </div>
+            </div>
+          </Card>
+
+          <Button
+            size="lg"
+            className="w-full"
+            onClick={handleContinue}
+            data-testid="button-continue-after-contacts"
+          >
+            Continue
+            <ChevronRight className="w-5 h-5 ml-2" />
+          </Button>
         </main>
       </div>
     );
