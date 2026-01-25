@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ShareCard } from "@/components/share-card";
@@ -103,8 +104,13 @@ export default function Results() {
           </div>
         ) : (
           <>
-            <div className="text-center py-4">
-              <div className="inline-flex items-center gap-2 text-primary mb-2">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+              className="text-center py-4"
+            >
+              <div className="inline-flex items-center gap-2 text-accent mb-2">
                 <Trophy className="w-6 h-6" />
                 <span className="text-sm font-medium" data-testid="text-drop-complete">Drop Complete</span>
               </div>
@@ -112,16 +118,27 @@ export default function Results() {
               <p className="text-muted-foreground text-sm mt-1" data-testid="text-come-back">
                 Come back tomorrow for a new challenge
               </p>
-            </div>
+            </motion.div>
 
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2, ease: "easeOut" }}
+            >
             <ShareCard
               dropNumber={dailyDrop?.dropNumber || 0}
               result={result}
               answers={correctAnswers}
               streak={user.streak}
             />
+            </motion.div>
 
-            <div className="flex gap-3 flex-wrap">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.4, ease: "easeOut" }}
+              className="flex gap-3 flex-wrap"
+            >
               <Button
                 onClick={() => navigate("/deep-dive")}
                 variant="outline"
@@ -139,10 +156,16 @@ export default function Results() {
                 <Share2 className="w-4 h-4 mr-2" />
                 Customize Share
               </Button>
-            </div>
+            </motion.div>
 
             {leaderboard && leaderboard.length > 0 && (
-              <FriendLeague entries={leaderboard} currentUserId={user.id} />
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.5, ease: "easeOut" }}
+              >
+                <FriendLeague entries={leaderboard} currentUserId={user.id} />
+              </motion.div>
             )}
 
             <Card className="p-4 bg-muted/50" data-testid="card-next-drop">

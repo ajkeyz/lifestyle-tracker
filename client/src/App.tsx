@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
+import { PageTransition } from "@/components/page-transition";
 import { useAuth } from "@/hooks/use-auth";
 import Home from "@/pages/home";
 import AuthPage from "@/pages/auth";
@@ -35,43 +36,47 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 function AuthenticatedRouter() {
   return (
-    <Switch>
-      <Route path="/" component={Home} />
-      <Route path="/profile-setup" component={ProfileSetup} />
-      <Route path="/notifications-setup" component={NotificationsSetup} />
-      <Route path="/friends-setup" component={FriendsSetup} />
-      <Route path="/setup" component={Setup} />
-      <Route path="/play" component={Game} />
-      <Route path="/results" component={Results} />
-      <Route path="/leaderboard" component={Leaderboard} />
-      <Route path="/leagues" component={Leagues} />
-      <Route path="/challenges" component={Challenges} />
-      <Route path="/share" component={SharePage} />
-      <Route path="/achievements" component={Achievements} />
-      <Route path="/deep-dive" component={DeepDive} />
-      <Route path="/weekly-recap" component={WeeklyRecap} />
-      <Route path="/settings" component={Settings} />
-      <Route path="/stats" component={Stats} />
-      <Route path="/help" component={Help} />
-      <Route path="/notifications-prefs" component={NotificationsPrefs} />
-      <Route path="/streak-insurance" component={StreakInsurance} />
-      <Route path="/community" component={Community} />
-      <Route path="/community/submit" component={CommunitySubmit} />
-      <Route path="/community/:id" component={CommunityDetail} />
-      <Route path="/admin" component={Admin} />
-      <Route path="/admin/scenario-builder" component={AdminScenarioBuilder} />
-      <Route path="/admin/scenario-builder/:id" component={AdminScenarioBuilder} />
-      <Route component={NotFound} />
-    </Switch>
+    <PageTransition>
+      <Switch>
+        <Route path="/" component={Home} />
+        <Route path="/profile-setup" component={ProfileSetup} />
+        <Route path="/notifications-setup" component={NotificationsSetup} />
+        <Route path="/friends-setup" component={FriendsSetup} />
+        <Route path="/setup" component={Setup} />
+        <Route path="/play" component={Game} />
+        <Route path="/results" component={Results} />
+        <Route path="/leaderboard" component={Leaderboard} />
+        <Route path="/leagues" component={Leagues} />
+        <Route path="/challenges" component={Challenges} />
+        <Route path="/share" component={SharePage} />
+        <Route path="/achievements" component={Achievements} />
+        <Route path="/deep-dive" component={DeepDive} />
+        <Route path="/weekly-recap" component={WeeklyRecap} />
+        <Route path="/settings" component={Settings} />
+        <Route path="/stats" component={Stats} />
+        <Route path="/help" component={Help} />
+        <Route path="/notifications-prefs" component={NotificationsPrefs} />
+        <Route path="/streak-insurance" component={StreakInsurance} />
+        <Route path="/community" component={Community} />
+        <Route path="/community/submit" component={CommunitySubmit} />
+        <Route path="/community/:id" component={CommunityDetail} />
+        <Route path="/admin" component={Admin} />
+        <Route path="/admin/scenario-builder" component={AdminScenarioBuilder} />
+        <Route path="/admin/scenario-builder/:id" component={AdminScenarioBuilder} />
+        <Route component={NotFound} />
+      </Switch>
+    </PageTransition>
   );
 }
 
 function UnauthenticatedRouter() {
   return (
-    <Switch>
-      <Route path="/" component={AuthPage} />
-      <Route component={AuthPage} />
-    </Switch>
+    <PageTransition>
+      <Switch>
+        <Route path="/" component={AuthPage} />
+        <Route component={AuthPage} />
+      </Switch>
+    </PageTransition>
   );
 }
 

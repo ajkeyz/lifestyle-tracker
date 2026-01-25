@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { ScenarioCard } from "@/components/scenario-card";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { TimerProgress } from "@/components/animated-progress";
 import { ArrowLeft, ArrowRight, Send, TrendingUp, Clock } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -205,15 +207,25 @@ export default function Game() {
           </div>
         ) : currentScenario ? (
           <div className="space-y-4">
-            <ScenarioCard
-              scenario={currentScenario}
-              selectedChoice={answers[currentScenario.id] || null}
-              onSelectChoice={handleSelectChoice}
-              showResult={showResults[currentScenario.id] || false}
-              questionNumber={currentIndex + 1}
-              totalQuestions={totalScenarios}
-              timeRemaining={!showResults[currentScenario.id] ? timeRemaining : undefined}
-            />
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentScenario.id}
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -50 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+              >
+                <ScenarioCard
+                  scenario={currentScenario}
+                  selectedChoice={answers[currentScenario.id] || null}
+                  onSelectChoice={handleSelectChoice}
+                  showResult={showResults[currentScenario.id] || false}
+                  questionNumber={currentIndex + 1}
+                  totalQuestions={totalScenarios}
+                  timeRemaining={!showResults[currentScenario.id] ? timeRemaining : undefined}
+                />
+              </motion.div>
+            </AnimatePresence>
 
             <div className="flex gap-3">
               <Button

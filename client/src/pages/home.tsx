@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { StatBarGrid } from "@/components/stat-bar";
@@ -173,6 +174,11 @@ export default function Home() {
         ) : user ? (
           <>
             {/* Daily Drop CTA Tile */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+            >
             <Card 
               className="p-6 bg-gradient-to-br from-primary/10 to-accent/10 border-primary/20"
               data-testid="card-daily-drop-cta"
@@ -226,8 +232,14 @@ export default function Home() {
                 </div>
               </div>
             </Card>
+            </motion.div>
 
             {/* Today's Theme */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
+            >
             <Card className="p-4" data-testid="card-todays-theme">
               <div className="flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-md bg-muted flex items-center justify-center ${themeConfig.color}`}>
@@ -239,11 +251,23 @@ export default function Home() {
                 </div>
               </div>
             </Card>
+            </motion.div>
 
             {/* Streak Calendar with Protection */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.2, ease: "easeOut" }}
+            >
             <StreakCalendar user={user} />
+            </motion.div>
 
             {/* Next Drop Countdown */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.3, ease: "easeOut" }}
+            >
             <Card className="p-4" data-testid="card-countdown">
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <div className="flex items-center gap-2">
@@ -258,6 +282,7 @@ export default function Home() {
                 </div>
               </div>
             </Card>
+            </motion.div>
 
             {/* Friend League Preview - hidden in low pressure mode */}
             {!user.lowPressureMode && (

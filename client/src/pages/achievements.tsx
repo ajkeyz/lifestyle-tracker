@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -290,20 +291,40 @@ export default function Achievements() {
                 ))}
               </div>
             ) : (
-              <div className="space-y-4" data-testid="badges-list">
+              <motion.div 
+                className="space-y-4" 
+                data-testid="badges-list"
+                initial="hidden"
+                animate="visible"
+                variants={{
+                  hidden: { opacity: 0 },
+                  visible: {
+                    opacity: 1,
+                    transition: { staggerChildren: 0.1 }
+                  }
+                }}
+              >
                 {sortedBadges.map(userBadge => {
                   const definition = BADGE_DEFINITIONS.find(d => d.id === userBadge.badgeId);
                   if (!definition) return null;
                   
                   return (
-                    <BadgeCard 
+                    <motion.div
                       key={userBadge.badgeId}
-                      definition={definition}
-                      userBadge={userBadge}
-                    />
+                      variants={{
+                        hidden: { opacity: 0, y: 20 },
+                        visible: { opacity: 1, y: 0 }
+                      }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <BadgeCard 
+                        definition={definition}
+                        userBadge={userBadge}
+                      />
+                    </motion.div>
                   );
                 })}
-              </div>
+              </motion.div>
             )}
           </>
         )}
