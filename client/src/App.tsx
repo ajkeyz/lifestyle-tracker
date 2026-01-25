@@ -21,6 +21,7 @@ import Achievements from "@/pages/achievements";
 import DeepDive from "@/pages/deep-dive";
 import WeeklyRecap from "@/pages/weekly-recap";
 import Settings from "@/pages/settings";
+import Stats from "@/pages/stats";
 import Help from "@/pages/help";
 import NotificationsPrefs from "@/pages/notifications-prefs";
 import StreakInsurance from "@/pages/streak-insurance";
@@ -50,6 +51,7 @@ function AuthenticatedRouter() {
       <Route path="/deep-dive" component={DeepDive} />
       <Route path="/weekly-recap" component={WeeklyRecap} />
       <Route path="/settings" component={Settings} />
+      <Route path="/stats" component={Stats} />
       <Route path="/help" component={Help} />
       <Route path="/notifications-prefs" component={NotificationsPrefs} />
       <Route path="/streak-insurance" component={StreakInsurance} />

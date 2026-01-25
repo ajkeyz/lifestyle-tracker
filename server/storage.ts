@@ -26,6 +26,8 @@ import type {
   Moderator,
   BannedUser,
   BanUser,
+  GameHistoryEntry,
+  CategoryStats,
 } from "@shared/schema";
 import { BADGE_DEFINITIONS, defaultNotificationPrefs, defaultStreakInsurance } from "@shared/schema";
 import { randomUUID } from "crypto";
@@ -565,6 +567,8 @@ export class MemStorage implements IStorage {
         soundEnabled: true,
         notificationPrefs: { ...defaultNotificationPrefs },
         streakInsurance: { ...defaultStreakInsurance, isPlus: i < 2 },
+        gameHistory: [],
+        categoryStats: [],
       });
     });
   }
@@ -605,6 +609,8 @@ export class MemStorage implements IStorage {
         soundEnabled: true,
         notificationPrefs: { ...defaultNotificationPrefs },
         streakInsurance: { ...defaultStreakInsurance },
+        gameHistory: [],
+        categoryStats: [],
       };
       this.users.set(sessionId, user);
     }
@@ -666,16 +672,24 @@ export class MemStorage implements IStorage {
     let totalScore = 0;
     let correctCount = 0;
     const answerLabels: string[] = [];
+    const categoryResults: Map<string, { correct: number; total: number }> = new Map();
 
     submission.answers.forEach((answer) => {
       const scenario = drop.scenarios.find((s) => s.id === answer.scenarioId);
       if (scenario) {
         const choice = scenario.choices.find((c) => c.label === answer.choiceLabel);
+        const isCorrect = choice?.isCorrect || false;
+        
         if (choice) {
           totalScore += choice.points;
-          if (choice.isCorrect) correctCount++;
+          if (isCorrect) correctCount++;
         }
         answerLabels.push(answer.choiceLabel);
+
+        const catStats = categoryResults.get(scenario.category) || { correct: 0, total: 0 };
+        catStats.total++;
+        if (isCorrect) catStats.correct++;
+        categoryResults.set(scenario.category, catStats);
       }
     });
 
@@ -725,6 +739,48 @@ export class MemStorage implements IStorage {
       newStreakCalendar.push({ date: today, played: true, frozen: false, score: totalScore });
     }
 
+    const categoryBreakdown = Array.from(categoryResults.entries()).map(([category, stats]) => ({
+      category,
+      correct: stats.correct,
+      total: stats.total,
+    }));
+
+    const historyEntry: GameHistoryEntry = {
+      date: today,
+      dropNumber: drop.dropNumber,
+      score: totalScore,
+      moneyHealth,
+      correctAnswers: correctCount,
+      totalQuestions: drop.scenarios.length,
+      categoryBreakdown,
+      timeSpent: 0,
+    };
+
+    const newGameHistory = [...user.gameHistory, historyEntry].slice(-30);
+
+    const newCategoryStats = [...user.categoryStats];
+    categoryBreakdown.forEach(({ category, correct, total }) => {
+      const existingIndex = newCategoryStats.findIndex(c => c.category === category);
+      if (existingIndex >= 0) {
+        const existing = newCategoryStats[existingIndex];
+        const newTotal = existing.totalQuestions + total;
+        const newCorrect = existing.correctAnswers + correct;
+        newCategoryStats[existingIndex] = {
+          category,
+          totalQuestions: newTotal,
+          correctAnswers: newCorrect,
+          accuracy: newTotal > 0 ? Math.round((newCorrect / newTotal) * 100) : 0,
+        };
+      } else {
+        newCategoryStats.push({
+          category,
+          totalQuestions: total,
+          correctAnswers: correct,
+          accuracy: total > 0 ? Math.round((correct / total) * 100) : 0,
+        });
+      }
+    });
+
     await this.updateUser(sessionId, {
       streak: newStreak,
       highestStreak: newHighestStreak,
@@ -735,6 +791,8 @@ export class MemStorage implements IStorage {
       lastPlayedDate: today,
       stats: newStats,
       todayResult: result,
+      gameHistory: newGameHistory,
+      categoryStats: newCategoryStats,
     });
 
     return result;

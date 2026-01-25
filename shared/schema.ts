@@ -56,6 +56,28 @@ export interface StreakDay {
   score?: number;
 }
 
+export interface GameHistoryEntry {
+  date: string;
+  dropNumber: number;
+  score: number;
+  moneyHealth: number;
+  correctAnswers: number;
+  totalQuestions: number;
+  categoryBreakdown: {
+    category: string;
+    correct: number;
+    total: number;
+  }[];
+  timeSpent: number;
+}
+
+export interface CategoryStats {
+  category: string;
+  totalQuestions: number;
+  correctAnswers: number;
+  accuracy: number;
+}
+
 export interface StreakInsurance {
   isPlus: boolean;
   lastBuybackDate: string | null;
@@ -101,6 +123,8 @@ export interface User {
   soundEnabled: boolean;
   notificationPrefs: NotificationPrefs;
   streakInsurance: StreakInsurance;
+  gameHistory: GameHistoryEntry[];
+  categoryStats: CategoryStats[];
 }
 
 export interface NotificationPrefs {

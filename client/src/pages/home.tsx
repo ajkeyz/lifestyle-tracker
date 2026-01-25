@@ -25,7 +25,8 @@ import {
   Award,
   CalendarDays,
   Settings,
-  MessageSquare
+  MessageSquare,
+  BarChart3
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -147,6 +148,9 @@ export default function Home() {
                 <AvatarImage src={authUser.profileImageUrl || undefined} alt={authUser.firstName || "User"} />
                 <AvatarFallback>{authUser.firstName?.[0] || authUser.email?.[0] || "U"}</AvatarFallback>
               </Avatar>
+              <Button variant="ghost" size="icon" onClick={() => navigate("/stats")} data-testid="button-stats">
+                <BarChart3 className="w-4 h-4" />
+              </Button>
               <Button variant="ghost" size="icon" onClick={() => navigate("/settings")} data-testid="button-settings">
                 <Settings className="w-4 h-4" />
               </Button>
