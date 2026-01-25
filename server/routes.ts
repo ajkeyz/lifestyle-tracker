@@ -370,5 +370,17 @@ export async function registerRoutes(
     }
   });
 
+  // Badge/Achievement endpoints
+  app.get("/api/badges", async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const badges = await storage.getBadges(sessionId);
+      res.json(badges);
+    } catch (error) {
+      console.error("Error getting badges:", error);
+      res.status(500).json({ error: "Failed to get badges" });
+    }
+  });
+
   return httpServer;
 }
