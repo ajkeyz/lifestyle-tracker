@@ -122,7 +122,7 @@ export default function ProfileSetup() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      navigate("/setup");
+      navigate("/notifications-setup");
     },
     onError: (error: Error) => {
       toast({

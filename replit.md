@@ -28,6 +28,7 @@ Preferred communication style: Simple, everyday language.
 Key pages:
 - Auth (`/`) - Sign-in page with Replit Auth (Apple, Google, Email)
 - Profile Setup (`/profile-setup`) - Username, avatar, bio, privacy settings
+- Notifications Setup (`/notifications-setup`) - Pre-permission screen for notifications
 - Mode Selection (`/setup`) - Choose game mode (Tech, Global, Fraud, Student, Boss)
 - Home (`/`) - Daily drop info, streak, play button (after auth)
 - Game (`/play`) - Timed scenario questions
