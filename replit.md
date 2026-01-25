@@ -35,6 +35,7 @@ Key pages:
 - Deep Dive (`/deep-dive`) - Post-game explanations for each scenario
 - Weekly Recap (`/weekly-recap`) - Spotify Wrapped-style weekly summary with best/worst decisions, improvement areas, league rank, funny title
 - Settings (`/settings`) - Low Pressure Mode toggle and app settings
+- Help (`/help`) - FAQ cards with answers, contact support, and report scenario buttons
 - Game (`/play`) - Timed scenario questions
 - Results (`/results`) - Score breakdown, sharing
 - Leaderboard (`/leaderboard`) - Friend rankings
