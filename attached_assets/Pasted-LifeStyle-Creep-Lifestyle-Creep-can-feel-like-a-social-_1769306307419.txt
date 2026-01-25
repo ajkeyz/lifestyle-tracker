@@ -1,0 +1,103 @@
+LifeStyle Creep 
+Lifestyle Creep can feel like a social game that accidentally makes you smarter.
+
+Lifestyle Creep (the game) — how it works (the real experience)
+What it is
+Lifestyle Creep is a daily money game like Wordle, but instead of guessing a word you make real-life money decisions.
+It’s designed to be:
+    •    short (2–4 minutes/day)
+    •    addictive (streaks + leaderboard + sharing)
+    •    educational (but you don’t feel like you’re studying)
+    •    competitive (rank vs friends)
+The core concept it teaches is exactly what the name implies:
+As your income grows, your spending “creeps” up unless you’re intentional — so the game trains you to build wealth without falling into lifestyle inflation traps.
+
+What happens when you open the app
+Home screen (every day)
+You see:
+    •    Lifestyle Creep — Daily Drop #__
+    •    🔥 your streak
+    •    🏆 your ranking in your Friend League
+    •    button: PLAY TODAY’S DROP
+It’s not a long session game — the entire point is:
+“Quick daily decision challenge, like a ritual.”
+
+The Daily Drop (the Wordle part)
+Every day, everyone gets the same Daily Drop:
+    •    5 scenarios
+    •    each scenario is multiple choice (A/B/C/D)
+    •    you have 15–25 seconds to decide (optional timer)
+But the key: it’s not “finance trivia.”
+It’s scenarios like:
+    •    trip invites
+    •    credit card debt
+    •    layoffs
+    •    bonuses
+    •    rent upgrades
+    •    scams
+    •    investing temptations
+It’s life.
+
+
+Friend ranking (the social addiction)
+After the drop you see:
+    0.    Jade — Money Health 92
+    0.    Sipho — Money Health 84
+    0.    You — Money Health 78
+    0.    Max — Money Health 63
+So the game becomes:
+“I’m beating you tomorrow.”
+That’s what creates daily retention.
+
+
+Example:
+💻 Tech Girl/Guy Mode — “High Income, High Volatility”
+Context: Cash $3,800 | Debt $200 | Credit 690 | Stress 44 | Portfolio: 70% in company stock
+Q1: RSU concentration risk (real tech problem)
+$10k RSUs vest. Your portfolio is already 70% company stock.
+A) Hold all RSUs — belief = wealth
+B) Sell 70% and diversify into index funds ✅
+C) Sell 100% and go cash ✅ if layoff risk is high
+D) Upgrade your apartment (fixed costs ↑)
+Hard part: both B and C can be best depending on risk.
+
+🛡️ Special Edition — “Fraud, Scams, Real-World Defense”
+Context: Cash $1,500 | Debt $0 | Credit 700 | Stress 40
+Q1: Caller ID spoof scam
+Caller ID shows your bank. They know your name + last transaction. They ask for OTP.
+A) Give OTP
+B) Hang up and call number on back of card ✅
+C) Ask them to email proof
+D) Ask for employee ID then proceed
+Hard part: A/D feel reasonable.
+
+
+Then the Wordle share card
+You get a share card like:
+Lifestyle Creep #41
+🧠 IQ: 420/500
+💚 Money Health: 78/100
+🔥 Streak: 12
+🟩🟨🟥🟩🟩 (5 squares = 5 questions)
+Then little bars:
+💸 Cash ████░
+😬 Debt ██░░░
+📈 Credit ███░░
+😮‍💨 Stress ██░░░
+📊 Invest ███░░
+
+
+Leaderboards:
+    •    🥇 Wealth Builder (highest net worth)
+    •    🛡️ Stability King/Queen (lowest stress + emergency fund)
+    •    ⚡ Clutch Genius (best comeback)
+    •    🎯 Accuracy Beast
+    •    💀 Debt Demon (funny “loser” award)
+  🌍 Global Citizen Mode — “Travel, FX, Experiences”
+Context: Cash $1,900 | Debt $600 | Credit 675 | Stress 47 | Life 62
+Q1: Flight deal probability question
+Flight deal: $310 today. If you wait 30 days it might be $450 (60% chance). No travel fund.
+A) Book now on credit card
+B) Wait + start $10/day sinking fund ✅
+C) Skip travel this season
+D) Book now but cut spending to pay card in full ✅
