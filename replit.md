@@ -26,7 +26,10 @@ Preferred communication style: Simple, everyday language.
 - **Theme**: Dark/light mode support with CSS custom properties
 
 Key pages:
-- Home (`/`) - Daily drop info, streak, play button
+- Auth (`/`) - Sign-in page with Replit Auth (Apple, Google, Email)
+- Profile Setup (`/profile-setup`) - Username, avatar, bio, privacy settings
+- Mode Selection (`/setup`) - Choose game mode (Tech, Global, Fraud, Student, Boss)
+- Home (`/`) - Daily drop info, streak, play button (after auth)
 - Game (`/play`) - Timed scenario questions
 - Results (`/results`) - Score breakdown, sharing
 - Leaderboard (`/leaderboard`) - Friend rankings
@@ -42,6 +45,8 @@ Key endpoints:
 - `GET /api/daily-drop` - Fetch today's scenarios
 - `POST /api/submit-game` - Submit answers and calculate score
 - `GET /api/leaderboard` - Fetch rankings
+- `GET /api/check-username/:username` - Check username availability
+- `POST /api/profile` - Update user profile (username, avatar, bio, privacy)
 
 ### Data Storage
 - **ORM**: Drizzle ORM with PostgreSQL dialect
@@ -50,7 +55,7 @@ Key endpoints:
 - **Current State**: In-memory storage implementation (database schema ready but storage uses memory)
 
 Data models:
-- User (id, username, streak, moneyHealth, stats, todayResult)
+- User (id, username, avatar, bio, allowFriendsToFind, isProfilePrivate, profileSetupComplete, mode, streak, moneyHealth, stats, todayResult)
 - DailyDrop (id, dropNumber, date, scenarios)
 - Scenario (id, category, context, question, choices with feedback)
 
