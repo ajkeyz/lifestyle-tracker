@@ -400,7 +400,7 @@ export class MemStorage implements IStorage {
   private adminScenarios: Map<string, AdminScenario> = new Map();
   private moderators: Map<string, Moderator> = new Map();
   private bannedUsers: Map<string, BannedUser> = new Map();
-  private adminUserIds: Set<string> = new Set(["admin"]); // Default admin user
+  private adminUserIds: Set<string> = new Set(["admin", "608498"]); // Default admin users
 
   constructor() {
     this.dailyDrop = {
