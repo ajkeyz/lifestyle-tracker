@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { ShareCard } from "@/components/share-card";
 import { FriendLeague } from "@/components/leaderboard-card";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { ArrowLeft, Home, Trophy, TrendingUp, Calendar, Share2 } from "lucide-react";
+import { ArrowLeft, Home, Trophy, TrendingUp, Calendar, Share2, BookOpen } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import type { User, DailyDrop, LeaderboardEntry } from "@shared/schema";
@@ -90,14 +90,25 @@ export default function Results() {
               streak={user.streak}
             />
 
-            <Button
-              onClick={() => navigate("/share")}
-              className="w-full"
-              data-testid="button-customize-share"
-            >
-              <Share2 className="w-4 h-4 mr-2" />
-              Customize Share Card
-            </Button>
+            <div className="flex gap-3 flex-wrap">
+              <Button
+                onClick={() => navigate("/deep-dive")}
+                variant="outline"
+                className="flex-1"
+                data-testid="button-deep-dive"
+              >
+                <BookOpen className="w-4 h-4 mr-2" />
+                Deep Dive
+              </Button>
+              <Button
+                onClick={() => navigate("/share")}
+                className="flex-1"
+                data-testid="button-customize-share"
+              >
+                <Share2 className="w-4 h-4 mr-2" />
+                Customize Share
+              </Button>
+            </div>
 
             {leaderboard && leaderboard.length > 0 && (
               <FriendLeague entries={leaderboard} currentUserId={user.id} />
