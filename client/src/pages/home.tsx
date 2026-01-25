@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { StatBarGrid } from "@/components/stat-bar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { StreakCalendar } from "@/components/streak-calendar";
+import { Onboarding } from "@/components/onboarding";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
   Play, 
@@ -77,6 +78,7 @@ export default function Home() {
   const [, navigate] = useLocation();
   const { user: authUser, logout } = useAuth();
   const [countdown, setCountdown] = useState(getTimeUntilMidnightUTC());
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -88,6 +90,12 @@ export default function Home() {
   const { data: user, isLoading: userLoading } = useQuery<User>({
     queryKey: ["/api/user"],
   });
+
+  useEffect(() => {
+    if (user && !user.onboardingComplete && !userLoading) {
+      setShowOnboarding(true);
+    }
+  }, [user, userLoading]);
 
 
   const { data: dailyDrop, isLoading: dropLoading } = useQuery<DailyDrop>({
@@ -120,7 +128,11 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
+    <>
+      {showOnboarding && (
+        <Onboarding onComplete={() => setShowOnboarding(false)} />
+      )}
+      <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
       <header className="flex items-center justify-between gap-2 p-4 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-md bg-gradient-to-br from-primary to-accent flex items-center justify-center">
@@ -433,6 +445,7 @@ export default function Home() {
           </Card>
         )}
       </main>
-    </div>
+      </div>
+    </>
   );
 }

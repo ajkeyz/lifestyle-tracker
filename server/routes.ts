@@ -201,6 +201,24 @@ export async function registerRoutes(
     }
   });
 
+  // Complete onboarding
+  app.post("/api/complete-onboarding", async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const user = await storage.updateUser(sessionId, {
+        onboardingComplete: true,
+      });
+      
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      res.json(user);
+    } catch (error) {
+      console.error("Error completing onboarding:", error);
+      res.status(500).json({ error: "Failed to complete onboarding" });
+    }
+  });
+
   // Notification preferences
   app.post("/api/notification-prefs", async (req: Request, res: Response) => {
     try {

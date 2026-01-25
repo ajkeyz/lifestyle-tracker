@@ -1,10 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ShareCard } from "@/components/share-card";
 import { FriendLeague } from "@/components/leaderboard-card";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { ArrowLeft, Home, Trophy, TrendingUp, Calendar, Share2, BookOpen } from "lucide-react";
+import { useConfetti } from "@/components/confetti";
+import { ArrowLeft, Home, Trophy, TrendingUp, Calendar, Share2, BookOpen, Sparkles, Flame } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import type { User, DailyDrop, LeaderboardEntry } from "@shared/schema";
@@ -12,6 +13,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Results() {
   const [, navigate] = useLocation();
+  const { firePerfectScore, fireStreakMilestone, fireAchievement } = useConfetti();
+  const confettiFired = useRef(false);
 
   const { data: user, isLoading: userLoading } = useQuery<User>({
     queryKey: ["/api/user"],
@@ -30,6 +33,23 @@ export default function Results() {
       navigate("/");
     }
   }, [user, userLoading, navigate]);
+
+  useEffect(() => {
+    if (user?.todayResult && !confettiFired.current) {
+      confettiFired.current = true;
+      const isPerfectScore = user.todayResult.score === 500;
+      const streakMilestones = [7, 14, 30, 60, 100];
+      const isStreakMilestone = streakMilestones.includes(user.streak);
+
+      if (isPerfectScore) {
+        setTimeout(() => firePerfectScore(), 500);
+      } else if (isStreakMilestone) {
+        setTimeout(() => fireStreakMilestone(user.streak), 500);
+      } else if (user.todayResult.score >= 400) {
+        setTimeout(() => fireAchievement(), 500);
+      }
+    }
+  }, [user, firePerfectScore, fireStreakMilestone, fireAchievement]);
 
   if (!user?.todayResult) {
     return null;

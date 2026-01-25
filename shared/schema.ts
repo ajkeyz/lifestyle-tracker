@@ -80,6 +80,7 @@ export interface User {
   allowFriendsToFind: boolean;
   isProfilePrivate: boolean;
   profileSetupComplete: boolean;
+  onboardingComplete: boolean;
   mode: GameMode | null;
   streak: number;
   highestStreak: number;
