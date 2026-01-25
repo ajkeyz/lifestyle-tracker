@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,9 @@ import {
   Share2,
   ArrowLeft,
   Swords,
-  Check
+  Check,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
@@ -147,6 +150,7 @@ function BadgeCard({ definition, userBadge }: BadgeCardProps) {
 
 export default function Achievements() {
   const [, navigate] = useLocation();
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const { data: badges = [], isLoading } = useQuery<UserBadge[]>({
     queryKey: ["/api/badges"],
@@ -178,6 +182,16 @@ export default function Achievements() {
     return bProgress - aProgress;
   });
 
+  const totalProgress = allBadges.reduce((sum, badge) => {
+    const def = BADGE_DEFINITIONS.find(d => d.id === badge.badgeId);
+    if (!def) return sum;
+    return sum + (badge.progress / def.maxProgress);
+  }, 0);
+  const overallProgressPercent = Math.round((totalProgress / totalCount) * 100);
+
+  const closestToUnlock = sortedBadges.find(b => !b.unlocked);
+  const closestDef = closestToUnlock ? BADGE_DEFINITIONS.find(d => d.id === closestToUnlock.badgeId) : null;
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
       <header className="flex items-center gap-4 p-4 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
@@ -198,47 +212,100 @@ export default function Achievements() {
       </header>
 
       <main className="container max-w-2xl mx-auto p-4">
-        <Card className="p-4 mb-6 bg-gradient-to-r from-primary/10 to-accent/10 border-primary/20">
+        <Card 
+          className="p-4 mb-6 bg-gradient-to-r from-primary/10 to-accent/10 border-primary/20 cursor-pointer"
+          onClick={() => setIsExpanded(!isExpanded)}
+          data-testid="card-summary"
+        >
           <div className="flex items-center gap-4 flex-wrap">
             <div className="p-3 rounded-full bg-primary/20">
               <Trophy className="h-8 w-8 text-primary" />
             </div>
-            <div className="flex-1">
-              <h2 className="font-semibold">Your Badge Collection</h2>
-              <p className="text-sm text-muted-foreground">
-                Unlock badges by playing daily and mastering financial decisions
-              </p>
-            </div>
-            <div className="text-center px-4 py-2 rounded-lg bg-background/50">
-              <div className="text-2xl font-bold text-primary" data-testid="text-unlocked-count">
-                {unlockedCount}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="font-semibold">Your Badge Collection</h2>
+                <Badge variant="secondary" className="text-xs">
+                  {overallProgressPercent}% Complete
+                </Badge>
               </div>
-              <div className="text-xs text-muted-foreground">Unlocked</div>
+              <p className="text-sm text-muted-foreground">
+                {unlockedCount > 0 
+                  ? `${unlockedCount} badge${unlockedCount !== 1 ? 's' : ''} unlocked`
+                  : "Start playing to unlock badges"}
+              </p>
+              {closestDef && closestToUnlock && !isExpanded && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Next up: {closestDef.name} ({closestToUnlock.progress}/{closestDef.maxProgress})
+                </p>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="text-center px-4 py-2 rounded-lg bg-background/50">
+                <div className="text-2xl font-bold text-primary" data-testid="text-unlocked-count">
+                  {unlockedCount}
+                </div>
+                <div className="text-xs text-muted-foreground">Unlocked</div>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsExpanded(!isExpanded);
+                }}
+                data-testid="button-toggle-expand"
+              >
+                {isExpanded ? (
+                  <ChevronUp className="h-5 w-5" />
+                ) : (
+                  <ChevronDown className="h-5 w-5" />
+                )}
+              </Button>
             </div>
           </div>
+
+          {!isExpanded && (
+            <div className="mt-4">
+              <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground mb-1 flex-wrap">
+                <span>Overall Progress</span>
+                <span>{overallProgressPercent}%</span>
+              </div>
+              <div className="h-2 bg-muted rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-primary transition-all duration-500"
+                  style={{ width: `${overallProgressPercent}%` }}
+                  data-testid="progress-bar-overall"
+                />
+              </div>
+            </div>
+          )}
         </Card>
 
-        {isLoading ? (
-          <div className="space-y-4">
-            {[1, 2, 3, 4].map(i => (
-              <Skeleton key={i} className="h-32 w-full" />
-            ))}
-          </div>
-        ) : (
-          <div className="space-y-4" data-testid="badges-list">
-            {sortedBadges.map(userBadge => {
-              const definition = BADGE_DEFINITIONS.find(d => d.id === userBadge.badgeId);
-              if (!definition) return null;
-              
-              return (
-                <BadgeCard 
-                  key={userBadge.badgeId}
-                  definition={definition}
-                  userBadge={userBadge}
-                />
-              );
-            })}
-          </div>
+        {isExpanded && (
+          <>
+            {isLoading ? (
+              <div className="space-y-4">
+                {[1, 2, 3, 4].map(i => (
+                  <Skeleton key={i} className="h-32 w-full" />
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-4" data-testid="badges-list">
+                {sortedBadges.map(userBadge => {
+                  const definition = BADGE_DEFINITIONS.find(d => d.id === userBadge.badgeId);
+                  if (!definition) return null;
+                  
+                  return (
+                    <BadgeCard 
+                      key={userBadge.badgeId}
+                      definition={definition}
+                      userBadge={userBadge}
+                    />
+                  );
+                })}
+              </div>
+            )}
+          </>
         )}
       </main>
     </div>
