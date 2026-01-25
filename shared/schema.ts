@@ -4,6 +4,13 @@ export * from "./models/auth";
 
 export type GameMode = "tech" | "global" | "scam" | "student" | "boss";
 
+export interface ScenarioDeepDive {
+  teaching: string;
+  alternative: string | null;
+  ruleOfThumb: string;
+  realWorldExample: string;
+}
+
 export interface Scenario {
   id: string;
   context: string;
@@ -16,6 +23,7 @@ export interface Scenario {
     feedback: string;
   }[];
   category: "tech" | "travel" | "lifestyle" | "scam" | "investing" | "debt";
+  deepDive: ScenarioDeepDive;
 }
 
 export interface DailyDrop {

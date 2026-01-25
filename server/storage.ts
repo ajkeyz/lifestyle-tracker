@@ -56,6 +56,12 @@ const sampleScenarios: Scenario[] = [
         feedback: "Classic lifestyle creep! Increasing fixed expenses with volatile income is risky.",
       },
     ],
+    deepDive: {
+      teaching: "Concentration risk can wipe out years of savings. Your job already depends on your company - your investments shouldn't too.",
+      alternative: "Sell 50-70% of RSUs immediately upon vesting and reinvest in broad market index funds like VTI or VOO.",
+      ruleOfThumb: "Never have more than 10-15% of your portfolio in any single stock, including company stock.",
+      realWorldExample: "Enron employees had 62% of their 401k in company stock. When it collapsed in 2001, they lost both jobs AND retirement savings.",
+    },
   },
   {
     id: "scam-1",
@@ -92,6 +98,12 @@ const sampleScenarios: Scenario[] = [
         feedback: "Employee IDs can be faked. Hang up and call your bank directly.",
       },
     ],
+    deepDive: {
+      teaching: "Caller ID spoofing is easy. Scammers buy your data from breaches, then use urgency to bypass your judgment.",
+      alternative: null,
+      ruleOfThumb: "If someone calls you asking for ANY codes or passwords, hang up. Real banks never do this.",
+      realWorldExample: "In 2023, Americans lost $10 billion to phone scams. Bank impersonation is the #1 method used.",
+    },
   },
   {
     id: "travel-1",
@@ -128,6 +140,12 @@ const sampleScenarios: Scenario[] = [
         feedback: "Good if you can truly commit to paying it off. Make sure you follow through!",
       },
     ],
+    deepDive: {
+      teaching: "FOMO deals create urgency that bypasses good judgment. A sinking fund lets you enjoy guilt-free spending later.",
+      alternative: "Set up automatic transfers to a dedicated travel savings account before deals appear.",
+      ruleOfThumb: "If you can't pay cash for a vacation, you can't afford it yet.",
+      realWorldExample: "The average American carries $1,000 in vacation debt. Those who save first report 40% more trip satisfaction.",
+    },
   },
   {
     id: "lifestyle-1",
@@ -164,6 +182,12 @@ const sampleScenarios: Scenario[] = [
         feedback: "This is pure lifestyle inflation. Your apartment doesn't define your success.",
       },
     ],
+    deepDive: {
+      teaching: "Lifestyle creep is silent wealth destruction. Every dollar spent on upgrades is a dollar not compounding for decades.",
+      alternative: "Automate investing the raise before you see it. What you don't see, you won't spend.",
+      ruleOfThumb: "Save at least 50% of every raise. The other 50% can be lifestyle.",
+      realWorldExample: "Two people earning $100k: one saves 20%, one saves 5%. After 30 years, the saver has $1.2M more.",
+    },
   },
   {
     id: "investing-1",
@@ -200,6 +224,12 @@ const sampleScenarios: Scenario[] = [
         feedback: "Holding cash long-term loses to inflation. At 28, you can afford market risk for higher returns.",
       },
     ],
+    deepDive: {
+      teaching: "FOMO (Fear Of Missing Out) is the enemy of good investing. Hot tips from friends usually arrive after the big gains.",
+      alternative: "Use a 90/10 rule: 90% in boring index funds, 10% max for speculation.",
+      ruleOfThumb: "If a friend is bragging about gains, it's probably too late to join.",
+      realWorldExample: "90% of individual crypto traders lose money. The average S&P 500 return is 10%/year over decades.",
+    },
   },
 ];
 
