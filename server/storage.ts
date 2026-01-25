@@ -16,6 +16,11 @@ import type {
   StreakDay,
   UserBadge,
   BadgeId,
+  CommunityScenario,
+  CommunityComment,
+  CommunityVote,
+  CreateCommunityScenario,
+  CreateCommunityComment,
 } from "@shared/schema";
 import { BADGE_DEFINITIONS, defaultNotificationPrefs, defaultStreakInsurance } from "@shared/schema";
 import { randomUUID } from "crypto";
@@ -285,6 +290,15 @@ export interface IStorage {
   useStreakBuyback(userId: string): Promise<{ success: boolean; message: string; restoredStreak?: number }>;
   useLatePass(userId: string): Promise<{ success: boolean; message: string; drop?: DailyDrop }>;
   togglePlusStatus(userId: string, isPlus: boolean): Promise<User | undefined>;
+  // Community methods
+  createCommunityScenario(userId: string, data: CreateCommunityScenario): Promise<CommunityScenario>;
+  getCommunityScenarios(userId: string, category?: string, sortBy?: "latest" | "hot" | "realest"): Promise<CommunityScenario[]>;
+  getCommunityScenario(scenarioId: string, userId: string): Promise<CommunityScenario | undefined>;
+  voteCommunityScenario(userId: string, scenarioId: string, voteType: "up" | "down"): Promise<CommunityScenario | undefined>;
+  getScenarioComments(scenarioId: string, userId: string): Promise<CommunityComment[]>;
+  addComment(userId: string, data: CreateCommunityComment): Promise<CommunityComment>;
+  voteComment(userId: string, commentId: string): Promise<CommunityComment | undefined>;
+  getRealistOfWeek(userId: string): Promise<CommunityScenario[]>;
 }
 
 function generateInviteCode(): string {
@@ -313,10 +327,52 @@ function createInitialBadges(): UserBadge[] {
   }));
 }
 
+function getWeekNumber(): number {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), 0, 1);
+  const diff = now.getTime() - start.getTime();
+  const oneWeek = 1000 * 60 * 60 * 24 * 7;
+  return Math.floor(diff / oneWeek) + 1;
+}
+
+interface StoredCommunityScenario {
+  id: string;
+  authorId: string;
+  title: string;
+  context: string;
+  question: string;
+  type: "real" | "hypothetical";
+  category: "tech" | "travel" | "lifestyle" | "scam" | "investing" | "debt" | "career" | "relationships";
+  createdAt: string;
+  weekNumber: number;
+  isRealistOfWeek: boolean;
+}
+
+interface StoredCommunityComment {
+  id: string;
+  scenarioId: string;
+  authorId: string;
+  content: string;
+  isAdvice: boolean;
+  createdAt: string;
+}
+
+interface StoredCommunityVote {
+  id: string;
+  scenarioId: string | null;
+  commentId: string | null;
+  userId: string;
+  type: "up" | "down";
+  createdAt: string;
+}
+
 export class MemStorage implements IStorage {
   private users: Map<string, User> = new Map();
   private leagues: Map<string, League> = new Map();
   private challenges: Map<string, Challenge> = new Map();
+  private communityScenarios: Map<string, StoredCommunityScenario> = new Map();
+  private communityComments: Map<string, StoredCommunityComment> = new Map();
+  private communityVotes: Map<string, StoredCommunityVote> = new Map();
   private dailyDrop: DailyDrop;
 
   constructor() {
@@ -328,6 +384,116 @@ export class MemStorage implements IStorage {
     };
 
     this.seedLeaderboard();
+    this.seedCommunityScenarios();
+  }
+
+  private seedCommunityScenarios() {
+    const sampleCommunityScenarios: StoredCommunityScenario[] = [
+      {
+        id: "comm-1",
+        authorId: "seed-0",
+        title: "Friend asked me to split Airbnb but wants the master bedroom",
+        context: "Going on a trip with 4 friends. One friend found a $2000/night Airbnb and wants to split evenly but also wants the master bedroom with private bathroom. Is this fair?",
+        question: "Should I push back on the uneven split or just go with it to keep the peace?",
+        type: "real",
+        category: "relationships",
+        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+        weekNumber: getWeekNumber(),
+        isRealistOfWeek: true,
+      },
+      {
+        id: "comm-2",
+        authorId: "seed-1",
+        title: "Got a raise but my lifestyle is already maxed out",
+        context: "Just got a 20% raise but I'm already living paycheck to paycheck. I want to celebrate but know I should save. My friends all expect me to upgrade my lifestyle now.",
+        question: "How do I resist lifestyle creep when everyone expects me to spend more?",
+        type: "real",
+        category: "lifestyle",
+        createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+        weekNumber: getWeekNumber(),
+        isRealistOfWeek: false,
+      },
+      {
+        id: "comm-3",
+        authorId: "seed-2",
+        title: "Crypto bro at work keeps pushing me to invest",
+        context: "A coworker won't stop telling me about his crypto gains. He says I'm 'missing out' on generational wealth. I have $5k in savings and no emergency fund yet.",
+        question: "Should I put some money in crypto or focus on building my emergency fund first?",
+        type: "real",
+        category: "investing",
+        createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+        weekNumber: getWeekNumber(),
+        isRealistOfWeek: false,
+      },
+      {
+        id: "comm-4",
+        authorId: "seed-3",
+        title: "What if I just ignored all my student loans?",
+        context: "Hypothetically, what would actually happen if I just never paid my student loans? Like, what's the worst case scenario?",
+        question: "Is ignoring student loans ever a viable strategy?",
+        type: "hypothetical",
+        category: "debt",
+        createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+        weekNumber: getWeekNumber(),
+        isRealistOfWeek: false,
+      },
+      {
+        id: "comm-5",
+        authorId: "seed-4",
+        title: "Boss offered equity instead of a raise",
+        context: "My startup boss said they can't afford raises but offered 0.5% equity. Company is pre-revenue but has 'big potential'. I need the cash but don't want to miss out.",
+        question: "Should I take the equity or push for actual money?",
+        type: "real",
+        category: "career",
+        createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
+        weekNumber: getWeekNumber(),
+        isRealistOfWeek: false,
+      },
+    ];
+
+    sampleCommunityScenarios.forEach(s => {
+      this.communityScenarios.set(s.id, s);
+    });
+
+    // Add some sample votes
+    const sampleVotes: StoredCommunityVote[] = [
+      { id: "vote-1", scenarioId: "comm-1", commentId: null, userId: "seed-1", type: "up", createdAt: new Date().toISOString() },
+      { id: "vote-2", scenarioId: "comm-1", commentId: null, userId: "seed-2", type: "up", createdAt: new Date().toISOString() },
+      { id: "vote-3", scenarioId: "comm-1", commentId: null, userId: "seed-3", type: "up", createdAt: new Date().toISOString() },
+      { id: "vote-4", scenarioId: "comm-2", commentId: null, userId: "seed-0", type: "up", createdAt: new Date().toISOString() },
+      { id: "vote-5", scenarioId: "comm-3", commentId: null, userId: "seed-0", type: "up", createdAt: new Date().toISOString() },
+      { id: "vote-6", scenarioId: "comm-3", commentId: null, userId: "seed-1", type: "down", createdAt: new Date().toISOString() },
+    ];
+    sampleVotes.forEach(v => this.communityVotes.set(v.id, v));
+
+    // Add some sample comments
+    const sampleComments: StoredCommunityComment[] = [
+      {
+        id: "comment-1",
+        scenarioId: "comm-1",
+        authorId: "seed-1",
+        content: "Master bedroom should cost more. Suggest a 60/40 split or find a different Airbnb with equal rooms.",
+        isAdvice: true,
+        createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      {
+        id: "comment-2",
+        scenarioId: "comm-1",
+        authorId: "seed-2",
+        content: "Been there! We rotated rooms each night. Fairest solution.",
+        isAdvice: false,
+        createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
+      },
+      {
+        id: "comment-3",
+        scenarioId: "comm-3",
+        authorId: "seed-4",
+        content: "Emergency fund FIRST. Always. Crypto can wait - your peace of mind can't.",
+        isAdvice: true,
+        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+      },
+    ];
+    sampleComments.forEach(c => this.communityComments.set(c.id, c));
   }
 
   private seedLeaderboard() {
@@ -1005,6 +1171,209 @@ export class MemStorage implements IStorage {
       },
       freezeTokens: isPlus ? Math.max(user.freezeTokens, 3) : user.freezeTokens,
     });
+  }
+
+  private enrichCommunityScenario(scenario: StoredCommunityScenario, currentUserId: string): CommunityScenario {
+    const author = this.users.get(scenario.authorId);
+    const votes = Array.from(this.communityVotes.values()).filter(v => v.scenarioId === scenario.id);
+    const upvotes = votes.filter(v => v.type === "up").length;
+    const downvotes = votes.filter(v => v.type === "down").length;
+    const userVote = votes.find(v => v.userId === currentUserId)?.type || null;
+    const commentCount = Array.from(this.communityComments.values()).filter(c => c.scenarioId === scenario.id).length;
+
+    return {
+      ...scenario,
+      authorUsername: author?.username || "Unknown",
+      authorAvatar: author?.avatar || "ghost",
+      authorBadges: author?.badges || [],
+      authorMoneyHealth: author?.moneyHealth || 0,
+      upvotes,
+      downvotes,
+      commentCount,
+      userVote,
+    };
+  }
+
+  private enrichCommunityComment(comment: StoredCommunityComment, currentUserId: string): CommunityComment {
+    const author = this.users.get(comment.authorId);
+    const votes = Array.from(this.communityVotes.values()).filter(v => v.commentId === comment.id);
+    const upvotes = votes.length;
+    const userVote = votes.find(v => v.userId === currentUserId) ? "up" : null;
+
+    return {
+      ...comment,
+      authorUsername: author?.username || "Unknown",
+      authorAvatar: author?.avatar || "ghost",
+      authorBadges: author?.badges || [],
+      authorMoneyHealth: author?.moneyHealth || 0,
+      upvotes,
+      userVote,
+    };
+  }
+
+  async createCommunityScenario(userId: string, data: CreateCommunityScenario): Promise<CommunityScenario> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
+
+    const scenario: StoredCommunityScenario = {
+      id: randomUUID(),
+      authorId: userId,
+      title: data.title,
+      context: data.context,
+      question: data.question,
+      type: data.type,
+      category: data.category,
+      createdAt: new Date().toISOString(),
+      weekNumber: getWeekNumber(),
+      isRealistOfWeek: false,
+    };
+
+    this.communityScenarios.set(scenario.id, scenario);
+    return this.enrichCommunityScenario(scenario, userId);
+  }
+
+  async getCommunityScenarios(userId: string, category?: string, sortBy: "latest" | "hot" | "realest" = "latest"): Promise<CommunityScenario[]> {
+    let scenarios = Array.from(this.communityScenarios.values());
+
+    if (category && category !== "all") {
+      scenarios = scenarios.filter(s => s.category === category);
+    }
+
+    const enriched = scenarios.map(s => this.enrichCommunityScenario(s, userId));
+
+    switch (sortBy) {
+      case "hot":
+        // Hot = upvotes - downvotes, with recency boost
+        enriched.sort((a, b) => {
+          const scoreA = a.upvotes - a.downvotes;
+          const scoreB = b.upvotes - b.downvotes;
+          return scoreB - scoreA;
+        });
+        break;
+      case "realest":
+        // Filter to current week and sort by votes
+        const currentWeek = getWeekNumber();
+        return enriched
+          .filter(s => s.weekNumber === currentWeek)
+          .sort((a, b) => (b.upvotes - b.downvotes) - (a.upvotes - a.downvotes));
+      case "latest":
+      default:
+        enriched.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }
+
+    return enriched;
+  }
+
+  async getCommunityScenario(scenarioId: string, userId: string): Promise<CommunityScenario | undefined> {
+    const scenario = this.communityScenarios.get(scenarioId);
+    if (!scenario) return undefined;
+    return this.enrichCommunityScenario(scenario, userId);
+  }
+
+  async voteCommunityScenario(userId: string, scenarioId: string, voteType: "up" | "down"): Promise<CommunityScenario | undefined> {
+    const scenario = this.communityScenarios.get(scenarioId);
+    if (!scenario) return undefined;
+
+    // Find existing vote
+    const existingVote = Array.from(this.communityVotes.values()).find(
+      v => v.scenarioId === scenarioId && v.userId === userId
+    );
+
+    if (existingVote) {
+      if (existingVote.type === voteType) {
+        // Remove vote if clicking same type
+        this.communityVotes.delete(existingVote.id);
+      } else {
+        // Change vote type
+        existingVote.type = voteType;
+        this.communityVotes.set(existingVote.id, existingVote);
+      }
+    } else {
+      // Add new vote
+      const vote: StoredCommunityVote = {
+        id: randomUUID(),
+        scenarioId,
+        commentId: null,
+        userId,
+        type: voteType,
+        createdAt: new Date().toISOString(),
+      };
+      this.communityVotes.set(vote.id, vote);
+    }
+
+    return this.enrichCommunityScenario(scenario, userId);
+  }
+
+  async getScenarioComments(scenarioId: string, userId: string): Promise<CommunityComment[]> {
+    const comments = Array.from(this.communityComments.values())
+      .filter(c => c.scenarioId === scenarioId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    return comments.map(c => this.enrichCommunityComment(c, userId));
+  }
+
+  async addComment(userId: string, data: CreateCommunityComment): Promise<CommunityComment> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
+
+    const comment: StoredCommunityComment = {
+      id: randomUUID(),
+      scenarioId: data.scenarioId,
+      authorId: userId,
+      content: data.content,
+      isAdvice: data.isAdvice,
+      createdAt: new Date().toISOString(),
+    };
+
+    this.communityComments.set(comment.id, comment);
+    return this.enrichCommunityComment(comment, userId);
+  }
+
+  async voteComment(userId: string, commentId: string): Promise<CommunityComment | undefined> {
+    const comment = this.communityComments.get(commentId);
+    if (!comment) return undefined;
+
+    // Find existing vote
+    const existingVote = Array.from(this.communityVotes.values()).find(
+      v => v.commentId === commentId && v.userId === userId
+    );
+
+    if (existingVote) {
+      // Remove vote (toggle off)
+      this.communityVotes.delete(existingVote.id);
+    } else {
+      // Add upvote
+      const vote: StoredCommunityVote = {
+        id: randomUUID(),
+        scenarioId: null,
+        commentId,
+        userId,
+        type: "up",
+        createdAt: new Date().toISOString(),
+      };
+      this.communityVotes.set(vote.id, vote);
+    }
+
+    return this.enrichCommunityComment(comment, userId);
+  }
+
+  async getRealistOfWeek(userId: string): Promise<CommunityScenario[]> {
+    const currentWeek = getWeekNumber();
+    const scenarios = Array.from(this.communityScenarios.values())
+      .filter(s => s.weekNumber === currentWeek || s.isRealistOfWeek)
+      .map(s => this.enrichCommunityScenario(s, userId))
+      .sort((a, b) => (b.upvotes - b.downvotes) - (a.upvotes - a.downvotes));
+
+    // Mark top scenario as "Realest of Week"
+    if (scenarios.length > 0) {
+      const topScenario = this.communityScenarios.get(scenarios[0].id);
+      if (topScenario) {
+        topScenario.isRealistOfWeek = true;
+        this.communityScenarios.set(topScenario.id, topScenario);
+      }
+    }
+
+    return scenarios.slice(0, 3); // Return top 3
   }
 }
 

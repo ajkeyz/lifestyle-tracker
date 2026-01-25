@@ -475,5 +475,123 @@ export async function registerRoutes(
     }
   });
 
+  // Community Mode endpoints
+  app.get("/api/community/scenarios", async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const category = req.query.category as string | undefined;
+      const sortBy = (req.query.sortBy as "latest" | "hot" | "realest") || "latest";
+      const scenarios = await storage.getCommunityScenarios(sessionId, category, sortBy);
+      res.json(scenarios);
+    } catch (error) {
+      console.error("Error getting community scenarios:", error);
+      res.status(500).json({ error: "Failed to get community scenarios" });
+    }
+  });
+
+  app.get("/api/community/scenarios/:id", async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const scenarioId = req.params.id as string;
+      const scenario = await storage.getCommunityScenario(scenarioId, sessionId);
+      if (!scenario) {
+        return res.status(404).json({ error: "Scenario not found" });
+      }
+      res.json(scenario);
+    } catch (error) {
+      console.error("Error getting community scenario:", error);
+      res.status(500).json({ error: "Failed to get community scenario" });
+    }
+  });
+
+  app.post("/api/community/scenarios", async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const { communityScenarioSchema } = await import("@shared/schema");
+      const parsed = communityScenarioSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid scenario data", details: parsed.error.issues });
+      }
+      const scenario = await storage.createCommunityScenario(sessionId, parsed.data);
+      res.json(scenario);
+    } catch (error) {
+      console.error("Error creating community scenario:", error);
+      res.status(500).json({ error: "Failed to create community scenario" });
+    }
+  });
+
+  app.post("/api/community/scenarios/:id/vote", async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const scenarioId = req.params.id as string;
+      const { type } = req.body;
+      if (type !== "up" && type !== "down") {
+        return res.status(400).json({ error: "Vote type must be 'up' or 'down'" });
+      }
+      const scenario = await storage.voteCommunityScenario(sessionId, scenarioId, type);
+      if (!scenario) {
+        return res.status(404).json({ error: "Scenario not found" });
+      }
+      res.json(scenario);
+    } catch (error) {
+      console.error("Error voting on scenario:", error);
+      res.status(500).json({ error: "Failed to vote on scenario" });
+    }
+  });
+
+  app.get("/api/community/scenarios/:id/comments", async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const scenarioId = req.params.id as string;
+      const comments = await storage.getScenarioComments(scenarioId, sessionId);
+      res.json(comments);
+    } catch (error) {
+      console.error("Error getting comments:", error);
+      res.status(500).json({ error: "Failed to get comments" });
+    }
+  });
+
+  app.post("/api/community/comments", async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const { communityCommentSchema } = await import("@shared/schema");
+      const parsed = communityCommentSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid comment data", details: parsed.error.issues });
+      }
+      const comment = await storage.addComment(sessionId, parsed.data);
+      res.json(comment);
+    } catch (error) {
+      console.error("Error adding comment:", error);
+      res.status(500).json({ error: "Failed to add comment" });
+    }
+  });
+
+  app.post("/api/community/comments/:id/vote", async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const commentId = req.params.id as string;
+      const comment = await storage.voteComment(sessionId, commentId);
+      if (!comment) {
+        return res.status(404).json({ error: "Comment not found" });
+      }
+      res.json(comment);
+    } catch (error) {
+      console.error("Error voting on comment:", error);
+      res.status(500).json({ error: "Failed to vote on comment" });
+    }
+  });
+
+  app.get("/api/community/realest-of-week", async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const scenarios = await storage.getRealistOfWeek(sessionId);
+      res.json(scenarios);
+    } catch (error) {
+      console.error("Error getting realest of week:", error);
+      res.status(500).json({ error: "Failed to get realest of week" });
+    }
+  });
+
   return httpServer;
 }

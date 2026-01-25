@@ -290,6 +290,91 @@ export interface UserBadge {
   progress: number;
 }
 
+// Community Mode types
+export type ScenarioType = "real" | "hypothetical";
+
+export interface CommunityScenario {
+  id: string;
+  authorId: string;
+  authorUsername: string;
+  authorAvatar: string;
+  authorBadges: UserBadge[];
+  authorMoneyHealth: number;
+  title: string;
+  context: string;
+  question: string;
+  type: ScenarioType;
+  category: "tech" | "travel" | "lifestyle" | "scam" | "investing" | "debt" | "career" | "relationships";
+  upvotes: number;
+  downvotes: number;
+  commentCount: number;
+  createdAt: string;
+  weekNumber: number; // For tracking "Realest of the Week"
+  isRealistOfWeek: boolean;
+  userVote: "up" | "down" | null; // For current user
+}
+
+export interface CommunityComment {
+  id: string;
+  scenarioId: string;
+  authorId: string;
+  authorUsername: string;
+  authorAvatar: string;
+  authorBadges: UserBadge[];
+  authorMoneyHealth: number;
+  content: string;
+  isAdvice: boolean; // Marked as financial advice
+  upvotes: number;
+  createdAt: string;
+  userVote: "up" | null; // For current user
+}
+
+export interface CommunityVote {
+  id: string;
+  scenarioId: string | null;
+  commentId: string | null;
+  userId: string;
+  type: "up" | "down";
+  createdAt: string;
+}
+
+export const communityScenarioSchema = z.object({
+  title: z.string().min(10).max(100),
+  context: z.string().min(20).max(500),
+  question: z.string().min(10).max(200),
+  type: z.enum(["real", "hypothetical"]),
+  category: z.enum(["tech", "travel", "lifestyle", "scam", "investing", "debt", "career", "relationships"]),
+});
+
+export type CreateCommunityScenario = z.infer<typeof communityScenarioSchema>;
+
+export const communityCommentSchema = z.object({
+  scenarioId: z.string(),
+  content: z.string().min(5).max(500),
+  isAdvice: z.boolean().default(false),
+});
+
+export type CreateCommunityComment = z.infer<typeof communityCommentSchema>;
+
+export const communityVoteSchema = z.object({
+  scenarioId: z.string().optional(),
+  commentId: z.string().optional(),
+  type: z.enum(["up", "down"]),
+});
+
+export type CreateCommunityVote = z.infer<typeof communityVoteSchema>;
+
+export const COMMUNITY_CATEGORIES = [
+  { id: "tech", label: "Tech & Gadgets", icon: "smartphone" },
+  { id: "travel", label: "Travel", icon: "plane" },
+  { id: "lifestyle", label: "Lifestyle", icon: "sparkles" },
+  { id: "scam", label: "Scams & Fraud", icon: "alert-triangle" },
+  { id: "investing", label: "Investing", icon: "trending-up" },
+  { id: "debt", label: "Debt & Loans", icon: "credit-card" },
+  { id: "career", label: "Career & Salary", icon: "briefcase" },
+  { id: "relationships", label: "Friends & Family", icon: "users" },
+] as const;
+
 export const BADGE_DEFINITIONS: BadgeDefinition[] = [
   {
     id: "no_spend_ninja",

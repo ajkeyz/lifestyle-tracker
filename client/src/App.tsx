@@ -24,6 +24,9 @@ import Settings from "@/pages/settings";
 import Help from "@/pages/help";
 import NotificationsPrefs from "@/pages/notifications-prefs";
 import StreakInsurance from "@/pages/streak-insurance";
+import Community from "@/pages/community";
+import CommunityDetail from "@/pages/community-detail";
+import CommunitySubmit from "@/pages/community-submit";
 import NotFound from "@/pages/not-found";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -48,6 +51,9 @@ function AuthenticatedRouter() {
       <Route path="/help" component={Help} />
       <Route path="/notifications-prefs" component={NotificationsPrefs} />
       <Route path="/streak-insurance" component={StreakInsurance} />
+      <Route path="/community" component={Community} />
+      <Route path="/community/submit" component={CommunitySubmit} />
+      <Route path="/community/:id" component={CommunityDetail} />
       <Route component={NotFound} />
     </Switch>
   );

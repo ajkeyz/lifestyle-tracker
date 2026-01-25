@@ -23,7 +23,8 @@ import {
   Swords,
   Award,
   CalendarDays,
-  Settings
+  Settings,
+  MessageSquare
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -329,6 +330,26 @@ export default function Home() {
                   <div>
                     <h3 className="font-semibold">Achievements</h3>
                     <p className="text-xs text-muted-foreground">Collect badges and track progress</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-5 h-5 text-muted-foreground" />
+              </div>
+            </Card>
+
+            {/* Community */}
+            <Card 
+              className="p-4 cursor-pointer" 
+              onClick={() => navigate("/community")}
+              data-testid="card-community"
+            >
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center">
+                    <MessageSquare className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">Community</h3>
+                    <p className="text-xs text-muted-foreground">Real scenarios, real advice</p>
                   </div>
                 </div>
                 <ChevronRight className="w-5 h-5 text-muted-foreground" />
