@@ -43,6 +43,9 @@ Key pages:
 - Challenges (`/challenges`) - Challenge friends to compare Money Health, streak, or accuracy; includes trash talk presets and badge rewards
 - Share (`/share`) - Customizable share card for results with theme colors, hide numbers toggle, league name, and social sharing
 - Streak Protection - Freeze tokens to protect streaks, visual 28-day calendar, milestone fire animations (7, 14, 30, 60, 100 days)
+- Community (`/community`) - User-submitted scenarios for community voting and discussion
+- Community Detail (`/community/:id`) - Scenario detail with comments, financial advice, and voting
+- Community Submit (`/community/submit`) - Form to submit new real or hypothetical financial scenarios
 
 ### Backend Architecture
 - **Framework**: Express 5 on Node.js
@@ -75,6 +78,14 @@ Key endpoints:
 - `POST /api/streak-buyback` - Restore lost streak (Plus only, once per month)
 - `POST /api/late-pass` - Play yesterday's drop (Plus only)
 - `POST /api/toggle-plus` - Toggle Plus membership status (demo)
+- `GET /api/community/scenarios` - Get community scenarios with optional filters
+- `GET /api/community/scenarios/:id` - Get single community scenario
+- `POST /api/community/scenarios` - Create a new community scenario
+- `POST /api/community/scenarios/:id/vote` - Vote on a community scenario
+- `GET /api/community/scenarios/:id/comments` - Get comments for a scenario
+- `POST /api/community/comments` - Add a comment to a scenario
+- `POST /api/community/comments/:id/vote` - Vote on a comment
+- `GET /api/community/realest-of-week` - Get top scenarios of the week
 
 ### Data Storage
 - **ORM**: Drizzle ORM with PostgreSQL dialect
@@ -90,6 +101,9 @@ Data models:
 - League (id, name, emoji/icon, privacy, inviteCode, createdBy, members, weekStartDate, previousWeekWinner)
 - LeagueMember (userId, username, avatar, weeklyScore, weeklyRank, isWeeklyWinner)
 - Challenge (id, challengerId, challengeeId, type [money_health/streak/accuracy], trashTalk, customMessage, status [pending/accepted/completed/expired/declined], winnerId, badgeAwarded, createdAt)
+- CommunityScenario (id, authorId, authorUsername, authorAvatar, authorBadges, authorMoneyHealth, type, category, title, context, question, upvotes, downvotes, isRealistOfWeek, createdAt)
+- CommunityComment (id, scenarioId, authorId, authorUsername, authorAvatar, authorBadges, authorMoneyHealth, content, isFinancialAdvice, upvotes, createdAt)
+- CommunityVote (id, scenarioId, commentId, userId, voteType)
 
 ### Shared Code
 - `shared/schema.ts` - TypeScript interfaces and Zod validation schemas
