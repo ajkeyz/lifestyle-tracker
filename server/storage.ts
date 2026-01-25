@@ -21,6 +21,11 @@ import type {
   CommunityVote,
   CreateCommunityScenario,
   CreateCommunityComment,
+  AdminScenario,
+  CreateAdminScenario,
+  Moderator,
+  BannedUser,
+  BanUser,
 } from "@shared/schema";
 import { BADGE_DEFINITIONS, defaultNotificationPrefs, defaultStreakInsurance } from "@shared/schema";
 import { randomUUID } from "crypto";
@@ -299,6 +304,23 @@ export interface IStorage {
   addComment(userId: string, data: CreateCommunityComment): Promise<CommunityComment>;
   voteComment(userId: string, commentId: string): Promise<CommunityComment | undefined>;
   getRealistOfWeek(userId: string): Promise<CommunityScenario[]>;
+  // Admin methods
+  isAdmin(userId: string): Promise<boolean>;
+  isModerator(userId: string): Promise<boolean>;
+  getModerators(): Promise<Moderator[]>;
+  addModerator(userId: string, assignedBy: string): Promise<Moderator | undefined>;
+  removeModerator(userId: string): Promise<boolean>;
+  getBannedUsers(): Promise<BannedUser[]>;
+  banUser(data: BanUser, bannedBy: string): Promise<BannedUser | undefined>;
+  unbanUser(userId: string): Promise<boolean>;
+  isUserBanned(userId: string): Promise<boolean>;
+  getAdminScenarios(): Promise<AdminScenario[]>;
+  getAdminScenario(scenarioId: string): Promise<AdminScenario | undefined>;
+  createAdminScenario(userId: string, data: CreateAdminScenario): Promise<AdminScenario>;
+  updateAdminScenario(scenarioId: string, data: Partial<CreateAdminScenario>): Promise<AdminScenario | undefined>;
+  deleteAdminScenario(scenarioId: string): Promise<boolean>;
+  publishAdminScenario(scenarioId: string): Promise<AdminScenario | undefined>;
+  getAllUsersForAdmin(): Promise<Pick<User, "id" | "username" | "avatar" | "moneyHealth" | "gamesPlayed">[]>;
 }
 
 function generateInviteCode(): string {
@@ -374,6 +396,11 @@ export class MemStorage implements IStorage {
   private communityComments: Map<string, StoredCommunityComment> = new Map();
   private communityVotes: Map<string, StoredCommunityVote> = new Map();
   private dailyDrop: DailyDrop;
+  // Admin data
+  private adminScenarios: Map<string, AdminScenario> = new Map();
+  private moderators: Map<string, Moderator> = new Map();
+  private bannedUsers: Map<string, BannedUser> = new Map();
+  private adminUserIds: Set<string> = new Set(["admin"]); // Default admin user
 
   constructor() {
     this.dailyDrop = {
@@ -1374,6 +1401,141 @@ export class MemStorage implements IStorage {
     }
 
     return scenarios.slice(0, 3); // Return top 3
+  }
+
+  // Admin methods implementation
+  async isAdmin(userId: string): Promise<boolean> {
+    return this.adminUserIds.has(userId);
+  }
+
+  async isModerator(userId: string): Promise<boolean> {
+    return this.moderators.has(userId) || this.adminUserIds.has(userId);
+  }
+
+  async getModerators(): Promise<Moderator[]> {
+    return Array.from(this.moderators.values());
+  }
+
+  async addModerator(userId: string, assignedBy: string): Promise<Moderator | undefined> {
+    const user = this.users.get(userId);
+    if (!user) return undefined;
+    if (this.moderators.has(userId)) return this.moderators.get(userId);
+
+    const moderator: Moderator = {
+      userId,
+      username: user.username,
+      avatar: user.avatar,
+      assignedAt: new Date().toISOString(),
+      assignedBy,
+    };
+    this.moderators.set(userId, moderator);
+    return moderator;
+  }
+
+  async removeModerator(userId: string): Promise<boolean> {
+    return this.moderators.delete(userId);
+  }
+
+  async getBannedUsers(): Promise<BannedUser[]> {
+    return Array.from(this.bannedUsers.values());
+  }
+
+  async banUser(data: BanUser, bannedBy: string): Promise<BannedUser | undefined> {
+    const user = this.users.get(data.userId);
+    if (!user) return undefined;
+
+    const bannedByUser = this.users.get(bannedBy);
+    const bannedUser: BannedUser = {
+      userId: data.userId,
+      username: user.username,
+      avatar: user.avatar,
+      reason: data.reason,
+      bannedAt: new Date().toISOString(),
+      bannedBy,
+      bannedByUsername: bannedByUser?.username || "Admin",
+    };
+    this.bannedUsers.set(data.userId, bannedUser);
+    return bannedUser;
+  }
+
+  async unbanUser(userId: string): Promise<boolean> {
+    return this.bannedUsers.delete(userId);
+  }
+
+  async isUserBanned(userId: string): Promise<boolean> {
+    return this.bannedUsers.has(userId);
+  }
+
+  async getAdminScenarios(): Promise<AdminScenario[]> {
+    return Array.from(this.adminScenarios.values()).sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  }
+
+  async getAdminScenario(scenarioId: string): Promise<AdminScenario | undefined> {
+    return this.adminScenarios.get(scenarioId);
+  }
+
+  async createAdminScenario(userId: string, data: CreateAdminScenario): Promise<AdminScenario> {
+    const now = new Date().toISOString();
+    const scenario: AdminScenario = {
+      id: randomUUID(),
+      title: data.title,
+      context: data.context,
+      question: data.question,
+      choices: data.choices,
+      category: data.category,
+      difficulty: data.difficulty,
+      publishDate: data.publishDate,
+      status: data.status,
+      createdBy: userId,
+      createdAt: now,
+      updatedAt: now,
+      deepDive: data.deepDive || null,
+    };
+    this.adminScenarios.set(scenario.id, scenario);
+    return scenario;
+  }
+
+  async updateAdminScenario(scenarioId: string, data: Partial<CreateAdminScenario>): Promise<AdminScenario | undefined> {
+    const scenario = this.adminScenarios.get(scenarioId);
+    if (!scenario) return undefined;
+
+    const updated: AdminScenario = {
+      ...scenario,
+      ...data,
+      updatedAt: new Date().toISOString(),
+    };
+    this.adminScenarios.set(scenarioId, updated);
+    return updated;
+  }
+
+  async deleteAdminScenario(scenarioId: string): Promise<boolean> {
+    return this.adminScenarios.delete(scenarioId);
+  }
+
+  async publishAdminScenario(scenarioId: string): Promise<AdminScenario | undefined> {
+    const scenario = this.adminScenarios.get(scenarioId);
+    if (!scenario) return undefined;
+
+    const updated: AdminScenario = {
+      ...scenario,
+      status: "published",
+      publishDate: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    this.adminScenarios.set(scenarioId, updated);
+    return updated;
+  }
+
+  async getAllUsersForAdmin(): Promise<Pick<User, "id" | "username" | "avatar" | "moneyHealth" | "gamesPlayed">[]> {
+    return Array.from(this.users.values()).map(user => ({
+      id: user.id,
+      username: user.username,
+      avatar: user.avatar,
+      moneyHealth: user.moneyHealth,
+      gamesPlayed: user.gamesPlayed,
+    }));
   }
 }
 
