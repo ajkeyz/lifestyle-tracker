@@ -36,6 +36,7 @@ Key pages:
 - Results (`/results`) - Score breakdown, sharing
 - Leaderboard (`/leaderboard`) - Friend rankings
 - Leagues (`/leagues`) - Friend leagues with weekly competitions, create/join/leave leagues
+- Challenges (`/challenges`) - Challenge friends to compare Money Health, streak, or accuracy; includes trash talk presets and badge rewards
 
 ### Backend Architecture
 - **Framework**: Express 5 on Node.js
@@ -55,6 +56,10 @@ Key endpoints:
 - `POST /api/leagues` - Create a new league
 - `POST /api/leagues/join` - Join a league by invite code
 - `POST /api/leagues/:id/leave` - Leave a league
+- `GET /api/friends` - Get user's friends for challenge selection
+- `GET /api/challenges` - Get user's challenges (sent and received)
+- `POST /api/challenges` - Create a new challenge
+- `POST /api/challenges/:id/respond` - Accept or decline a challenge
 
 ### Data Storage
 - **ORM**: Drizzle ORM with PostgreSQL dialect
@@ -68,6 +73,7 @@ Data models:
 - Scenario (id, category, context, question, choices with feedback)
 - League (id, name, emoji/icon, privacy, inviteCode, createdBy, members, weekStartDate, previousWeekWinner)
 - LeagueMember (userId, username, avatar, weeklyScore, weeklyRank, isWeeklyWinner)
+- Challenge (id, challengerId, challengeeId, type [money_health/streak/accuracy], trashTalk, customMessage, status [pending/accepted/completed/expired/declined], winnerId, badgeAwarded, createdAt)
 
 ### Shared Code
 - `shared/schema.ts` - TypeScript interfaces and Zod validation schemas
