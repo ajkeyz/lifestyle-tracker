@@ -363,6 +363,7 @@ export class MemStorage implements IStorage {
         perfectGames: 0,
         scamStreak: 0,
         hadPreviousStreak: false,
+        lowPressureMode: false,
       });
     });
   }
@@ -398,6 +399,7 @@ export class MemStorage implements IStorage {
         perfectGames: 0,
         scamStreak: 0,
         hadPreviousStreak: false,
+        lowPressureMode: false,
       };
       this.users.set(sessionId, user);
     }

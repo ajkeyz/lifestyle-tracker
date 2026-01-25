@@ -177,6 +177,30 @@ export async function registerRoutes(
     }
   });
 
+  // Low pressure mode toggle
+  app.post("/api/low-pressure-mode", async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const { enabled } = req.body;
+      
+      if (typeof enabled !== "boolean") {
+        return res.status(400).json({ error: "Invalid request" });
+      }
+
+      const user = await storage.updateUser(sessionId, {
+        lowPressureMode: enabled,
+      });
+      
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      res.json(user);
+    } catch (error) {
+      console.error("Error toggling low pressure mode:", error);
+      res.status(500).json({ error: "Failed to update settings" });
+    }
+  });
+
   // League routes
   app.get("/api/leagues", async (req: Request, res: Response) => {
     try {

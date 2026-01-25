@@ -22,7 +22,8 @@ import {
   Users,
   Swords,
   Award,
-  CalendarDays
+  CalendarDays,
+  Settings
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -133,6 +134,9 @@ export default function Home() {
                 <AvatarImage src={authUser.profileImageUrl || undefined} alt={authUser.firstName || "User"} />
                 <AvatarFallback>{authUser.firstName?.[0] || authUser.email?.[0] || "U"}</AvatarFallback>
               </Avatar>
+              <Button variant="ghost" size="icon" onClick={() => navigate("/settings")} data-testid="button-settings">
+                <Settings className="w-4 h-4" />
+              </Button>
               <Button variant="ghost" size="icon" onClick={() => logout()} data-testid="button-logout">
                 <LogOut className="w-4 h-4" />
               </Button>
@@ -238,74 +242,78 @@ export default function Home() {
               </div>
             </Card>
 
-            {/* Friend League Preview */}
-            <Card className="p-4" data-testid="card-friend-league-preview">
-              <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <Users className="w-5 h-5 text-accent" />
-                  <h3 className="font-semibold">Friend Leagues</h3>
-                </div>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="gap-1"
-                  onClick={() => navigate("/leagues")}
-                  data-testid="button-view-leagues"
-                >
-                  Manage Leagues
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <Trophy className="w-6 h-6 text-accent" />
-                  <div>
-                    <p className="text-2xl font-bold" data-testid="text-user-rank">
-                      {displayRank ? `#${displayRank}` : "—"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Your rank</p>
+            {/* Friend League Preview - hidden in low pressure mode */}
+            {!user.lowPressureMode && (
+              <Card className="p-4" data-testid="card-friend-league-preview">
+                <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <Users className="w-5 h-5 text-accent" />
+                    <h3 className="font-semibold">Friend Leagues</h3>
                   </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="gap-1"
+                    onClick={() => navigate("/leagues")}
+                    data-testid="button-view-leagues"
+                  >
+                    Manage Leagues
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
                 </div>
-                {leaderboard && leaderboard.length > 0 && (
-                  <div className="flex-1 flex items-center gap-1 overflow-x-auto">
-                    {leaderboard.slice(0, 5).map((entry, i) => (
-                      <div 
-                        key={entry.id} 
-                        className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
-                          entry.id === user.id 
-                            ? "bg-primary text-primary-foreground" 
-                            : "bg-muted text-muted-foreground"
-                        }`}
-                        title={entry.username}
-                        data-testid={`avatar-rank-${i + 1}`}
-                      >
-                        {i + 1}
-                      </div>
-                    ))}
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <Trophy className="w-6 h-6 text-accent" />
+                    <div>
+                      <p className="text-2xl font-bold" data-testid="text-user-rank">
+                        {displayRank ? `#${displayRank}` : "—"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Your rank</p>
+                    </div>
                   </div>
-                )}
-              </div>
-            </Card>
+                  {leaderboard && leaderboard.length > 0 && (
+                    <div className="flex-1 flex items-center gap-1 overflow-x-auto">
+                      {leaderboard.slice(0, 5).map((entry, i) => (
+                        <div 
+                          key={entry.id} 
+                          className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                            entry.id === user.id 
+                              ? "bg-primary text-primary-foreground" 
+                              : "bg-muted text-muted-foreground"
+                          }`}
+                          title={entry.username}
+                          data-testid={`avatar-rank-${i + 1}`}
+                        >
+                          {i + 1}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </Card>
+            )}
 
-            {/* Challenge a Friend */}
-            <Card 
-              className="p-4 cursor-pointer" 
-              onClick={() => navigate("/challenges")}
-              data-testid="card-challenge-friend"
-            >
-              <div className="flex items-center justify-between gap-3 flex-wrap">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent to-primary flex items-center justify-center">
-                    <Swords className="w-5 h-5 text-primary-foreground" />
+            {/* Challenge a Friend - hidden in low pressure mode */}
+            {!user.lowPressureMode && (
+              <Card 
+                className="p-4 cursor-pointer" 
+                onClick={() => navigate("/challenges")}
+                data-testid="card-challenge-friend"
+              >
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent to-primary flex items-center justify-center">
+                      <Swords className="w-5 h-5 text-primary-foreground" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">Challenge a Friend</h3>
+                      <p className="text-xs text-muted-foreground">See who's got better money moves</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold">Challenge a Friend</h3>
-                    <p className="text-xs text-muted-foreground">See who's got better money moves</p>
-                  </div>
+                  <ChevronRight className="w-5 h-5 text-muted-foreground" />
                 </div>
-                <ChevronRight className="w-5 h-5 text-muted-foreground" />
-              </div>
-            </Card>
+              </Card>
+            )}
 
             {/* Achievements */}
             <Card 

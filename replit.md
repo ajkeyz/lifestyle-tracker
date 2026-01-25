@@ -34,6 +34,7 @@ Key pages:
 - Home (`/`) - Daily drop info, streak, play button (after auth)
 - Deep Dive (`/deep-dive`) - Post-game explanations for each scenario
 - Weekly Recap (`/weekly-recap`) - Spotify Wrapped-style weekly summary with best/worst decisions, improvement areas, league rank, funny title
+- Settings (`/settings`) - Low Pressure Mode toggle and app settings
 - Game (`/play`) - Timed scenario questions
 - Results (`/results`) - Score breakdown, sharing
 - Leaderboard (`/leaderboard`) - Friend rankings
@@ -68,6 +69,7 @@ Key endpoints:
 - `POST /api/use-freeze` - Use a freeze token to protect streak
 - `POST /api/add-freeze-token` - Add freeze tokens to user account
 - `GET /api/badges` - Get user's badge/achievement progress
+- `POST /api/low-pressure-mode` - Toggle low pressure mode on/off
 
 ### Data Storage
 - **ORM**: Drizzle ORM with PostgreSQL dialect

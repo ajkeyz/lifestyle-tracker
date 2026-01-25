@@ -20,6 +20,7 @@ import SharePage from "@/pages/share";
 import Achievements from "@/pages/achievements";
 import DeepDive from "@/pages/deep-dive";
 import WeeklyRecap from "@/pages/weekly-recap";
+import Settings from "@/pages/settings";
 import NotFound from "@/pages/not-found";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -40,6 +41,7 @@ function AuthenticatedRouter() {
       <Route path="/achievements" component={Achievements} />
       <Route path="/deep-dive" component={DeepDive} />
       <Route path="/weekly-recap" component={WeeklyRecap} />
+      <Route path="/settings" component={Settings} />
       <Route component={NotFound} />
     </Switch>
   );

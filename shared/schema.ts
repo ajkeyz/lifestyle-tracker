@@ -80,6 +80,7 @@ export interface User {
   perfectGames: number;
   scamStreak: number;
   hadPreviousStreak: boolean;
+  lowPressureMode: boolean;
 }
 
 export const setModeSchema = z.object({
