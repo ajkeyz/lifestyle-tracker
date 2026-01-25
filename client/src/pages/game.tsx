@@ -36,8 +36,8 @@ export default function Game() {
       const res = await apiRequest("POST", "/api/submit-game", data);
       return res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+    onSuccess: async () => {
+      await queryClient.refetchQueries({ queryKey: ["/api/user"] });
       queryClient.invalidateQueries({ queryKey: ["/api/leaderboard"] });
       navigate("/results");
     },
