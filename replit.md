@@ -24,6 +24,7 @@ Preferred communication style: Simple, everyday language.
 - **Styling**: Tailwind CSS with shadcn/ui component library
 - **Build Tool**: Vite with custom plugins for Replit integration
 - **Theme**: Dark/light mode support with CSS custom properties
+- **Animations**: Framer Motion for page transitions, staggered animations, and micro-interactions
 
 Key pages:
 - Auth (`/`) - Sign-in page with Replit Auth (Apple, Google, Email)

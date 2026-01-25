@@ -29,7 +29,7 @@ export function AnimatedCard({
       onClick={onClick}
       className={onClick ? "cursor-pointer" : undefined}
     >
-      <Card className={cn(hoverEffect && "transition-shadow hover:shadow-md", className)} data-testid={dataTestId}>
+      <Card className={cn(hoverEffect && "hover-elevate", className)} data-testid={dataTestId}>
         {children}
       </Card>
     </motion.div>

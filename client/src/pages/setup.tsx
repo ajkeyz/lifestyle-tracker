@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -127,98 +128,143 @@ export default function Setup() {
       </header>
 
       <main className="container max-w-2xl mx-auto p-4 space-y-6">
-        <div className="text-center py-6">
+        <motion.div 
+          className="text-center py-6"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+        >
           <h1 className="text-2xl md:text-3xl font-bold mb-2" data-testid="text-setup-title">
             Choose Your Mode
           </h1>
           <p className="text-muted-foreground" data-testid="text-setup-description">
             Pick a scenario style that matches your life
           </p>
-        </div>
+        </motion.div>
 
-        <div className="space-y-3">
+        <motion.div 
+          className="space-y-3"
+          initial="hidden"
+          animate="visible"
+          variants={{
+            hidden: { opacity: 0 },
+            visible: {
+              opacity: 1,
+              transition: { staggerChildren: 0.1, delayChildren: 0.2 }
+            }
+          }}
+        >
           {modes.map((mode) => {
             const Icon = mode.icon;
             const isSelected = selectedMode === mode.id;
 
             return (
-              <Card
+              <motion.div
                 key={mode.id}
-                className={cn(
-                  "p-4 cursor-pointer transition-all border-2",
-                  isSelected
-                    ? "border-primary bg-primary/5"
-                    : "border-transparent hover-elevate"
-                )}
-                onClick={() => setSelectedMode(mode.id)}
-                data-testid={`card-mode-${mode.id}`}
+                variants={{
+                  hidden: { opacity: 0, x: -20 },
+                  visible: { opacity: 1, x: 0 }
+                }}
+                transition={{ duration: 0.3 }}
+                whileTap={{ scale: 0.98 }}
               >
-                <div className="flex items-start gap-4">
-                  <div
-                    className={cn(
-                      "w-12 h-12 rounded-md flex items-center justify-center flex-shrink-0 bg-gradient-to-br",
-                      mode.gradient
-                    )}
-                  >
-                    <Icon className="w-6 h-6 text-white" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-semibold" data-testid={`text-mode-title-${mode.id}`}>
-                        {mode.title}
-                      </h3>
-                      {isSelected && (
-                        <Check className="w-4 h-4 text-primary" />
+                <Card
+                  className={cn(
+                    "p-4 cursor-pointer transition-all border-2",
+                    isSelected
+                      ? "border-primary bg-primary/5"
+                      : "border-transparent hover-elevate"
+                  )}
+                  onClick={() => setSelectedMode(mode.id)}
+                  data-testid={`card-mode-${mode.id}`}
+                >
+                  <div className="flex items-start gap-4">
+                    <motion.div
+                      className={cn(
+                        "w-12 h-12 rounded-md flex items-center justify-center flex-shrink-0 bg-gradient-to-br",
+                        mode.gradient
                       )}
+                      animate={isSelected ? { scale: [1, 1.1, 1] } : {}}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <Icon className="w-6 h-6 text-white" />
+                    </motion.div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-semibold" data-testid={`text-mode-title-${mode.id}`}>
+                          {mode.title}
+                        </h3>
+                        {isSelected && (
+                          <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ type: "spring", stiffness: 300 }}
+                          >
+                            <Check className="w-4 h-4 text-primary" />
+                          </motion.div>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1" data-testid={`text-mode-description-${mode.id}`}>
+                        {mode.description}
+                      </p>
+                      <p className="text-xs text-accent mt-2" data-testid={`text-mode-bestfor-${mode.id}`}>
+                        Best for: {mode.bestFor}
+                      </p>
                     </div>
-                    <p className="text-sm text-muted-foreground mt-1" data-testid={`text-mode-description-${mode.id}`}>
-                      {mode.description}
-                    </p>
-                    <p className="text-xs text-primary mt-2" data-testid={`text-mode-bestfor-${mode.id}`}>
-                      Best for: {mode.bestFor}
-                    </p>
+                    <Button
+                      size="sm"
+                      variant={isSelected ? "default" : "outline"}
+                      className="flex-shrink-0 self-center"
+                      data-testid={`button-select-${mode.id}`}
+                    >
+                      {isSelected ? (
+                        <>
+                          <Check className="w-3 h-3 mr-1" />
+                          Selected
+                        </>
+                      ) : (
+                        "Select"
+                      )}
+                    </Button>
                   </div>
-                  <Button
-                    size="sm"
-                    variant={isSelected ? "default" : "outline"}
-                    className="flex-shrink-0 self-center"
-                    data-testid={`button-select-${mode.id}`}
-                  >
-                    {isSelected ? (
-                      <>
-                        <Check className="w-3 h-3 mr-1" />
-                        Selected
-                      </>
-                    ) : (
-                      "Select"
-                    )}
-                  </Button>
-                </div>
-              </Card>
+                </Card>
+              </motion.div>
             );
           })}
-        </div>
+        </motion.div>
 
-        <Button
-          size="lg"
-          className="w-full h-14 text-lg font-semibold"
-          disabled={!selectedMode || setModeMutation.isPending}
-          onClick={handleContinue}
-          data-testid="button-continue"
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.8 }}
         >
-          {setModeMutation.isPending ? (
-            "Setting up..."
-          ) : (
-            <>
-              Continue
-              <ChevronRight className="w-5 h-5 ml-2" />
-            </>
-          )}
-        </Button>
+          <Button
+            size="lg"
+            className="w-full h-14 text-lg font-semibold"
+            disabled={!selectedMode || setModeMutation.isPending}
+            onClick={handleContinue}
+            data-testid="button-continue"
+          >
+            {setModeMutation.isPending ? (
+              "Setting up..."
+            ) : (
+              <>
+                Continue
+                <ChevronRight className="w-5 h-5 ml-2" />
+              </>
+            )}
+          </Button>
+        </motion.div>
 
-        <p className="text-center text-xs text-muted-foreground" data-testid="text-mode-note">
+        <motion.p 
+          className="text-center text-xs text-muted-foreground" 
+          data-testid="text-mode-note"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4, delay: 1 }}
+        >
           You can change your mode anytime from settings
-        </p>
+        </motion.p>
       </main>
     </div>
   );
