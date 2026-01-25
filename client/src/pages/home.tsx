@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FriendLeague } from "@/components/leaderboard-card";
@@ -18,6 +19,12 @@ export default function Home() {
   const { data: user, isLoading: userLoading } = useQuery<User>({
     queryKey: ["/api/user"],
   });
+
+  useEffect(() => {
+    if (user && !user.profileSetupComplete) {
+      navigate("/profile-setup");
+    }
+  }, [user, navigate]);
 
   const { data: dailyDrop, isLoading: dropLoading } = useQuery<DailyDrop>({
     queryKey: ["/api/daily-drop"],

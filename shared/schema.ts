@@ -44,6 +44,11 @@ export interface UserGameResult {
 export interface User {
   id: string;
   username: string;
+  avatar: string;
+  bio: string;
+  allowFriendsToFind: boolean;
+  isProfilePrivate: boolean;
+  profileSetupComplete: boolean;
   mode: GameMode | null;
   streak: number;
   moneyHealth: number;
@@ -71,6 +76,16 @@ export interface LeaderboardEntry {
 export const createUserSchema = z.object({
   username: z.string().min(1).max(20),
 });
+
+export const updateProfileSchema = z.object({
+  username: z.string().min(3).max(20).regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores"),
+  avatar: z.string(),
+  bio: z.string().max(100).optional().default(""),
+  allowFriendsToFind: z.boolean(),
+  isProfilePrivate: z.boolean(),
+});
+
+export type UpdateProfile = z.infer<typeof updateProfileSchema>;
 
 export const submitAnswerSchema = z.object({
   scenarioId: z.string(),

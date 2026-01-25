@@ -216,6 +216,7 @@ export interface IStorage {
   getUser(sessionId: string): Promise<User | undefined>;
   getOrCreateUser(sessionId: string): Promise<User>;
   updateUser(sessionId: string, updates: Partial<User>): Promise<User | undefined>;
+  checkUsernameAvailable(username: string, excludeUserId?: string): Promise<boolean>;
   getDailyDrop(): Promise<DailyDrop>;
   submitGame(sessionId: string, submission: SubmitGame): Promise<UserGameResult>;
   getLeaderboard(): Promise<LeaderboardEntry[]>;
@@ -239,11 +240,17 @@ export class MemStorage implements IStorage {
   private seedLeaderboard() {
     const names = ["Jade", "Sipho", "Max", "Luna", "Kai"];
     const modes: GameMode[] = ["tech", "global", "scam", "student", "boss"];
+    const avatars = ["cat", "dog", "bird", "robot", "ghost"];
     names.forEach((name, i) => {
       const id = `seed-${i}`;
       this.users.set(id, {
         id,
         username: name,
+        avatar: avatars[i],
+        bio: "",
+        allowFriendsToFind: true,
+        isProfilePrivate: false,
+        profileSetupComplete: true,
         mode: modes[i % modes.length],
         streak: Math.floor(Math.random() * 15) + 1,
         moneyHealth: 90 - i * 8,
@@ -272,6 +279,11 @@ export class MemStorage implements IStorage {
       user = {
         id: sessionId,
         username: `Player${Math.floor(Math.random() * 9999)}`,
+        avatar: "cat",
+        bio: "",
+        allowFriendsToFind: true,
+        isProfilePrivate: false,
+        profileSetupComplete: false,
         mode: null,
         streak: 0,
         moneyHealth: 50,
@@ -284,6 +296,18 @@ export class MemStorage implements IStorage {
       this.users.set(sessionId, user);
     }
     return user;
+  }
+
+  async checkUsernameAvailable(username: string, excludeUserId?: string): Promise<boolean> {
+    const lowerUsername = username.toLowerCase();
+    const entries = Array.from(this.users.entries());
+    for (const [id, user] of entries) {
+      if (excludeUserId && id === excludeUserId) continue;
+      if (user.username.toLowerCase() === lowerUsername) {
+        return false;
+      }
+    }
+    return true;
   }
 
   async updateUser(sessionId: string, updates: Partial<User>): Promise<User | undefined> {

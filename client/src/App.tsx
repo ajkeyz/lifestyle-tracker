@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { useAuth } from "@/hooks/use-auth";
 import Home from "@/pages/home";
 import AuthPage from "@/pages/auth";
+import ProfileSetup from "@/pages/profile-setup";
 import Setup from "@/pages/setup";
 import Game from "@/pages/game";
 import Results from "@/pages/results";
@@ -18,6 +19,7 @@ function AuthenticatedRouter() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/profile-setup" component={ProfileSetup} />
       <Route path="/setup" component={Setup} />
       <Route path="/play" component={Game} />
       <Route path="/results" component={Results} />
