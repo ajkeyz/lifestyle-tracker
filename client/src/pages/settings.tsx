@@ -16,7 +16,8 @@ import {
   HelpCircle,
   ChevronRight,
   Bell,
-  Shield
+  Shield,
+  Settings2
 } from "lucide-react";
 import type { User } from "@shared/schema";
 
@@ -26,6 +27,10 @@ export default function Settings() {
 
   const { data: user, isLoading } = useQuery<User>({
     queryKey: ["/api/user"],
+  });
+
+  const { data: adminCheck } = useQuery<{ isAdmin: boolean; isModerator: boolean; hasAccess: boolean }>({
+    queryKey: ["/api/admin/check"],
   });
 
   const toggleLowPressureMode = useMutation({
@@ -218,6 +223,31 @@ export default function Settings() {
             </div>
           </CardHeader>
         </Card>
+
+        {adminCheck?.hasAccess && (
+          <Card 
+            className="cursor-pointer"
+            onClick={() => navigate("/admin")}
+            data-testid="card-admin"
+          >
+            <CardHeader>
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center">
+                    <Settings2 className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">Admin Dashboard</CardTitle>
+                    <CardDescription>
+                      {adminCheck.isAdmin ? "Super Admin" : "Moderator"} access
+                    </CardDescription>
+                  </div>
+                </div>
+                <ChevronRight className="w-5 h-5 text-muted-foreground" />
+              </div>
+            </CardHeader>
+          </Card>
+        )}
       </main>
     </div>
   );
