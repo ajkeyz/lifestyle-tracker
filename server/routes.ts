@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { submitGameSchema, setModeSchema, updateProfileSchema, createLeagueSchema, joinLeagueSchema } from "@shared/schema";
+import { submitGameSchema, setModeSchema, updateProfileSchema, createLeagueSchema, joinLeagueSchema, createChallengeSchema } from "@shared/schema";
 
 declare module "express-session" {
   interface SessionData {
@@ -253,6 +253,73 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error leaving league:", error);
       res.status(500).json({ error: "Failed to leave league" });
+    }
+  });
+
+  // Challenge routes
+  app.get("/api/friends", async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const friends = await storage.getFriends(sessionId);
+      res.json(friends.map(f => ({
+        id: f.id,
+        username: f.username,
+        avatar: f.avatar,
+        moneyHealth: f.moneyHealth,
+        streak: f.streak,
+      })));
+    } catch (error) {
+      console.error("Error getting friends:", error);
+      res.status(500).json({ error: "Failed to get friends" });
+    }
+  });
+
+  app.get("/api/challenges", async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const challenges = await storage.getUserChallenges(sessionId);
+      res.json(challenges);
+    } catch (error) {
+      console.error("Error getting challenges:", error);
+      res.status(500).json({ error: "Failed to get challenges" });
+    }
+  });
+
+  app.post("/api/challenges", async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const parsed = createChallengeSchema.safeParse(req.body);
+      
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid challenge data", details: parsed.error });
+      }
+
+      const challenge = await storage.createChallenge(sessionId, parsed.data);
+      res.json(challenge);
+    } catch (error) {
+      console.error("Error creating challenge:", error);
+      res.status(500).json({ error: "Failed to create challenge" });
+    }
+  });
+
+  app.post("/api/challenges/:id/respond", async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const challengeId = req.params.id as string;
+      const { accept } = req.body;
+      
+      if (typeof accept !== "boolean") {
+        return res.status(400).json({ error: "Accept must be a boolean" });
+      }
+
+      const challenge = await storage.respondToChallenge(challengeId, sessionId, accept);
+      if (!challenge) {
+        return res.status(404).json({ error: "Challenge not found or not authorized" });
+      }
+      res.json(challenge);
+    } catch (error) {
+      console.error("Error responding to challenge:", error);
+      res.status(500).json({ error: "Failed to respond to challenge" });
     }
   });
 
