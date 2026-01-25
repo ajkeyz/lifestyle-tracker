@@ -27,7 +27,8 @@ import {
   CalendarDays,
   Settings,
   MessageSquare,
-  BarChart3
+  BarChart3,
+  RefreshCw
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -53,6 +54,19 @@ const DAILY_TIPS = [
   "An emergency fund is peace of mind, not wasted money.",
   "Compare cost-per-use, not just price tags.",
 ];
+
+const COMEBACK_MESSAGES = [
+  { title: "Welcome back!", message: "Every expert was once a beginner. Pick up where you left off." },
+  { title: "Fresh start!", message: "Missing a day doesn't erase your progress. Your knowledge stays with you." },
+  { title: "Ready to rebuild?", message: "The best time to start was yesterday. The second best time is now." },
+  { title: "You've got this!", message: "Streaks come and go, but financial wisdom is forever." },
+  { title: "Back in action!", message: "Today is a new opportunity to make smart money moves." },
+];
+
+function getComebackMessage(highestStreak: number) {
+  const index = highestStreak % COMEBACK_MESSAGES.length;
+  return COMEBACK_MESSAGES[index];
+}
 
 function getTimeUntilMidnightUTC(): { hours: number; minutes: number; seconds: number } {
   const now = new Date();
@@ -233,6 +247,36 @@ export default function Home() {
               </div>
             </Card>
             </motion.div>
+
+            {/* Comeback Encouragement - show when streak is 0 but user has played before */}
+            {user.streak === 0 && user.highestStreak > 0 && !hasPlayedToday && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.05, ease: "easeOut" }}
+              >
+                <Card className="p-4 border-accent/30 bg-accent/5" data-testid="card-comeback">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0">
+                      <RefreshCw className="w-5 h-5 text-accent" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold" data-testid="text-comeback-title">
+                        {getComebackMessage(user.highestStreak).title}
+                      </h3>
+                      <p className="text-sm text-muted-foreground" data-testid="text-comeback-message">
+                        {getComebackMessage(user.highestStreak).message}
+                      </p>
+                      {user.highestStreak >= 7 && (
+                        <p className="text-xs text-accent mt-2" data-testid="text-comeback-streak">
+                          Your best streak was {user.highestStreak} days — you can get there again!
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              </motion.div>
+            )}
 
             {/* Today's Theme */}
             <motion.div
