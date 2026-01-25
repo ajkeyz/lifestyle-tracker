@@ -17,7 +17,7 @@ import type {
   UserBadge,
   BadgeId,
 } from "@shared/schema";
-import { BADGE_DEFINITIONS, defaultNotificationPrefs } from "@shared/schema";
+import { BADGE_DEFINITIONS, defaultNotificationPrefs, defaultStreakInsurance } from "@shared/schema";
 import { randomUUID } from "crypto";
 
 const sampleScenarios: Scenario[] = [
@@ -281,6 +281,10 @@ export interface IStorage {
   // Badge methods
   getBadges(userId: string): Promise<UserBadge[]>;
   updateBadgeProgress(userId: string, badgeId: BadgeId, progress: number): Promise<UserBadge | undefined>;
+  // Streak Insurance methods
+  useStreakBuyback(userId: string): Promise<{ success: boolean; message: string; restoredStreak?: number }>;
+  useLatePass(userId: string): Promise<{ success: boolean; message: string; drop?: DailyDrop }>;
+  togglePlusStatus(userId: string, isPlus: boolean): Promise<User | undefined>;
 }
 
 function generateInviteCode(): string {
@@ -365,6 +369,7 @@ export class MemStorage implements IStorage {
         hadPreviousStreak: false,
         lowPressureMode: false,
         notificationPrefs: { ...defaultNotificationPrefs },
+        streakInsurance: { ...defaultStreakInsurance, isPlus: i < 2 },
       });
     });
   }
@@ -402,6 +407,7 @@ export class MemStorage implements IStorage {
         hadPreviousStreak: false,
         lowPressureMode: false,
         notificationPrefs: { ...defaultNotificationPrefs },
+        streakInsurance: { ...defaultStreakInsurance },
       };
       this.users.set(sessionId, user);
     }
@@ -899,6 +905,106 @@ export class MemStorage implements IStorage {
 
     await this.updateUser(userId, { badges });
     return badges[badgeIndex];
+  }
+
+  async useStreakBuyback(userId: string): Promise<{ success: boolean; message: string; restoredStreak?: number }> {
+    const user = await this.getUser(userId);
+    if (!user) {
+      return { success: false, message: "User not found" };
+    }
+
+    if (!user.streakInsurance.isPlus) {
+      return { success: false, message: "Streak Buyback is a Plus feature" };
+    }
+
+    if (!user.streakInsurance.lostStreak || user.streakInsurance.lostStreak === 0) {
+      return { success: false, message: "No lost streak to restore" };
+    }
+
+    const today = getTodayDateString();
+    const currentMonth = today.slice(0, 7);
+    
+    if (user.streakInsurance.lastBuybackDate) {
+      const lastBuybackMonth = user.streakInsurance.lastBuybackDate.slice(0, 7);
+      if (lastBuybackMonth === currentMonth) {
+        return { success: false, message: "Buyback already used this month. Resets next month." };
+      }
+    }
+
+    const restoredStreak = user.streakInsurance.lostStreak;
+    
+    await this.updateUser(userId, {
+      streak: restoredStreak,
+      streakInsurance: {
+        ...user.streakInsurance,
+        lastBuybackDate: today,
+        lostStreak: null,
+        lostStreakDate: null,
+      },
+    });
+
+    return { 
+      success: true, 
+      message: `Streak restored to ${restoredStreak} days!`,
+      restoredStreak,
+    };
+  }
+
+  async useLatePass(userId: string): Promise<{ success: boolean; message: string; drop?: DailyDrop }> {
+    const user = await this.getUser(userId);
+    if (!user) {
+      return { success: false, message: "User not found" };
+    }
+
+    if (!user.streakInsurance.isPlus) {
+      return { success: false, message: "Late Pass is a Plus feature" };
+    }
+
+    if (!user.streakInsurance.latePassAvailable) {
+      return { success: false, message: "Late Pass not available. You need to have missed yesterday to use it." };
+    }
+
+    const today = getTodayDateString();
+    if (user.lastPlayedDate === today) {
+      return { success: false, message: "You've already played today" };
+    }
+
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split("T")[0];
+
+    const yesterdayDrop: DailyDrop = {
+      id: `yesterday-${yesterdayStr}`,
+      dropNumber: getDayNumber() - 1,
+      date: yesterdayStr,
+      scenarios: sampleScenarios,
+    };
+
+    await this.updateUser(userId, {
+      streakInsurance: {
+        ...user.streakInsurance,
+        latePassAvailable: false,
+      },
+    });
+
+    return { 
+      success: true, 
+      message: "Late Pass activated! Play yesterday's drop now.",
+      drop: yesterdayDrop,
+    };
+  }
+
+  async togglePlusStatus(userId: string, isPlus: boolean): Promise<User | undefined> {
+    const user = await this.getUser(userId);
+    if (!user) return undefined;
+
+    return this.updateUser(userId, {
+      streakInsurance: {
+        ...user.streakInsurance,
+        isPlus,
+      },
+      freezeTokens: isPlus ? Math.max(user.freezeTokens, 3) : user.freezeTokens,
+    });
   }
 }
 

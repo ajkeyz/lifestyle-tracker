@@ -426,5 +426,54 @@ export async function registerRoutes(
     }
   });
 
+  // Streak Insurance endpoints
+  app.post("/api/streak-buyback", async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const result = await storage.useStreakBuyback(sessionId);
+      if (!result.success) {
+        return res.status(400).json({ error: result.message });
+      }
+      res.json(result);
+    } catch (error) {
+      console.error("Error using streak buyback:", error);
+      res.status(500).json({ error: "Failed to use streak buyback" });
+    }
+  });
+
+  app.post("/api/late-pass", async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const result = await storage.useLatePass(sessionId);
+      if (!result.success) {
+        return res.status(400).json({ error: result.message });
+      }
+      res.json(result);
+    } catch (error) {
+      console.error("Error using late pass:", error);
+      res.status(500).json({ error: "Failed to use late pass" });
+    }
+  });
+
+  app.post("/api/toggle-plus", async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const { isPlus } = req.body;
+      
+      if (typeof isPlus !== "boolean") {
+        return res.status(400).json({ error: "isPlus must be a boolean" });
+      }
+
+      const user = await storage.togglePlusStatus(sessionId, isPlus);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      res.json(user);
+    } catch (error) {
+      console.error("Error toggling plus status:", error);
+      res.status(500).json({ error: "Failed to toggle plus status" });
+    }
+  });
+
   return httpServer;
 }

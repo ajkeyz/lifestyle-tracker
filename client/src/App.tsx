@@ -23,6 +23,7 @@ import WeeklyRecap from "@/pages/weekly-recap";
 import Settings from "@/pages/settings";
 import Help from "@/pages/help";
 import NotificationsPrefs from "@/pages/notifications-prefs";
+import StreakInsurance from "@/pages/streak-insurance";
 import NotFound from "@/pages/not-found";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -46,6 +47,7 @@ function AuthenticatedRouter() {
       <Route path="/settings" component={Settings} />
       <Route path="/help" component={Help} />
       <Route path="/notifications-prefs" component={NotificationsPrefs} />
+      <Route path="/streak-insurance" component={StreakInsurance} />
       <Route component={NotFound} />
     </Switch>
   );

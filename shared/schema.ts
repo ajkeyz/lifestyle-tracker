@@ -56,6 +56,22 @@ export interface StreakDay {
   score?: number;
 }
 
+export interface StreakInsurance {
+  isPlus: boolean;
+  lastBuybackDate: string | null;
+  lostStreak: number | null;
+  lostStreakDate: string | null;
+  latePassAvailable: boolean;
+}
+
+export const defaultStreakInsurance: StreakInsurance = {
+  isPlus: false,
+  lastBuybackDate: null,
+  lostStreak: null,
+  lostStreakDate: null,
+  latePassAvailable: false,
+};
+
 export interface User {
   id: string;
   username: string;
@@ -82,6 +98,7 @@ export interface User {
   hadPreviousStreak: boolean;
   lowPressureMode: boolean;
   notificationPrefs: NotificationPrefs;
+  streakInsurance: StreakInsurance;
 }
 
 export interface NotificationPrefs {

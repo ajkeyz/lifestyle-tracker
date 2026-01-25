@@ -72,6 +72,9 @@ Key endpoints:
 - `GET /api/badges` - Get user's badge/achievement progress
 - `POST /api/low-pressure-mode` - Toggle low pressure mode on/off
 - `POST /api/notification-prefs` - Update notification preferences
+- `POST /api/streak-buyback` - Restore lost streak (Plus only, once per month)
+- `POST /api/late-pass` - Play yesterday's drop (Plus only)
+- `POST /api/toggle-plus` - Toggle Plus membership status (demo)
 
 ### Data Storage
 - **ORM**: Drizzle ORM with PostgreSQL dialect

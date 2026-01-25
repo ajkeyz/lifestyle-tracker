@@ -15,7 +15,8 @@ import {
   BookOpen,
   HelpCircle,
   ChevronRight,
-  Bell
+  Bell,
+  Shield
 } from "lucide-react";
 import type { User } from "@shared/schema";
 
@@ -153,6 +154,27 @@ export default function Settings() {
               </div>
             </div>
           </CardContent>
+        </Card>
+
+        <Card 
+          className="cursor-pointer"
+          onClick={() => navigate("/streak-insurance")}
+          data-testid="card-streak-insurance"
+        >
+          <CardHeader>
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center">
+                  <Shield className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">Streak Insurance</CardTitle>
+                  <CardDescription>Protect and restore your streaks</CardDescription>
+                </div>
+              </div>
+              <ChevronRight className="w-5 h-5 text-muted-foreground" />
+            </div>
+          </CardHeader>
         </Card>
 
         <Card 
