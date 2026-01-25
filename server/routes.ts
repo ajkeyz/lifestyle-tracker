@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { submitGameSchema, setModeSchema, updateProfileSchema, createLeagueSchema, joinLeagueSchema, createChallengeSchema, addFreezeTokenSchema } from "@shared/schema";
+import { submitGameSchema, setModeSchema, updateProfileSchema, createLeagueSchema, joinLeagueSchema, createChallengeSchema, addFreezeTokenSchema, adminScenarioSchema, banUserSchema, addModeratorSchema } from "@shared/schema";
 
 declare module "express-session" {
   interface SessionData {
@@ -590,6 +590,230 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error getting realest of week:", error);
       res.status(500).json({ error: "Failed to get realest of week" });
+    }
+  });
+
+  // Admin routes
+  const requireAdmin = async (req: Request, res: Response, next: Function) => {
+    try {
+      const sessionId = getSessionId(req);
+      const isAdmin = await storage.isAdmin(sessionId);
+      const isMod = await storage.isModerator(sessionId);
+      if (!isAdmin && !isMod) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      next();
+    } catch (error) {
+      return res.status(500).json({ error: "Authorization check failed" });
+    }
+  };
+
+  const requireAdminOnly = async (req: Request, res: Response, next: Function) => {
+    try {
+      const sessionId = getSessionId(req);
+      const isAdmin = await storage.isAdmin(sessionId);
+      if (!isAdmin) {
+        return res.status(403).json({ error: "Super admin access required" });
+      }
+      next();
+    } catch (error) {
+      return res.status(500).json({ error: "Authorization check failed" });
+    }
+  };
+
+  // Check if user is admin
+  app.get("/api/admin/check", async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const isAdmin = await storage.isAdmin(sessionId);
+      const isModerator = await storage.isModerator(sessionId);
+      res.json({ isAdmin, isModerator, hasAccess: isAdmin || isModerator });
+    } catch (error) {
+      console.error("Error checking admin:", error);
+      res.status(500).json({ error: "Failed to check admin status" });
+    }
+  });
+
+  // Get all users for admin
+  app.get("/api/admin/users", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const users = await storage.getAllUsersForAdmin();
+      res.json(users);
+    } catch (error) {
+      console.error("Error getting users:", error);
+      res.status(500).json({ error: "Failed to get users" });
+    }
+  });
+
+  // Moderator management (admin only)
+  app.get("/api/admin/moderators", requireAdminOnly, async (req: Request, res: Response) => {
+    try {
+      const moderators = await storage.getModerators();
+      res.json(moderators);
+    } catch (error) {
+      console.error("Error getting moderators:", error);
+      res.status(500).json({ error: "Failed to get moderators" });
+    }
+  });
+
+  app.post("/api/admin/moderators", requireAdminOnly, async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const parsed = addModeratorSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
+      }
+      const moderator = await storage.addModerator(parsed.data.userId, sessionId);
+      if (!moderator) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      res.json(moderator);
+    } catch (error) {
+      console.error("Error adding moderator:", error);
+      res.status(500).json({ error: "Failed to add moderator" });
+    }
+  });
+
+  app.delete("/api/admin/moderators/:userId", requireAdminOnly, async (req: Request, res: Response) => {
+    try {
+      const userId = req.params.userId as string;
+      const success = await storage.removeModerator(userId);
+      if (!success) {
+        return res.status(404).json({ error: "Moderator not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error removing moderator:", error);
+      res.status(500).json({ error: "Failed to remove moderator" });
+    }
+  });
+
+  // Banned users management
+  app.get("/api/admin/banned", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const bannedUsers = await storage.getBannedUsers();
+      res.json(bannedUsers);
+    } catch (error) {
+      console.error("Error getting banned users:", error);
+      res.status(500).json({ error: "Failed to get banned users" });
+    }
+  });
+
+  app.post("/api/admin/ban", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const parsed = banUserSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
+      }
+      const bannedUser = await storage.banUser(parsed.data, sessionId);
+      if (!bannedUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      res.json(bannedUser);
+    } catch (error) {
+      console.error("Error banning user:", error);
+      res.status(500).json({ error: "Failed to ban user" });
+    }
+  });
+
+  app.post("/api/admin/unban/:userId", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const userId = req.params.userId as string;
+      const success = await storage.unbanUser(userId);
+      if (!success) {
+        return res.status(404).json({ error: "User not found in banned list" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error unbanning user:", error);
+      res.status(500).json({ error: "Failed to unban user" });
+    }
+  });
+
+  // Admin scenarios management
+  app.get("/api/admin/scenarios", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const scenarios = await storage.getAdminScenarios();
+      res.json(scenarios);
+    } catch (error) {
+      console.error("Error getting admin scenarios:", error);
+      res.status(500).json({ error: "Failed to get scenarios" });
+    }
+  });
+
+  app.get("/api/admin/scenarios/:id", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const scenarioId = req.params.id as string;
+      const scenario = await storage.getAdminScenario(scenarioId);
+      if (!scenario) {
+        return res.status(404).json({ error: "Scenario not found" });
+      }
+      res.json(scenario);
+    } catch (error) {
+      console.error("Error getting scenario:", error);
+      res.status(500).json({ error: "Failed to get scenario" });
+    }
+  });
+
+  app.post("/api/admin/scenarios", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const parsed = adminScenarioSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid scenario data", details: parsed.error.issues });
+      }
+      const scenario = await storage.createAdminScenario(sessionId, parsed.data);
+      res.json(scenario);
+    } catch (error) {
+      console.error("Error creating scenario:", error);
+      res.status(500).json({ error: "Failed to create scenario" });
+    }
+  });
+
+  app.patch("/api/admin/scenarios/:id", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const scenarioId = req.params.id as string;
+      const parsed = adminScenarioSchema.partial().safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid scenario data", details: parsed.error.issues });
+      }
+      const scenario = await storage.updateAdminScenario(scenarioId, parsed.data);
+      if (!scenario) {
+        return res.status(404).json({ error: "Scenario not found" });
+      }
+      res.json(scenario);
+    } catch (error) {
+      console.error("Error updating scenario:", error);
+      res.status(500).json({ error: "Failed to update scenario" });
+    }
+  });
+
+  app.delete("/api/admin/scenarios/:id", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const scenarioId = req.params.id as string;
+      const success = await storage.deleteAdminScenario(scenarioId);
+      if (!success) {
+        return res.status(404).json({ error: "Scenario not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting scenario:", error);
+      res.status(500).json({ error: "Failed to delete scenario" });
+    }
+  });
+
+  app.post("/api/admin/scenarios/:id/publish", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const scenarioId = req.params.id as string;
+      const scenario = await storage.publishAdminScenario(scenarioId);
+      if (!scenario) {
+        return res.status(404).json({ error: "Scenario not found" });
+      }
+      res.json(scenario);
+    } catch (error) {
+      console.error("Error publishing scenario:", error);
+      res.status(500).json({ error: "Failed to publish scenario" });
     }
   });
 
