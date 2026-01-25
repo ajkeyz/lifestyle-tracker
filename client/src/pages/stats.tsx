@@ -88,7 +88,7 @@ export default function Stats() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex items-center gap-2">
-          <BarChart3 className="h-5 w-5 text-primary" />
+          <BarChart3 className="h-5 w-5 text-blue-500" />
           <h1 className="font-bold text-lg" data-testid="text-page-title">Your Statistics</h1>
         </div>
       </header>
@@ -155,16 +155,16 @@ export default function Stats() {
         <Card data-testid="card-accuracy">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
-              <Zap className="w-4 h-4 text-primary" />
+              <Zap className="w-4 h-4 text-yellow-500" />
               Overall Accuracy
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-4">
               <div className="flex-1">
-                <Progress value={accuracyRate} className="h-3" />
+                <Progress value={accuracyRate} className="h-3" data-testid="progress-accuracy" />
               </div>
-              <span className="text-2xl font-bold">{accuracyRate}%</span>
+              <span className="text-2xl font-bold" data-testid="text-accuracy-rate">{accuracyRate}%</span>
             </div>
             <p className="text-sm text-muted-foreground mt-2">
               {user.perfectGames > 0 && `${user.perfectGames} perfect game${user.perfectGames > 1 ? 's' : ''} achieved`}
@@ -176,7 +176,7 @@ export default function Stats() {
           <Card data-testid="card-category-breakdown">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
-                <Award className="w-4 h-4 text-primary" />
+                <Award className="w-4 h-4 text-purple-500" />
                 Category Performance
               </CardTitle>
               <CardDescription>Your strengths and areas to improve</CardDescription>
@@ -209,7 +209,7 @@ export default function Stats() {
           <Card data-testid="card-recent-games">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-primary" />
+                <Calendar className="w-4 h-4 text-green-500" />
                 Recent Games
               </CardTitle>
               <CardDescription>Your last 7 games</CardDescription>
@@ -220,13 +220,14 @@ export default function Stats() {
                   <div 
                     key={`${game.date}-${index}`}
                     className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
+                    data-testid={`row-game-${index}`}
                   >
                     <div>
-                      <p className="font-medium text-sm">Drop #{game.dropNumber}</p>
+                      <p className="font-medium text-sm" data-testid={`text-drop-number-${index}`}>Drop #{game.dropNumber}</p>
                       <p className="text-xs text-muted-foreground">{game.date}</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold">{game.score} pts</p>
+                      <p className="font-bold" data-testid={`text-game-score-${index}`}>{game.score} pts</p>
                       <p className="text-xs text-muted-foreground">
                         {game.correctAnswers}/{game.totalQuestions} correct
                       </p>
