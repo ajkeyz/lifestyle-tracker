@@ -10,6 +10,9 @@ import type {
   League,
   LeagueMember,
   CreateLeague,
+  Challenge,
+  ChallengeType,
+  CreateChallenge,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -231,6 +234,12 @@ export interface IStorage {
   joinLeague(userId: string, inviteCode: string): Promise<League | undefined>;
   leaveLeague(userId: string, leagueId: string): Promise<boolean>;
   getUserLeagues(userId: string): Promise<League[]>;
+  // Challenge methods
+  createChallenge(challengerId: string, data: CreateChallenge): Promise<Challenge>;
+  getChallenge(challengeId: string): Promise<Challenge | undefined>;
+  getUserChallenges(userId: string): Promise<Challenge[]>;
+  respondToChallenge(challengeId: string, userId: string, accept: boolean): Promise<Challenge | undefined>;
+  getFriends(userId: string): Promise<User[]>;
 }
 
 function generateInviteCode(): string {
@@ -253,6 +262,7 @@ function getWeekStartDate(): string {
 export class MemStorage implements IStorage {
   private users: Map<string, User> = new Map();
   private leagues: Map<string, League> = new Map();
+  private challenges: Map<string, Challenge> = new Map();
   private dailyDrop: DailyDrop;
 
   constructor() {
@@ -558,6 +568,122 @@ export class MemStorage implements IStorage {
       }
     }
     return userLeagues;
+  }
+
+  async createChallenge(challengerId: string, data: CreateChallenge): Promise<Challenge> {
+    const challenger = await this.getUser(challengerId);
+    if (!challenger) throw new Error("Challenger not found");
+
+    const challengee = await this.getUser(data.challengeeId);
+    if (!challengee) throw new Error("Challengee not found");
+
+    let challengerValue = 0;
+    if (data.type === "money_health") {
+      challengerValue = challenger.moneyHealth;
+    } else if (data.type === "streak") {
+      challengerValue = challenger.streak;
+    } else if (data.type === "accuracy") {
+      challengerValue = challenger.todayResult ? Math.round((challenger.todayResult.score / 500) * 100) : 0;
+    }
+
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+
+    const challenge: Challenge = {
+      id: randomUUID(),
+      challengerId,
+      challengerUsername: challenger.username,
+      challengerAvatar: challenger.avatar,
+      challengeeId: data.challengeeId,
+      challengeeUsername: challengee.username,
+      challengeeAvatar: challengee.avatar,
+      type: data.type,
+      trashTalk: data.trashTalk,
+      customMessage: data.customMessage || null,
+      status: "pending",
+      challengerValue,
+      challengeeValue: null,
+      winnerId: null,
+      createdAt: new Date().toISOString(),
+      expiresAt: expiresAt.toISOString(),
+      completedAt: null,
+      badgeAwarded: null,
+    };
+
+    this.challenges.set(challenge.id, challenge);
+    return challenge;
+  }
+
+  async getChallenge(challengeId: string): Promise<Challenge | undefined> {
+    return this.challenges.get(challengeId);
+  }
+
+  async getUserChallenges(userId: string): Promise<Challenge[]> {
+    const userChallenges: Challenge[] = [];
+    const allChallenges = Array.from(this.challenges.values());
+    for (const challenge of allChallenges) {
+      if (challenge.challengerId === userId || challenge.challengeeId === userId) {
+        userChallenges.push(challenge);
+      }
+    }
+    return userChallenges.sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  }
+
+  async respondToChallenge(challengeId: string, userId: string, accept: boolean): Promise<Challenge | undefined> {
+    const challenge = this.challenges.get(challengeId);
+    if (!challenge) return undefined;
+    if (challenge.challengeeId !== userId) return undefined;
+    if (challenge.status !== "pending") return undefined;
+
+    if (!accept) {
+      challenge.status = "declined";
+      this.challenges.set(challengeId, challenge);
+      return challenge;
+    }
+
+    const challengee = await this.getUser(userId);
+    if (!challengee) return undefined;
+
+    let challengeeValue = 0;
+    if (challenge.type === "money_health") {
+      challengeeValue = challengee.moneyHealth;
+    } else if (challenge.type === "streak") {
+      challengeeValue = challengee.streak;
+    } else if (challenge.type === "accuracy") {
+      challengeeValue = challengee.todayResult ? Math.round((challengee.todayResult.score / 500) * 100) : 0;
+    }
+
+    challenge.status = "completed";
+    challenge.challengeeValue = challengeeValue;
+    challenge.completedAt = new Date().toISOString();
+
+    if (challengeeValue > challenge.challengerValue) {
+      challenge.winnerId = challenge.challengeeId;
+      if (challenge.type === "money_health") challenge.badgeAwarded = "money_master";
+      else if (challenge.type === "streak") challenge.badgeAwarded = "streak_keeper";
+      else if (challenge.type === "accuracy") challenge.badgeAwarded = "sharp_shooter";
+    } else if (challenge.challengerValue > challengeeValue) {
+      challenge.winnerId = challenge.challengerId;
+      if (challenge.type === "money_health") challenge.badgeAwarded = "money_master";
+      else if (challenge.type === "streak") challenge.badgeAwarded = "streak_keeper";
+      else if (challenge.type === "accuracy") challenge.badgeAwarded = "sharp_shooter";
+    }
+
+    this.challenges.set(challengeId, challenge);
+    return challenge;
+  }
+
+  async getFriends(userId: string): Promise<User[]> {
+    const friends: User[] = [];
+    const allUsers = Array.from(this.users.values());
+    for (const user of allUsers) {
+      if (user.id !== userId && user.allowFriendsToFind && user.profileSetupComplete) {
+        friends.push(user);
+      }
+    }
+    return friends;
   }
 }
 
