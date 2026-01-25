@@ -375,6 +375,103 @@ export const COMMUNITY_CATEGORIES = [
   { id: "relationships", label: "Friends & Family", icon: "users" },
 ] as const;
 
+// Admin types
+export type AdminScenarioStatus = "draft" | "published" | "archived";
+
+export interface AdminScenarioContext {
+  cash: number;
+  debt: number;
+  credit: number;
+  stress: number;
+  portfolio: number;
+}
+
+export interface AdminScenarioChoice {
+  label: "A" | "B" | "C" | "D";
+  text: string;
+  isCorrect: boolean;
+  points: number;
+  feedback: string;
+}
+
+export interface AdminScenario {
+  id: string;
+  title: string;
+  context: AdminScenarioContext;
+  question: string;
+  choices: AdminScenarioChoice[];
+  category: "tech" | "travel" | "lifestyle" | "scam" | "investing" | "debt" | "career" | "relationships";
+  difficulty: number; // 1-5 scale
+  publishDate: string | null;
+  status: AdminScenarioStatus;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  deepDive: ScenarioDeepDive | null;
+}
+
+export interface Moderator {
+  userId: string;
+  username: string;
+  avatar: string;
+  assignedAt: string;
+  assignedBy: string;
+}
+
+export interface BannedUser {
+  userId: string;
+  username: string;
+  avatar: string;
+  reason: string;
+  bannedAt: string;
+  bannedBy: string;
+  bannedByUsername: string;
+}
+
+export const adminScenarioSchema = z.object({
+  title: z.string().min(5).max(100),
+  context: z.object({
+    cash: z.number().min(-100).max(100),
+    debt: z.number().min(-100).max(100),
+    credit: z.number().min(-100).max(100),
+    stress: z.number().min(-100).max(100),
+    portfolio: z.number().min(-100).max(100),
+  }),
+  question: z.string().min(10).max(500),
+  choices: z.array(z.object({
+    label: z.enum(["A", "B", "C", "D"]),
+    text: z.string().min(1).max(200),
+    isCorrect: z.boolean(),
+    points: z.number().min(-100).max(100),
+    feedback: z.string().min(1).max(300),
+  })).length(4),
+  category: z.enum(["tech", "travel", "lifestyle", "scam", "investing", "debt", "career", "relationships"]),
+  difficulty: z.number().min(1).max(5),
+  publishDate: z.string().nullable(),
+  status: z.enum(["draft", "published", "archived"]),
+  deepDive: z.object({
+    teaching: z.string(),
+    alternative: z.string().nullable(),
+    ruleOfThumb: z.string(),
+    realWorldExample: z.string(),
+  }).nullable().optional(),
+});
+
+export type CreateAdminScenario = z.infer<typeof adminScenarioSchema>;
+
+export const banUserSchema = z.object({
+  userId: z.string(),
+  reason: z.string().min(5).max(200),
+});
+
+export type BanUser = z.infer<typeof banUserSchema>;
+
+export const addModeratorSchema = z.object({
+  userId: z.string(),
+});
+
+export type AddModerator = z.infer<typeof addModeratorSchema>;
+
 export const BADGE_DEFINITIONS: BadgeDefinition[] = [
   {
     id: "no_spend_ninja",
