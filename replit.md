@@ -32,6 +32,7 @@ Key pages:
 - Friends Setup (`/friends-setup`) - Friend discovery (username search, invite contacts)
 - Mode Selection (`/setup`) - Choose game mode (Tech, Global, Fraud, Student, Boss)
 - Home (`/`) - Daily drop info, streak, play button (after auth)
+- Deep Dive (`/deep-dive`) - Post-game explanations for each scenario
 - Game (`/play`) - Timed scenario questions
 - Results (`/results`) - Score breakdown, sharing
 - Leaderboard (`/leaderboard`) - Friend rankings
