@@ -20,7 +20,8 @@ import {
   Wallet,
   ChevronRight,
   Users,
-  Swords
+  Swords,
+  Award
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -299,6 +300,26 @@ export default function Home() {
                   <div>
                     <h3 className="font-semibold">Challenge a Friend</h3>
                     <p className="text-xs text-muted-foreground">See who's got better money moves</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-5 h-5 text-muted-foreground" />
+              </div>
+            </Card>
+
+            {/* Achievements */}
+            <Card 
+              className="p-4 cursor-pointer" 
+              onClick={() => navigate("/achievements")}
+              data-testid="card-achievements"
+            >
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center">
+                    <Award className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">Achievements</h3>
+                    <p className="text-xs text-muted-foreground">Collect badges and track progress</p>
                   </div>
                 </div>
                 <ChevronRight className="w-5 h-5 text-muted-foreground" />

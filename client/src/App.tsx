@@ -17,6 +17,7 @@ import Leaderboard from "@/pages/leaderboard";
 import Leagues from "@/pages/leagues";
 import Challenges from "@/pages/challenges";
 import SharePage from "@/pages/share";
+import Achievements from "@/pages/achievements";
 import NotFound from "@/pages/not-found";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -34,6 +35,7 @@ function AuthenticatedRouter() {
       <Route path="/leagues" component={Leagues} />
       <Route path="/challenges" component={Challenges} />
       <Route path="/share" component={SharePage} />
+      <Route path="/achievements" component={Achievements} />
       <Route component={NotFound} />
     </Switch>
   );

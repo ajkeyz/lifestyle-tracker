@@ -155,7 +155,17 @@ export default function Achievements() {
   const unlockedCount = badges.filter(b => b.unlocked).length;
   const totalCount = BADGE_DEFINITIONS.length;
 
-  const sortedBadges = [...badges].sort((a, b) => {
+  const allBadges: UserBadge[] = BADGE_DEFINITIONS.map(def => {
+    const existing = badges.find(b => b.badgeId === def.id);
+    return existing || {
+      badgeId: def.id,
+      unlocked: false,
+      unlockedAt: null,
+      progress: 0,
+    };
+  });
+
+  const sortedBadges = [...allBadges].sort((a, b) => {
     if (a.unlocked && !b.unlocked) return -1;
     if (!a.unlocked && b.unlocked) return 1;
     
