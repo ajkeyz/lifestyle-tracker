@@ -85,11 +85,6 @@ export default function Home() {
     queryKey: ["/api/user"],
   });
 
-  useEffect(() => {
-    if (user && !user.profileSetupComplete) {
-      navigate("/profile-setup");
-    }
-  }, [user, navigate]);
 
   const { data: dailyDrop, isLoading: dropLoading } = useQuery<DailyDrop>({
     queryKey: ["/api/daily-drop"],
