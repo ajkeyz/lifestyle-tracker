@@ -19,7 +19,8 @@ import {
   Home as HomeIcon,
   Wallet,
   ChevronRight,
-  Users
+  Users,
+  Swords
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -292,6 +293,26 @@ export default function Home() {
                     ))}
                   </div>
                 )}
+              </div>
+            </Card>
+
+            {/* Challenge a Friend */}
+            <Card 
+              className="p-4 cursor-pointer" 
+              onClick={() => navigate("/challenges")}
+              data-testid="card-challenge-friend"
+            >
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent to-primary flex items-center justify-center">
+                    <Swords className="w-5 h-5 text-primary-foreground" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">Challenge a Friend</h3>
+                    <p className="text-xs text-muted-foreground">See who's got better money moves</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-5 h-5 text-muted-foreground" />
               </div>
             </Card>
 
