@@ -21,7 +21,8 @@ import {
   ChevronRight,
   Users,
   Swords,
-  Award
+  Award,
+  CalendarDays
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -320,6 +321,26 @@ export default function Home() {
                   <div>
                     <h3 className="font-semibold">Achievements</h3>
                     <p className="text-xs text-muted-foreground">Collect badges and track progress</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-5 h-5 text-muted-foreground" />
+              </div>
+            </Card>
+
+            {/* Weekly Recap */}
+            <Card 
+              className="p-4 cursor-pointer" 
+              onClick={() => navigate("/weekly-recap")}
+              data-testid="card-weekly-recap"
+            >
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center">
+                    <CalendarDays className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">Weekly Recap</h3>
+                    <p className="text-xs text-muted-foreground">Your week in review</p>
                   </div>
                 </div>
                 <ChevronRight className="w-5 h-5 text-muted-foreground" />

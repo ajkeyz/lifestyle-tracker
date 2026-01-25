@@ -33,6 +33,7 @@ Key pages:
 - Mode Selection (`/setup`) - Choose game mode (Tech, Global, Fraud, Student, Boss)
 - Home (`/`) - Daily drop info, streak, play button (after auth)
 - Deep Dive (`/deep-dive`) - Post-game explanations for each scenario
+- Weekly Recap (`/weekly-recap`) - Spotify Wrapped-style weekly summary with best/worst decisions, improvement areas, league rank, funny title
 - Game (`/play`) - Timed scenario questions
 - Results (`/results`) - Score breakdown, sharing
 - Leaderboard (`/leaderboard`) - Friend rankings
