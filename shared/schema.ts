@@ -140,3 +140,62 @@ export const joinLeagueSchema = z.object({
 });
 
 export type JoinLeague = z.infer<typeof joinLeagueSchema>;
+
+// Challenge types
+export type ChallengeType = "money_health" | "streak" | "accuracy";
+export type ChallengeStatus = "pending" | "accepted" | "completed" | "expired" | "declined";
+
+export interface Challenge {
+  id: string;
+  challengerId: string;
+  challengerUsername: string;
+  challengerAvatar: string;
+  challengeeId: string;
+  challengeeUsername: string;
+  challengeeAvatar: string;
+  type: ChallengeType;
+  trashTalk: string;
+  customMessage: string | null;
+  status: ChallengeStatus;
+  challengerValue: number;
+  challengeeValue: number | null;
+  winnerId: string | null;
+  createdAt: string;
+  expiresAt: string;
+  completedAt: string | null;
+  badgeAwarded: string | null;
+}
+
+export const CHALLENGE_TYPES = [
+  { id: "money_health" as ChallengeType, label: "Beat my Money Health today", icon: "heart" },
+  { id: "streak" as ChallengeType, label: "Match my streak this week", icon: "flame" },
+  { id: "accuracy" as ChallengeType, label: "Try to outperform my accuracy", icon: "target" },
+] as const;
+
+export const TRASH_TALK_PRESETS = [
+  "Think you can handle this? Prove it!",
+  "My wallet is stronger than yours",
+  "Ready to get schooled in money moves?",
+  "Show me what you've got!",
+  "Hope you've been practicing...",
+  "This is going to be embarrassing for you",
+  "May the best saver win!",
+  "I'm not even trying and I'll still win",
+] as const;
+
+export const CHALLENGE_BADGES = [
+  { id: "money_master", name: "Money Master", icon: "trophy", description: "Won a Money Health challenge" },
+  { id: "streak_keeper", name: "Streak Keeper", icon: "flame", description: "Won a Streak challenge" },
+  { id: "sharp_shooter", name: "Sharp Shooter", icon: "target", description: "Won an Accuracy challenge" },
+  { id: "challenger", name: "Challenger", icon: "swords", description: "Sent 5 challenges" },
+  { id: "defender", name: "Defender", icon: "shield", description: "Won 3 challenges in a row" },
+] as const;
+
+export const createChallengeSchema = z.object({
+  challengeeId: z.string(),
+  type: z.enum(["money_health", "streak", "accuracy"]),
+  trashTalk: z.string().min(1).max(100),
+  customMessage: z.string().max(200).nullable().optional(),
+});
+
+export type CreateChallenge = z.infer<typeof createChallengeSchema>;
