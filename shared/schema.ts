@@ -68,6 +68,10 @@ export interface User {
   lastPlayedDate: string | null;
   stats: UserStats;
   todayResult: UserGameResult | null;
+  badges: UserBadge[];
+  perfectGames: number;
+  scamStreak: number;
+  hadPreviousStreak: boolean;
 }
 
 export const setModeSchema = z.object({
@@ -214,3 +218,88 @@ export type CreateChallenge = z.infer<typeof createChallengeSchema>;
 export const addFreezeTokenSchema = z.object({
   count: z.number().int().min(1).max(10).optional().default(1),
 });
+
+// Achievement/Badge types
+export type BadgeId = 
+  | "no_spend_ninja"
+  | "credit_climber"
+  | "emergency_fund_builder"
+  | "scam_spotter"
+  | "budget_sniper"
+  | "streak_monster"
+  | "comeback_king";
+
+export interface BadgeDefinition {
+  id: BadgeId;
+  name: string;
+  description: string;
+  icon: string;
+  unlockCriteria: string;
+  maxProgress: number;
+}
+
+export interface UserBadge {
+  badgeId: BadgeId;
+  unlocked: boolean;
+  unlockedAt: string | null;
+  progress: number;
+}
+
+export const BADGE_DEFINITIONS: BadgeDefinition[] = [
+  {
+    id: "no_spend_ninja",
+    name: "No-Spend Ninja",
+    description: "Master of avoiding unnecessary purchases",
+    icon: "ninja",
+    unlockCriteria: "Answer 10 spending questions correctly",
+    maxProgress: 10,
+  },
+  {
+    id: "credit_climber",
+    name: "Credit Climber",
+    description: "Expert at building credit score",
+    icon: "trending-up",
+    unlockCriteria: "Reach 750+ Money Health score",
+    maxProgress: 750,
+  },
+  {
+    id: "emergency_fund_builder",
+    name: "Emergency Fund Builder",
+    description: "Always prepared for the unexpected",
+    icon: "piggy-bank",
+    unlockCriteria: "Play 30 games total",
+    maxProgress: 30,
+  },
+  {
+    id: "scam_spotter",
+    name: "Scam Spotter",
+    description: "Can smell a scam from a mile away",
+    icon: "eye",
+    unlockCriteria: "Get 5 scam questions correct in a row",
+    maxProgress: 5,
+  },
+  {
+    id: "budget_sniper",
+    name: "Budget Sniper",
+    description: "Never misses a budgeting opportunity",
+    icon: "target",
+    unlockCriteria: "Achieve 100% accuracy in 3 games",
+    maxProgress: 3,
+  },
+  {
+    id: "streak_monster",
+    name: "Streak Monster",
+    description: "Unstoppable daily player",
+    icon: "flame",
+    unlockCriteria: "Reach a 30-day streak",
+    maxProgress: 30,
+  },
+  {
+    id: "comeback_king",
+    name: "Comeback King/Queen",
+    description: "Bounced back from a lost streak",
+    icon: "crown",
+    unlockCriteria: "Rebuild a 7-day streak after losing one",
+    maxProgress: 7,
+  },
+];

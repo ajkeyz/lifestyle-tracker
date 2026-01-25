@@ -14,7 +14,10 @@ import type {
   ChallengeType,
   CreateChallenge,
   StreakDay,
+  UserBadge,
+  BadgeId,
 } from "@shared/schema";
+import { BADGE_DEFINITIONS } from "@shared/schema";
 import { randomUUID } from "crypto";
 
 const sampleScenarios: Scenario[] = [
@@ -245,6 +248,9 @@ export interface IStorage {
   useStreakFreeze(userId: string): Promise<{ success: boolean; message: string }>;
   addFreezeToken(userId: string, count?: number): Promise<User | undefined>;
   getStreakCalendar(userId: string, days?: number): Promise<StreakDay[]>;
+  // Badge methods
+  getBadges(userId: string): Promise<UserBadge[]>;
+  updateBadgeProgress(userId: string, badgeId: BadgeId, progress: number): Promise<UserBadge | undefined>;
 }
 
 function generateInviteCode(): string {
@@ -262,6 +268,15 @@ function getWeekStartDate(): string {
   const diff = now.getUTCDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
   const monday = new Date(now.setUTCDate(diff));
   return monday.toISOString().split("T")[0];
+}
+
+function createInitialBadges(): UserBadge[] {
+  return BADGE_DEFINITIONS.map(def => ({
+    badgeId: def.id,
+    unlocked: false,
+    unlockedAt: null,
+    progress: 0,
+  }));
 }
 
 export class MemStorage implements IStorage {
@@ -314,6 +329,10 @@ export class MemStorage implements IStorage {
           investment: 10000 + Math.random() * 20000,
         },
         todayResult: null,
+        badges: createInitialBadges(),
+        perfectGames: 0,
+        scamStreak: 0,
+        hadPreviousStreak: false,
       });
     });
   }
@@ -345,6 +364,10 @@ export class MemStorage implements IStorage {
         lastPlayedDate: null,
         stats: { ...defaultStats },
         todayResult: null,
+        badges: createInitialBadges(),
+        perfectGames: 0,
+        scamStreak: 0,
+        hadPreviousStreak: false,
       };
       this.users.set(sessionId, user);
     }
@@ -802,6 +825,46 @@ export class MemStorage implements IStorage {
     }
 
     return calendar;
+  }
+
+  async getBadges(userId: string): Promise<UserBadge[]> {
+    const user = await this.getUser(userId);
+    if (!user) return [];
+    
+    if (!user.badges || user.badges.length === 0) {
+      const badges = createInitialBadges();
+      await this.updateUser(userId, { badges });
+      return badges;
+    }
+    
+    return user.badges;
+  }
+
+  async updateBadgeProgress(userId: string, badgeId: BadgeId, progress: number): Promise<UserBadge | undefined> {
+    const user = await this.getUser(userId);
+    if (!user) return undefined;
+
+    const badges = [...(user.badges || createInitialBadges())];
+    const badgeIndex = badges.findIndex(b => b.badgeId === badgeId);
+    
+    if (badgeIndex === -1) return undefined;
+
+    const definition = BADGE_DEFINITIONS.find(d => d.id === badgeId);
+    if (!definition) return undefined;
+
+    const currentBadge = badges[badgeIndex];
+    const newProgress = Math.min(progress, definition.maxProgress);
+    const shouldUnlock = newProgress >= definition.maxProgress && !currentBadge.unlocked;
+
+    badges[badgeIndex] = {
+      ...currentBadge,
+      progress: newProgress,
+      unlocked: currentBadge.unlocked || shouldUnlock,
+      unlockedAt: shouldUnlock ? new Date().toISOString() : currentBadge.unlockedAt,
+    };
+
+    await this.updateUser(userId, { badges });
+    return badges[badgeIndex];
   }
 }
 
