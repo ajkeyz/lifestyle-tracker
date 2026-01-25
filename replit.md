@@ -65,6 +65,7 @@ Key endpoints:
 - `GET /api/streak-calendar` - Get user's streak calendar (last 30 days)
 - `POST /api/use-freeze` - Use a freeze token to protect streak
 - `POST /api/add-freeze-token` - Add freeze tokens to user account
+- `GET /api/badges` - Get user's badge/achievement progress
 
 ### Data Storage
 - **ORM**: Drizzle ORM with PostgreSQL dialect
