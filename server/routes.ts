@@ -1,16 +1,74 @@
-import type { Express } from "express";
+import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { submitGameSchema } from "@shared/schema";
+
+function getSessionId(req: Request): string {
+  if (!req.session) {
+    throw new Error("Session not available");
+  }
+  if (!req.session.userId) {
+    req.session.userId = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  }
+  return req.session.userId;
+}
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  // put application routes here
-  // prefix all routes with /api
+  app.get("/api/user", async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const user = await storage.getOrCreateUser(sessionId);
+      res.json(user);
+    } catch (error) {
+      console.error("Error getting user:", error);
+      res.status(500).json({ error: "Failed to get user" });
+    }
+  });
 
-  // use storage to perform CRUD operations on the storage interface
-  // e.g. storage.insertUser(user) or storage.getUserByUsername(username)
+  app.get("/api/daily-drop", async (req: Request, res: Response) => {
+    try {
+      const drop = await storage.getDailyDrop();
+      res.json(drop);
+    } catch (error) {
+      console.error("Error getting daily drop:", error);
+      res.status(500).json({ error: "Failed to get daily drop" });
+    }
+  });
+
+  app.post("/api/submit-game", async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const parsed = submitGameSchema.safeParse(req.body);
+      
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid submission data", details: parsed.error });
+      }
+
+      const user = await storage.getUser(sessionId);
+      if (user?.todayResult) {
+        return res.status(400).json({ error: "Already played today" });
+      }
+
+      const result = await storage.submitGame(sessionId, parsed.data);
+      res.json(result);
+    } catch (error) {
+      console.error("Error submitting game:", error);
+      res.status(500).json({ error: "Failed to submit game" });
+    }
+  });
+
+  app.get("/api/leaderboard", async (req: Request, res: Response) => {
+    try {
+      const leaderboard = await storage.getLeaderboard();
+      res.json(leaderboard);
+    } catch (error) {
+      console.error("Error getting leaderboard:", error);
+      res.status(500).json({ error: "Failed to get leaderboard" });
+    }
+  });
 
   return httpServer;
 }
