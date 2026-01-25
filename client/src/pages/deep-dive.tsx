@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, TouchEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,10 @@ import type { User, DailyDrop } from "@shared/schema";
 export default function DeepDive() {
   const [, navigate] = useLocation();
   const [currentIndex, setCurrentIndex] = useState(0);
+  const touchStartX = useRef<number | null>(null);
+  const touchEndX = useRef<number | null>(null);
+
+  const minSwipeDistance = 50;
 
   const { data: user, isLoading: userLoading } = useQuery<User>({
     queryKey: ["/api/user"],
@@ -29,6 +33,33 @@ export default function DeepDive() {
   const { data: dailyDrop, isLoading: dropLoading } = useQuery<DailyDrop>({
     queryKey: ["/api/daily-drop"],
   });
+
+  const scenarios = dailyDrop?.scenarios || [];
+  const totalScenarios = scenarios.length;
+
+  const onTouchStart = (e: TouchEvent) => {
+    touchEndX.current = null;
+    touchStartX.current = e.targetTouches[0].clientX;
+  };
+
+  const onTouchMove = (e: TouchEvent) => {
+    touchEndX.current = e.targetTouches[0].clientX;
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStartX.current || !touchEndX.current) return;
+    
+    const distance = touchStartX.current - touchEndX.current;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+    
+    if (isLeftSwipe && currentIndex < totalScenarios - 1) {
+      setCurrentIndex(currentIndex + 1);
+    }
+    if (isRightSwipe && currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
+    }
+  };
 
   if (userLoading || dropLoading) {
     return (
@@ -44,10 +75,7 @@ export default function DeepDive() {
     return null;
   }
 
-  const scenarios = dailyDrop.scenarios;
   const answers = user.todayResult.answers;
-  const totalScenarios = scenarios.length;
-
   const currentScenario = scenarios[currentIndex];
   const userAnswer = answers[currentIndex];
   const userChoice = currentScenario?.choices.find(c => c.label === userAnswer);
@@ -75,7 +103,12 @@ export default function DeepDive() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
+    <div 
+      className="min-h-screen bg-gradient-to-b from-background to-muted/30"
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+    >
       <header className="flex items-center justify-between gap-2 p-4 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50 flex-wrap">
         <div className="flex items-center gap-3 flex-wrap">
           <Button 
