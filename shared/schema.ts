@@ -41,6 +41,13 @@ export interface UserGameResult {
   stats: UserStats;
 }
 
+export interface StreakDay {
+  date: string;
+  played: boolean;
+  frozen: boolean;
+  score?: number;
+}
+
 export interface User {
   id: string;
   username: string;
@@ -51,6 +58,10 @@ export interface User {
   profileSetupComplete: boolean;
   mode: GameMode | null;
   streak: number;
+  highestStreak: number;
+  freezeTokens: number;
+  frozenDates: string[];
+  streakCalendar: StreakDay[];
   moneyHealth: number;
   totalScore: number;
   gamesPlayed: number;

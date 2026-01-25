@@ -13,6 +13,7 @@ import type {
   Challenge,
   ChallengeType,
   CreateChallenge,
+  StreakDay,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -240,6 +241,10 @@ export interface IStorage {
   getUserChallenges(userId: string): Promise<Challenge[]>;
   respondToChallenge(challengeId: string, userId: string, accept: boolean): Promise<Challenge | undefined>;
   getFriends(userId: string): Promise<User[]>;
+  // Streak protection methods
+  useStreakFreeze(userId: string): Promise<{ success: boolean; message: string }>;
+  addFreezeToken(userId: string, count?: number): Promise<User | undefined>;
+  getStreakCalendar(userId: string, days?: number): Promise<StreakDay[]>;
 }
 
 function generateInviteCode(): string {
@@ -282,6 +287,7 @@ export class MemStorage implements IStorage {
     const avatars = ["cat", "dog", "bird", "robot", "ghost"];
     names.forEach((name, i) => {
       const id = `seed-${i}`;
+      const streak = Math.floor(Math.random() * 15) + 1;
       this.users.set(id, {
         id,
         username: name,
@@ -291,7 +297,11 @@ export class MemStorage implements IStorage {
         isProfilePrivate: false,
         profileSetupComplete: true,
         mode: modes[i % modes.length],
-        streak: Math.floor(Math.random() * 15) + 1,
+        streak,
+        highestStreak: streak + Math.floor(Math.random() * 5),
+        freezeTokens: Math.floor(Math.random() * 3),
+        frozenDates: [],
+        streakCalendar: [],
         moneyHealth: 90 - i * 8,
         totalScore: 1000 - i * 100,
         gamesPlayed: Math.floor(Math.random() * 20) + 5,
@@ -325,6 +335,10 @@ export class MemStorage implements IStorage {
         profileSetupComplete: false,
         mode: null,
         streak: 0,
+        highestStreak: 0,
+        freezeTokens: 1,
+        frozenDates: [],
+        streakCalendar: [],
         moneyHealth: 50,
         totalScore: 0,
         gamesPlayed: 0,
@@ -431,10 +445,30 @@ export class MemStorage implements IStorage {
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = yesterday.toISOString().split("T")[0];
 
-    const newStreak = user.lastPlayedDate === yesterdayStr ? user.streak + 1 : 1;
+    const wasFrozenYesterday = user.frozenDates.includes(yesterdayStr);
+    const playedYesterday = user.lastPlayedDate === yesterdayStr;
+    
+    let newStreak: number;
+    if (playedYesterday || wasFrozenYesterday) {
+      newStreak = user.streak + 1;
+    } else {
+      newStreak = 1;
+    }
+
+    const newHighestStreak = Math.max(user.highestStreak, newStreak);
+
+    const newStreakCalendar = [...user.streakCalendar];
+    const todayIndex = newStreakCalendar.findIndex(d => d.date === today);
+    if (todayIndex >= 0) {
+      newStreakCalendar[todayIndex] = { date: today, played: true, frozen: false, score: totalScore };
+    } else {
+      newStreakCalendar.push({ date: today, played: true, frozen: false, score: totalScore });
+    }
 
     await this.updateUser(sessionId, {
       streak: newStreak,
+      highestStreak: newHighestStreak,
+      streakCalendar: newStreakCalendar,
       moneyHealth,
       totalScore: user.totalScore + totalScore,
       gamesPlayed: user.gamesPlayed + 1,
@@ -684,6 +718,90 @@ export class MemStorage implements IStorage {
       }
     }
     return friends;
+  }
+
+  async useStreakFreeze(userId: string): Promise<{ success: boolean; message: string }> {
+    const user = await this.getUser(userId);
+    if (!user) {
+      return { success: false, message: "User not found" };
+    }
+
+    if (user.freezeTokens <= 0) {
+      return { success: false, message: "No freeze tokens available" };
+    }
+
+    const today = getTodayDateString();
+    
+    if (user.frozenDates.includes(today)) {
+      return { success: false, message: "Already used a freeze today" };
+    }
+
+    if (user.todayResult) {
+      return { success: false, message: "Already played today, no need for freeze" };
+    }
+
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split("T")[0];
+
+    if (user.lastPlayedDate !== yesterdayStr && user.lastPlayedDate !== today) {
+      const newFrozenDates = [...user.frozenDates, yesterdayStr];
+      const newStreakCalendar = [...user.streakCalendar];
+      
+      const existingDayIndex = newStreakCalendar.findIndex(d => d.date === yesterdayStr);
+      if (existingDayIndex >= 0) {
+        newStreakCalendar[existingDayIndex] = { date: yesterdayStr, played: false, frozen: true };
+      } else {
+        newStreakCalendar.push({ date: yesterdayStr, played: false, frozen: true });
+      }
+
+      await this.updateUser(userId, {
+        freezeTokens: user.freezeTokens - 1,
+        frozenDates: newFrozenDates,
+        streakCalendar: newStreakCalendar,
+        lastPlayedDate: yesterdayStr,
+      });
+
+      return { success: true, message: "Streak freeze applied! Your streak is protected." };
+    }
+
+    return { success: false, message: "Your streak is already active, no freeze needed" };
+  }
+
+  async addFreezeToken(userId: string, count: number = 1): Promise<User | undefined> {
+    const user = await this.getUser(userId);
+    if (!user) return undefined;
+
+    return this.updateUser(userId, {
+      freezeTokens: user.freezeTokens + count,
+    });
+  }
+
+  async getStreakCalendar(userId: string, days: number = 30): Promise<StreakDay[]> {
+    const user = await this.getUser(userId);
+    if (!user) return [];
+
+    const calendar: StreakDay[] = [];
+    const today = new Date();
+
+    for (let i = days - 1; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split("T")[0];
+
+      const existingDay = user.streakCalendar.find(d => d.date === dateStr);
+      if (existingDay) {
+        calendar.push(existingDay);
+      } else {
+        calendar.push({
+          date: dateStr,
+          played: false,
+          frozen: user.frozenDates.includes(dateStr),
+        });
+      }
+    }
+
+    return calendar;
   }
 }
 
