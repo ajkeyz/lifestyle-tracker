@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -9,6 +9,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useSound } from "@/hooks/use-sound";
 import type { DailyDrop, User, SubmitGame } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -17,11 +18,13 @@ const TIMER_DURATION = 20;
 export default function Game() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const { play } = useSound();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [showResults, setShowResults] = useState<Record<string, boolean>>({});
   const [timeRemaining, setTimeRemaining] = useState(TIMER_DURATION);
   const [timerRunning, setTimerRunning] = useState(true);
+  const playedWarnings = useRef<Set<number>>(new Set());
 
   const { data: dailyDrop, isLoading } = useQuery<DailyDrop>({
     queryKey: ["/api/daily-drop"],
@@ -58,16 +61,24 @@ export default function Game() {
   const handleSelectChoice = useCallback((label: string) => {
     if (!currentScenario || showResults[currentScenario.id]) return;
     
+    const choice = currentScenario.choices.find((c) => c.label === label);
+    if (choice?.isCorrect) {
+      play("correct");
+    } else {
+      play("incorrect");
+    }
+    
     setAnswers((prev) => ({ ...prev, [currentScenario.id]: label }));
     setShowResults((prev) => ({ ...prev, [currentScenario.id]: true }));
     setTimerRunning(false);
-  }, [currentScenario, showResults]);
+  }, [currentScenario, showResults, play]);
 
   const handleTimeUp = useCallback(() => {
     if (!currentScenario || showResults[currentScenario.id]) return;
+    play("timeUp");
     setShowResults((prev) => ({ ...prev, [currentScenario.id]: true }));
     setTimerRunning(false);
-  }, [currentScenario, showResults]);
+  }, [currentScenario, showResults, play]);
 
   useEffect(() => {
     if (!timerRunning || !currentScenario || showResults[currentScenario.id]) return;
@@ -78,18 +89,28 @@ export default function Game() {
           handleTimeUp();
           return 0;
         }
+        if (prev === 11 && !playedWarnings.current.has(10)) {
+          playedWarnings.current.add(10);
+          play("timerWarning");
+        }
+        if (prev === 6 && !playedWarnings.current.has(5)) {
+          playedWarnings.current.add(5);
+          play("timerCritical");
+        }
         return prev - 1;
       });
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [timerRunning, currentScenario, showResults, handleTimeUp]);
+  }, [timerRunning, currentScenario, showResults, handleTimeUp, play]);
 
   const handleNext = () => {
     if (currentIndex < totalScenarios - 1) {
       setCurrentIndex((prev) => prev + 1);
       setTimeRemaining(TIMER_DURATION);
       setTimerRunning(true);
+      playedWarnings.current.clear();
+      play("whoosh");
     }
   };
 

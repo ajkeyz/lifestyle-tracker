@@ -562,6 +562,7 @@ export class MemStorage implements IStorage {
         scamStreak: 0,
         hadPreviousStreak: false,
         lowPressureMode: false,
+        soundEnabled: true,
         notificationPrefs: { ...defaultNotificationPrefs },
         streakInsurance: { ...defaultStreakInsurance, isPlus: i < 2 },
       });
@@ -601,6 +602,7 @@ export class MemStorage implements IStorage {
         scamStreak: 0,
         hadPreviousStreak: false,
         lowPressureMode: false,
+        soundEnabled: true,
         notificationPrefs: { ...defaultNotificationPrefs },
         streakInsurance: { ...defaultStreakInsurance },
       };

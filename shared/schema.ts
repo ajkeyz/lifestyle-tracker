@@ -98,6 +98,7 @@ export interface User {
   scamStreak: number;
   hadPreviousStreak: boolean;
   lowPressureMode: boolean;
+  soundEnabled: boolean;
   notificationPrefs: NotificationPrefs;
   streakInsurance: StreakInsurance;
 }

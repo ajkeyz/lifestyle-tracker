@@ -5,6 +5,7 @@ import { ShareCard } from "@/components/share-card";
 import { FriendLeague } from "@/components/leaderboard-card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useConfetti } from "@/components/confetti";
+import { useSound } from "@/hooks/use-sound";
 import { ArrowLeft, Home, Trophy, TrendingUp, Calendar, Share2, BookOpen, Sparkles, Flame } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -14,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function Results() {
   const [, navigate] = useLocation();
   const { firePerfectScore, fireStreakMilestone, fireAchievement } = useConfetti();
+  const { play } = useSound();
   const confettiFired = useRef(false);
 
   const { data: user, isLoading: userLoading } = useQuery<User>({
@@ -42,14 +44,23 @@ export default function Results() {
       const isStreakMilestone = streakMilestones.includes(user.streak);
 
       if (isPerfectScore) {
-        setTimeout(() => firePerfectScore(), 500);
+        setTimeout(() => {
+          firePerfectScore();
+          play("perfectScore");
+        }, 500);
       } else if (isStreakMilestone) {
-        setTimeout(() => fireStreakMilestone(user.streak), 500);
+        setTimeout(() => {
+          fireStreakMilestone(user.streak);
+          play("streakMilestone");
+        }, 500);
       } else if (user.todayResult.score >= 400) {
-        setTimeout(() => fireAchievement(), 500);
+        setTimeout(() => {
+          fireAchievement();
+          play("achievement");
+        }, 500);
       }
     }
-  }, [user, firePerfectScore, fireStreakMilestone, fireAchievement]);
+  }, [user, firePerfectScore, fireStreakMilestone, fireAchievement, play]);
 
   if (!user?.todayResult) {
     return null;

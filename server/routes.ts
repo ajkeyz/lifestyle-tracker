@@ -201,6 +201,27 @@ export async function registerRoutes(
     }
   });
 
+  // Toggle sound effects
+  app.post("/api/toggle-sound", async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const user = await storage.getUser(sessionId);
+      
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const updatedUser = await storage.updateUser(sessionId, {
+        soundEnabled: !user.soundEnabled,
+      });
+      
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error toggling sound:", error);
+      res.status(500).json({ error: "Failed to update settings" });
+    }
+  });
+
   // Complete onboarding
   app.post("/api/complete-onboarding", async (req: Request, res: Response) => {
     try {

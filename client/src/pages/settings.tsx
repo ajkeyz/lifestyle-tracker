@@ -17,13 +17,17 @@ import {
   ChevronRight,
   Bell,
   Shield,
-  Settings2
+  Settings2,
+  Volume2,
+  VolumeX
 } from "lucide-react";
+import { useSound } from "@/hooks/use-sound";
 import type { User } from "@shared/schema";
 
 export default function Settings() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const { soundEnabled, toggleSound, isToggling } = useSound();
 
   const { data: user, isLoading } = useQuery<User>({
     queryKey: ["/api/user"],
@@ -158,6 +162,37 @@ export default function Settings() {
                 </div>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card data-testid="card-sound-settings">
+          <CardHeader>
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
+                  {soundEnabled ? (
+                    <Volume2 className="w-5 h-5 text-white" />
+                  ) : (
+                    <VolumeX className="w-5 h-5 text-white" />
+                  )}
+                </div>
+                <div>
+                  <CardTitle className="text-lg">Sound Effects</CardTitle>
+                  <CardDescription>Audio feedback during gameplay</CardDescription>
+                </div>
+              </div>
+              <Switch
+                checked={soundEnabled}
+                onCheckedChange={() => toggleSound()}
+                disabled={isToggling}
+                data-testid="switch-sound-effects"
+              />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Includes correct/incorrect answer sounds, timer warnings, and celebration sounds for achievements.
+            </p>
           </CardContent>
         </Card>
 
