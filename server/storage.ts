@@ -7,6 +7,9 @@ import type {
   LeaderboardEntry,
   SubmitGame,
   GameMode,
+  League,
+  LeagueMember,
+  CreateLeague,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -221,10 +224,35 @@ export interface IStorage {
   getDailyDrop(): Promise<DailyDrop>;
   submitGame(sessionId: string, submission: SubmitGame): Promise<UserGameResult>;
   getLeaderboard(): Promise<LeaderboardEntry[]>;
+  // League methods
+  createLeague(userId: string, data: CreateLeague): Promise<League>;
+  getLeague(leagueId: string): Promise<League | undefined>;
+  getLeagueByCode(inviteCode: string): Promise<League | undefined>;
+  joinLeague(userId: string, inviteCode: string): Promise<League | undefined>;
+  leaveLeague(userId: string, leagueId: string): Promise<boolean>;
+  getUserLeagues(userId: string): Promise<League[]>;
+}
+
+function generateInviteCode(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let code = "";
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
+function getWeekStartDate(): string {
+  const now = new Date();
+  const dayOfWeek = now.getUTCDay();
+  const diff = now.getUTCDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+  const monday = new Date(now.setUTCDate(diff));
+  return monday.toISOString().split("T")[0];
 }
 
 export class MemStorage implements IStorage {
   private users: Map<string, User> = new Map();
+  private leagues: Map<string, League> = new Map();
   private dailyDrop: DailyDrop;
 
   constructor() {
@@ -420,6 +448,116 @@ export class MemStorage implements IStorage {
         streak: user.streak,
         rank: index + 1,
       }));
+  }
+
+  async createLeague(userId: string, data: CreateLeague): Promise<League> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
+
+    const league: League = {
+      id: randomUUID(),
+      name: data.name,
+      emoji: data.emoji,
+      privacy: data.privacy,
+      inviteCode: generateInviteCode(),
+      createdBy: userId,
+      createdAt: new Date().toISOString(),
+      members: [{
+        userId: user.id,
+        username: user.username,
+        avatar: user.avatar,
+        weeklyScore: user.todayResult?.score || 0,
+        weeklyRank: 1,
+        isWeeklyWinner: false,
+      }],
+      weekStartDate: getWeekStartDate(),
+      previousWeekWinner: null,
+    };
+
+    this.leagues.set(league.id, league);
+    return league;
+  }
+
+  async getLeague(leagueId: string): Promise<League | undefined> {
+    const league = this.leagues.get(leagueId);
+    if (!league) return undefined;
+
+    // Update weekly ranks
+    const sortedMembers = [...league.members].sort((a, b) => b.weeklyScore - a.weeklyScore);
+    sortedMembers.forEach((m, i) => {
+      m.weeklyRank = i + 1;
+      m.isWeeklyWinner = i === 0 && m.weeklyScore > 0;
+    });
+
+    return { ...league, members: sortedMembers };
+  }
+
+  async getLeagueByCode(inviteCode: string): Promise<League | undefined> {
+    const upperCode = inviteCode.toUpperCase();
+    const allLeagues = Array.from(this.leagues.values());
+    for (const league of allLeagues) {
+      if (league.inviteCode === upperCode) {
+        return this.getLeague(league.id);
+      }
+    }
+    return undefined;
+  }
+
+  async joinLeague(userId: string, inviteCode: string): Promise<League | undefined> {
+    const user = await this.getUser(userId);
+    if (!user) return undefined;
+
+    const league = await this.getLeagueByCode(inviteCode);
+    if (!league) return undefined;
+
+    // Check if already a member
+    if (league.members.some(m => m.userId === userId)) {
+      return league;
+    }
+
+    const newMember: LeagueMember = {
+      userId: user.id,
+      username: user.username,
+      avatar: user.avatar,
+      weeklyScore: user.todayResult?.score || 0,
+      weeklyRank: league.members.length + 1,
+      isWeeklyWinner: false,
+    };
+
+    league.members.push(newMember);
+    this.leagues.set(league.id, league);
+    return this.getLeague(league.id);
+  }
+
+  async leaveLeague(userId: string, leagueId: string): Promise<boolean> {
+    const league = this.leagues.get(leagueId);
+    if (!league) return false;
+
+    const memberIndex = league.members.findIndex(m => m.userId === userId);
+    if (memberIndex === -1) return false;
+
+    league.members.splice(memberIndex, 1);
+
+    // Delete league if empty
+    if (league.members.length === 0) {
+      this.leagues.delete(leagueId);
+    } else {
+      this.leagues.set(leagueId, league);
+    }
+
+    return true;
+  }
+
+  async getUserLeagues(userId: string): Promise<League[]> {
+    const userLeagues: League[] = [];
+    const allLeagues = Array.from(this.leagues.values());
+    for (const league of allLeagues) {
+      if (league.members.some((m: LeagueMember) => m.userId === userId)) {
+        const fullLeague = await this.getLeague(league.id);
+        if (fullLeague) userLeagues.push(fullLeague);
+      }
+    }
+    return userLeagues;
   }
 }
 

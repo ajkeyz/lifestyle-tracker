@@ -103,3 +103,40 @@ export const submitGameSchema = z.object({
 export type CreateUser = z.infer<typeof createUserSchema>;
 export type SubmitAnswer = z.infer<typeof submitAnswerSchema>;
 export type SubmitGame = z.infer<typeof submitGameSchema>;
+
+// League types
+export interface LeagueMember {
+  userId: string;
+  username: string;
+  avatar: string;
+  weeklyScore: number;
+  weeklyRank: number;
+  isWeeklyWinner: boolean;
+}
+
+export interface League {
+  id: string;
+  name: string;
+  emoji: string;
+  privacy: "public" | "private";
+  inviteCode: string;
+  createdBy: string;
+  createdAt: string;
+  members: LeagueMember[];
+  weekStartDate: string;
+  previousWeekWinner: string | null;
+}
+
+export const createLeagueSchema = z.object({
+  name: z.string().min(3).max(30),
+  emoji: z.string().min(1).max(4),
+  privacy: z.enum(["public", "private"]),
+});
+
+export type CreateLeague = z.infer<typeof createLeagueSchema>;
+
+export const joinLeagueSchema = z.object({
+  inviteCode: z.string().min(6).max(10),
+});
+
+export type JoinLeague = z.infer<typeof joinLeagueSchema>;
