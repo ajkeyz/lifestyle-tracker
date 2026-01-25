@@ -97,7 +97,15 @@ export default function Home() {
             <Button
               size="lg"
               className="w-full h-14 text-lg font-semibold"
-              onClick={() => navigate(hasPlayedToday ? "/results" : "/play")}
+              onClick={() => {
+                if (hasPlayedToday) {
+                  navigate("/results");
+                } else if (!user.mode) {
+                  navigate("/setup");
+                } else {
+                  navigate("/play");
+                }
+              }}
               data-testid="button-play-today"
             >
               {hasPlayedToday ? (
@@ -126,7 +134,7 @@ export default function Home() {
             <Button
               size="lg"
               className="w-full"
-              onClick={() => navigate("/play")}
+              onClick={() => navigate("/setup")}
               data-testid="button-start-playing"
             >
               <Play className="w-5 h-5 mr-2" />

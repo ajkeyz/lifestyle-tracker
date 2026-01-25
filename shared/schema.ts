@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export type GameMode = "tech" | "global" | "scam" | "student" | "boss";
+
 export interface Scenario {
   id: string;
   context: string;
@@ -40,6 +42,7 @@ export interface UserGameResult {
 export interface User {
   id: string;
   username: string;
+  mode: GameMode | null;
   streak: number;
   moneyHealth: number;
   totalScore: number;
@@ -48,6 +51,12 @@ export interface User {
   stats: UserStats;
   todayResult: UserGameResult | null;
 }
+
+export const setModeSchema = z.object({
+  mode: z.enum(["tech", "global", "scam", "student", "boss"]),
+});
+
+export type SetMode = z.infer<typeof setModeSchema>;
 
 export interface LeaderboardEntry {
   id: string;

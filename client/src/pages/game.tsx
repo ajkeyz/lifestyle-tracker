@@ -115,8 +115,15 @@ export default function Game() {
 
   const allAnswered = scenarios.every((s) => showResults[s.id]);
 
-  if (user?.todayResult) {
-    navigate("/results");
+  useEffect(() => {
+    if (user?.todayResult) {
+      navigate("/results");
+    } else if (user && !user.mode) {
+      navigate("/setup");
+    }
+  }, [user?.todayResult, user?.mode, navigate]);
+
+  if (user?.todayResult || (user && !user.mode)) {
     return null;
   }
 

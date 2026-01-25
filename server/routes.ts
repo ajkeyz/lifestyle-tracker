@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { submitGameSchema } from "@shared/schema";
+import { submitGameSchema, setModeSchema } from "@shared/schema";
 
 function getSessionId(req: Request): string {
   if (!req.session) {
@@ -67,6 +67,26 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error getting leaderboard:", error);
       res.status(500).json({ error: "Failed to get leaderboard" });
+    }
+  });
+
+  app.post("/api/set-mode", async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const parsed = setModeSchema.safeParse(req.body);
+      
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid mode", details: parsed.error });
+      }
+
+      const user = await storage.updateUser(sessionId, { mode: parsed.data.mode });
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      res.json(user);
+    } catch (error) {
+      console.error("Error setting mode:", error);
+      res.status(500).json({ error: "Failed to set mode" });
     }
   });
 

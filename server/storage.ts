@@ -6,6 +6,7 @@ import type {
   Scenario,
   LeaderboardEntry,
   SubmitGame,
+  GameMode,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -237,11 +238,13 @@ export class MemStorage implements IStorage {
 
   private seedLeaderboard() {
     const names = ["Jade", "Sipho", "Max", "Luna", "Kai"];
+    const modes: GameMode[] = ["tech", "global", "scam", "student", "boss"];
     names.forEach((name, i) => {
       const id = `seed-${i}`;
       this.users.set(id, {
         id,
         username: name,
+        mode: modes[i % modes.length],
         streak: Math.floor(Math.random() * 15) + 1,
         moneyHealth: 90 - i * 8,
         totalScore: 1000 - i * 100,
@@ -269,6 +272,7 @@ export class MemStorage implements IStorage {
       user = {
         id: sessionId,
         username: `Player${Math.floor(Math.random() * 9999)}`,
+        mode: null,
         streak: 0,
         moneyHealth: 50,
         totalScore: 0,

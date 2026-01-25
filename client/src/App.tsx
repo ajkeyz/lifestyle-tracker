@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import Home from "@/pages/home";
+import Setup from "@/pages/setup";
 import Game from "@/pages/game";
 import Results from "@/pages/results";
 import Leaderboard from "@/pages/leaderboard";
@@ -14,6 +15,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/setup" component={Setup} />
       <Route path="/play" component={Game} />
       <Route path="/results" component={Results} />
       <Route path="/leaderboard" component={Leaderboard} />
