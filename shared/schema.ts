@@ -210,3 +210,7 @@ export const createChallengeSchema = z.object({
 });
 
 export type CreateChallenge = z.infer<typeof createChallengeSchema>;
+
+export const addFreezeTokenSchema = z.object({
+  count: z.number().int().min(1).max(10).optional().default(1),
+});

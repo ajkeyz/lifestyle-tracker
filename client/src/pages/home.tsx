@@ -3,10 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { StatBarGrid } from "@/components/stat-bar";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { StreakCalendar } from "@/components/streak-calendar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
   Play, 
-  Flame, 
   Trophy, 
   TrendingUp, 
   Sparkles, 
@@ -217,30 +217,24 @@ export default function Home() {
               </div>
             </Card>
 
-            {/* Streak & Countdown Row */}
-            <div className="grid grid-cols-2 gap-4">
-              <Card className="p-4" data-testid="card-streak">
-                <div className="flex items-center gap-2 mb-2">
-                  <Flame className="w-5 h-5 text-destructive" />
-                  <span className="text-sm text-muted-foreground">Streak</span>
-                </div>
-                <div className="text-3xl font-bold" data-testid="text-user-streak">{user.streak}</div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  {user.streak === 0 ? "Start today!" : user.streak === 1 ? "day" : "days"}
-                </div>
-              </Card>
-              
-              <Card className="p-4" data-testid="card-countdown">
-                <div className="flex items-center gap-2 mb-2">
+            {/* Streak Calendar with Protection */}
+            <StreakCalendar user={user} />
+
+            {/* Next Drop Countdown */}
+            <Card className="p-4" data-testid="card-countdown">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2">
                   <Clock className="w-5 h-5 text-primary" />
                   <span className="text-sm text-muted-foreground">Next Drop</span>
                 </div>
-                <div className="text-xl font-bold font-mono" data-testid="text-countdown">
-                  {String(countdown.hours).padStart(2, '0')}:{String(countdown.minutes).padStart(2, '0')}:{String(countdown.seconds).padStart(2, '0')}
+                <div className="flex items-center gap-2">
+                  <div className="text-xl font-bold font-mono" data-testid="text-countdown">
+                    {String(countdown.hours).padStart(2, '0')}:{String(countdown.minutes).padStart(2, '0')}:{String(countdown.seconds).padStart(2, '0')}
+                  </div>
+                  <span className="text-xs text-muted-foreground">until midnight UTC</span>
                 </div>
-                <div className="text-xs text-muted-foreground mt-1">until midnight UTC</div>
-              </Card>
-            </div>
+              </div>
+            </Card>
 
             {/* Friend League Preview */}
             <Card className="p-4" data-testid="card-friend-league-preview">

@@ -38,6 +38,7 @@ Key pages:
 - Leagues (`/leagues`) - Friend leagues with weekly competitions, create/join/leave leagues
 - Challenges (`/challenges`) - Challenge friends to compare Money Health, streak, or accuracy; includes trash talk presets and badge rewards
 - Share (`/share`) - Customizable share card for results with theme colors, hide numbers toggle, league name, and social sharing
+- Streak Protection - Freeze tokens to protect streaks, visual 28-day calendar, milestone fire animations (7, 14, 30, 60, 100 days)
 
 ### Backend Architecture
 - **Framework**: Express 5 on Node.js
@@ -61,6 +62,9 @@ Key endpoints:
 - `GET /api/challenges` - Get user's challenges (sent and received)
 - `POST /api/challenges` - Create a new challenge
 - `POST /api/challenges/:id/respond` - Accept or decline a challenge
+- `GET /api/streak-calendar` - Get user's streak calendar (last 30 days)
+- `POST /api/use-freeze` - Use a freeze token to protect streak
+- `POST /api/add-freeze-token` - Add freeze tokens to user account
 
 ### Data Storage
 - **ORM**: Drizzle ORM with PostgreSQL dialect
@@ -69,7 +73,8 @@ Key endpoints:
 - **Current State**: In-memory storage implementation (database schema ready but storage uses memory)
 
 Data models:
-- User (id, username, avatar, bio, allowFriendsToFind, isProfilePrivate, profileSetupComplete, mode, streak, moneyHealth, stats, todayResult)
+- User (id, username, avatar, bio, allowFriendsToFind, isProfilePrivate, profileSetupComplete, mode, streak, highestStreak, freezeTokens, frozenDates, streakCalendar, moneyHealth, stats, todayResult)
+- StreakDay (date, played, frozen, score?)
 - DailyDrop (id, dropNumber, date, scenarios)
 - Scenario (id, category, context, question, choices with feedback)
 - League (id, name, emoji/icon, privacy, inviteCode, createdBy, members, weekStartDate, previousWeekWinner)

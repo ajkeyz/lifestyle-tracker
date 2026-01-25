@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { submitGameSchema, setModeSchema, updateProfileSchema, createLeagueSchema, joinLeagueSchema, createChallengeSchema } from "@shared/schema";
+import { submitGameSchema, setModeSchema, updateProfileSchema, createLeagueSchema, joinLeagueSchema, createChallengeSchema, addFreezeTokenSchema } from "@shared/schema";
 
 declare module "express-session" {
   interface SessionData {
@@ -353,8 +353,13 @@ export async function registerRoutes(
   app.post("/api/add-freeze-token", async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
-      const count = parseInt(req.body.count) || 1;
-      const user = await storage.addFreezeToken(sessionId, count);
+      const parsed = addFreezeTokenSchema.safeParse(req.body);
+      
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request", details: parsed.error });
+      }
+      
+      const user = await storage.addFreezeToken(sessionId, parsed.data.count);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
