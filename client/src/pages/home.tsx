@@ -251,16 +251,16 @@ export default function Home() {
               <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
                 <div className="flex items-center gap-2">
                   <Users className="w-5 h-5 text-accent" />
-                  <h3 className="font-semibold">Friend League</h3>
+                  <h3 className="font-semibold">Friend Leagues</h3>
                 </div>
                 <Button 
                   variant="ghost" 
                   size="sm" 
                   className="gap-1"
-                  onClick={() => navigate("/leaderboard")}
-                  data-testid="button-view-leaderboard"
+                  onClick={() => navigate("/leagues")}
+                  data-testid="button-view-leagues"
                 >
-                  View All
+                  Manage Leagues
                   <ChevronRight className="w-4 h-4" />
                 </Button>
               </div>

@@ -35,6 +35,7 @@ Key pages:
 - Game (`/play`) - Timed scenario questions
 - Results (`/results`) - Score breakdown, sharing
 - Leaderboard (`/leaderboard`) - Friend rankings
+- Leagues (`/leagues`) - Friend leagues with weekly competitions, create/join/leave leagues
 
 ### Backend Architecture
 - **Framework**: Express 5 on Node.js
@@ -49,6 +50,11 @@ Key endpoints:
 - `GET /api/leaderboard` - Fetch rankings
 - `GET /api/check-username/:username` - Check username availability
 - `POST /api/profile` - Update user profile (username, avatar, bio, privacy)
+- `GET /api/leagues` - Get user's leagues
+- `GET /api/leagues/:id` - Get specific league details
+- `POST /api/leagues` - Create a new league
+- `POST /api/leagues/join` - Join a league by invite code
+- `POST /api/leagues/:id/leave` - Leave a league
 
 ### Data Storage
 - **ORM**: Drizzle ORM with PostgreSQL dialect
@@ -60,6 +66,8 @@ Data models:
 - User (id, username, avatar, bio, allowFriendsToFind, isProfilePrivate, profileSetupComplete, mode, streak, moneyHealth, stats, todayResult)
 - DailyDrop (id, dropNumber, date, scenarios)
 - Scenario (id, category, context, question, choices with feedback)
+- League (id, name, emoji/icon, privacy, inviteCode, createdBy, members, weekStartDate, previousWeekWinner)
+- LeagueMember (userId, username, avatar, weeklyScore, weeklyRank, isWeeklyWinner)
 
 ### Shared Code
 - `shared/schema.ts` - TypeScript interfaces and Zod validation schemas

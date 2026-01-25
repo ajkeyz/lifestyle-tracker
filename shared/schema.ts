@@ -129,7 +129,7 @@ export interface League {
 
 export const createLeagueSchema = z.object({
   name: z.string().min(3).max(30),
-  emoji: z.string().min(1).max(4),
+  emoji: z.string().min(1).max(20),
   privacy: z.enum(["public", "private"]),
 });
 

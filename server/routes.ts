@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { submitGameSchema, setModeSchema, updateProfileSchema } from "@shared/schema";
+import { submitGameSchema, setModeSchema, updateProfileSchema, createLeagueSchema, joinLeagueSchema } from "@shared/schema";
 
 declare module "express-session" {
   interface SessionData {
@@ -174,6 +174,85 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error updating profile:", error);
       res.status(500).json({ error: "Failed to update profile" });
+    }
+  });
+
+  // League routes
+  app.get("/api/leagues", async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const leagues = await storage.getUserLeagues(sessionId);
+      res.json(leagues);
+    } catch (error) {
+      console.error("Error getting leagues:", error);
+      res.status(500).json({ error: "Failed to get leagues" });
+    }
+  });
+
+  app.get("/api/leagues/:id", async (req: Request, res: Response) => {
+    try {
+      const leagueId = req.params.id as string;
+      const league = await storage.getLeague(leagueId);
+      if (!league) {
+        return res.status(404).json({ error: "League not found" });
+      }
+      res.json(league);
+    } catch (error) {
+      console.error("Error getting league:", error);
+      res.status(500).json({ error: "Failed to get league" });
+    }
+  });
+
+  app.post("/api/leagues", async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const parsed = createLeagueSchema.safeParse(req.body);
+      
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid league data", details: parsed.error });
+      }
+
+      const league = await storage.createLeague(sessionId, parsed.data);
+      res.json(league);
+    } catch (error) {
+      console.error("Error creating league:", error);
+      res.status(500).json({ error: "Failed to create league" });
+    }
+  });
+
+  app.post("/api/leagues/join", async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const parsed = joinLeagueSchema.safeParse(req.body);
+      
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid invite code", details: parsed.error });
+      }
+
+      const league = await storage.joinLeague(sessionId, parsed.data.inviteCode);
+      if (!league) {
+        return res.status(404).json({ error: "League not found with that code" });
+      }
+      res.json(league);
+    } catch (error) {
+      console.error("Error joining league:", error);
+      res.status(500).json({ error: "Failed to join league" });
+    }
+  });
+
+  app.post("/api/leagues/:id/leave", async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const leagueId = req.params.id as string;
+      
+      const success = await storage.leaveLeague(sessionId, leagueId);
+      if (!success) {
+        return res.status(404).json({ error: "League not found or not a member" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error leaving league:", error);
+      res.status(500).json({ error: "Failed to leave league" });
     }
   });
 
