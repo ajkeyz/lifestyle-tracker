@@ -37,6 +37,7 @@ Key pages:
 - Leaderboard (`/leaderboard`) - Friend rankings
 - Leagues (`/leagues`) - Friend leagues with weekly competitions, create/join/leave leagues
 - Challenges (`/challenges`) - Challenge friends to compare Money Health, streak, or accuracy; includes trash talk presets and badge rewards
+- Share (`/share`) - Customizable share card for results with theme colors, hide numbers toggle, league name, and social sharing
 
 ### Backend Architecture
 - **Framework**: Express 5 on Node.js
