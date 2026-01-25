@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export * from "./models/auth";
+
 export type GameMode = "tech" | "global" | "scam" | "student" | "boss";
 
 export interface Scenario {

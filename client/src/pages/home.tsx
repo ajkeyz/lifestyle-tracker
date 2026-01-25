@@ -3,14 +3,17 @@ import { Card } from "@/components/ui/card";
 import { FriendLeague } from "@/components/leaderboard-card";
 import { StatBarGrid } from "@/components/stat-bar";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Play, Flame, Trophy, TrendingUp, Sparkles } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Play, Flame, Trophy, TrendingUp, Sparkles, LogOut } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
 import type { User, DailyDrop, LeaderboardEntry } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Home() {
   const [, navigate] = useLocation();
+  const { user: authUser, logout } = useAuth();
 
   const { data: user, isLoading: userLoading } = useQuery<User>({
     queryKey: ["/api/user"],
@@ -35,7 +38,20 @@ export default function Home() {
           </div>
           <span className="font-bold text-lg" data-testid="text-app-title">Lifestyle Creep</span>
         </div>
-        <ThemeToggle />
+        <div className="flex items-center gap-2">
+          {authUser && (
+            <div className="flex items-center gap-2">
+              <Avatar className="h-8 w-8" data-testid="avatar-user">
+                <AvatarImage src={authUser.profileImageUrl || undefined} alt={authUser.firstName || "User"} />
+                <AvatarFallback>{authUser.firstName?.[0] || authUser.email?.[0] || "U"}</AvatarFallback>
+              </Avatar>
+              <Button variant="ghost" size="icon" onClick={() => logout()} data-testid="button-logout">
+                <LogOut className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
+          <ThemeToggle />
+        </div>
       </header>
 
       <main className="container max-w-2xl mx-auto p-4 space-y-6">
@@ -96,7 +112,7 @@ export default function Home() {
 
             <Button
               size="lg"
-              className="w-full h-14 text-lg font-semibold"
+              className="w-full"
               onClick={() => {
                 if (hasPlayedToday) {
                   navigate("/results");

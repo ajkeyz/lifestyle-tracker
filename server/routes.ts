@@ -3,14 +3,26 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { submitGameSchema, setModeSchema } from "@shared/schema";
 
+declare module "express-session" {
+  interface SessionData {
+    visitorId: string;
+  }
+}
+
 function getSessionId(req: Request): string {
   if (!req.session) {
     throw new Error("Session not available");
   }
-  if (!req.session.userId) {
-    req.session.userId = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  
+  const user = req.user as any;
+  if (user?.claims?.sub) {
+    return user.claims.sub;
   }
-  return req.session.userId;
+  
+  if (!req.session.visitorId) {
+    req.session.visitorId = `visitor-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  }
+  return req.session.visitorId;
 }
 
 export async function registerRoutes(

@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ShareCard } from "@/components/share-card";
@@ -24,8 +25,13 @@ export default function Results() {
     queryKey: ["/api/leaderboard"],
   });
 
+  useEffect(() => {
+    if (!userLoading && user && !user.todayResult) {
+      navigate("/");
+    }
+  }, [user, userLoading, navigate]);
+
   if (!user?.todayResult) {
-    navigate("/");
     return null;
   }
 
