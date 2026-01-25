@@ -323,5 +323,47 @@ export async function registerRoutes(
     }
   });
 
+  // Streak protection routes
+  app.get("/api/streak-calendar", async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const days = parseInt(req.query.days as string) || 30;
+      const calendar = await storage.getStreakCalendar(sessionId, days);
+      res.json(calendar);
+    } catch (error) {
+      console.error("Error getting streak calendar:", error);
+      res.status(500).json({ error: "Failed to get streak calendar" });
+    }
+  });
+
+  app.post("/api/use-freeze", async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const result = await storage.useStreakFreeze(sessionId);
+      if (!result.success) {
+        return res.status(400).json({ error: result.message });
+      }
+      res.json(result);
+    } catch (error) {
+      console.error("Error using streak freeze:", error);
+      res.status(500).json({ error: "Failed to use streak freeze" });
+    }
+  });
+
+  app.post("/api/add-freeze-token", async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const count = parseInt(req.body.count) || 1;
+      const user = await storage.addFreezeToken(sessionId, count);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      res.json({ freezeTokens: user.freezeTokens });
+    } catch (error) {
+      console.error("Error adding freeze token:", error);
+      res.status(500).json({ error: "Failed to add freeze token" });
+    }
+  });
+
   return httpServer;
 }
