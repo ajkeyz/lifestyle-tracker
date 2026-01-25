@@ -71,6 +71,7 @@ Key endpoints:
 - `POST /api/add-freeze-token` - Add freeze tokens to user account
 - `GET /api/badges` - Get user's badge/achievement progress
 - `POST /api/low-pressure-mode` - Toggle low pressure mode on/off
+- `POST /api/notification-prefs` - Update notification preferences
 
 ### Data Storage
 - **ORM**: Drizzle ORM with PostgreSQL dialect

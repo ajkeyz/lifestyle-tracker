@@ -14,7 +14,8 @@ import {
   Flame,
   BookOpen,
   HelpCircle,
-  ChevronRight
+  ChevronRight,
+  Bell
 } from "lucide-react";
 import type { User } from "@shared/schema";
 
@@ -152,6 +153,27 @@ export default function Settings() {
               </div>
             </div>
           </CardContent>
+        </Card>
+
+        <Card 
+          className="cursor-pointer"
+          onClick={() => navigate("/notifications-prefs")}
+          data-testid="card-notifications"
+        >
+          <CardHeader>
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center">
+                  <Bell className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">Notifications</CardTitle>
+                  <CardDescription>Smart reminders, not spam</CardDescription>
+                </div>
+              </div>
+              <ChevronRight className="w-5 h-5 text-muted-foreground" />
+            </div>
+          </CardHeader>
         </Card>
 
         <Card 

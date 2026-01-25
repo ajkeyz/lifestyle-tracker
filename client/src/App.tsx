@@ -22,6 +22,7 @@ import DeepDive from "@/pages/deep-dive";
 import WeeklyRecap from "@/pages/weekly-recap";
 import Settings from "@/pages/settings";
 import Help from "@/pages/help";
+import NotificationsPrefs from "@/pages/notifications-prefs";
 import NotFound from "@/pages/not-found";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -44,6 +45,7 @@ function AuthenticatedRouter() {
       <Route path="/weekly-recap" component={WeeklyRecap} />
       <Route path="/settings" component={Settings} />
       <Route path="/help" component={Help} />
+      <Route path="/notifications-prefs" component={NotificationsPrefs} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -17,7 +17,7 @@ import type {
   UserBadge,
   BadgeId,
 } from "@shared/schema";
-import { BADGE_DEFINITIONS } from "@shared/schema";
+import { BADGE_DEFINITIONS, defaultNotificationPrefs } from "@shared/schema";
 import { randomUUID } from "crypto";
 
 const sampleScenarios: Scenario[] = [
@@ -364,6 +364,7 @@ export class MemStorage implements IStorage {
         scamStreak: 0,
         hadPreviousStreak: false,
         lowPressureMode: false,
+        notificationPrefs: { ...defaultNotificationPrefs },
       });
     });
   }
@@ -400,6 +401,7 @@ export class MemStorage implements IStorage {
         scamStreak: 0,
         hadPreviousStreak: false,
         lowPressureMode: false,
+        notificationPrefs: { ...defaultNotificationPrefs },
       };
       this.users.set(sessionId, user);
     }

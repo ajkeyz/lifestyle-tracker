@@ -201,6 +201,26 @@ export async function registerRoutes(
     }
   });
 
+  // Notification preferences
+  app.post("/api/notification-prefs", async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const prefs = req.body;
+      
+      const user = await storage.updateUser(sessionId, {
+        notificationPrefs: prefs,
+      });
+      
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      res.json(user);
+    } catch (error) {
+      console.error("Error updating notification prefs:", error);
+      res.status(500).json({ error: "Failed to update notification preferences" });
+    }
+  });
+
   // League routes
   app.get("/api/leagues", async (req: Request, res: Response) => {
     try {

@@ -81,7 +81,26 @@ export interface User {
   scamStreak: number;
   hadPreviousStreak: boolean;
   lowPressureMode: boolean;
+  notificationPrefs: NotificationPrefs;
 }
+
+export interface NotificationPrefs {
+  dailyReminderEnabled: boolean;
+  dailyReminderTime: string;
+  onlyIfNotPlayed: boolean;
+  onlyIfNotPlayedTime: string;
+  challengeAlerts: boolean;
+  leagueRankAlerts: boolean;
+}
+
+export const defaultNotificationPrefs: NotificationPrefs = {
+  dailyReminderEnabled: true,
+  dailyReminderTime: "09:00",
+  onlyIfNotPlayed: true,
+  onlyIfNotPlayedTime: "20:00",
+  challengeAlerts: true,
+  leagueRankAlerts: true,
+};
 
 export const setModeSchema = z.object({
   mode: z.enum(["tech", "global", "scam", "student", "boss"]),
