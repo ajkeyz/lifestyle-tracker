@@ -49,12 +49,12 @@ export default function NotificationsSetup() {
     } catch (error) {
       console.error("Notification permission error:", error);
     }
-    navigate("/setup");
+    navigate("/friends-setup");
   };
 
   const handleMaybeLater = () => {
     localStorage.setItem("notificationsSkipped", "true");
-    navigate("/setup");
+    navigate("/friends-setup");
   };
 
   return (

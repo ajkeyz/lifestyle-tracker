@@ -9,6 +9,7 @@ import Home from "@/pages/home";
 import AuthPage from "@/pages/auth";
 import ProfileSetup from "@/pages/profile-setup";
 import NotificationsSetup from "@/pages/notifications-setup";
+import FriendsSetup from "@/pages/friends-setup";
 import Setup from "@/pages/setup";
 import Game from "@/pages/game";
 import Results from "@/pages/results";
@@ -22,6 +23,7 @@ function AuthenticatedRouter() {
       <Route path="/" component={Home} />
       <Route path="/profile-setup" component={ProfileSetup} />
       <Route path="/notifications-setup" component={NotificationsSetup} />
+      <Route path="/friends-setup" component={FriendsSetup} />
       <Route path="/setup" component={Setup} />
       <Route path="/play" component={Game} />
       <Route path="/results" component={Results} />

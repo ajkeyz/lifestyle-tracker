@@ -102,6 +102,23 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/search-user/:username", async (req: Request, res: Response) => {
+    try {
+      const username = req.params.username as string;
+      const sessionId = getSessionId(req);
+      
+      if (!username || username.length < 3) {
+        return res.json({ found: false, username: null });
+      }
+      
+      const result = await storage.searchUserByUsername(username, sessionId);
+      res.json(result);
+    } catch (error) {
+      console.error("Error searching user:", error);
+      res.status(500).json({ error: "Failed to search user" });
+    }
+  });
+
   app.get("/api/check-username/:username", async (req: Request, res: Response) => {
     try {
       const username = req.params.username as string;

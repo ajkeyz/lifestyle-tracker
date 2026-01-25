@@ -217,6 +217,7 @@ export interface IStorage {
   getOrCreateUser(sessionId: string): Promise<User>;
   updateUser(sessionId: string, updates: Partial<User>): Promise<User | undefined>;
   checkUsernameAvailable(username: string, excludeUserId?: string): Promise<boolean>;
+  searchUserByUsername(username: string, excludeUserId?: string): Promise<{ found: boolean; username: string | null }>;
   getDailyDrop(): Promise<DailyDrop>;
   submitGame(sessionId: string, submission: SubmitGame): Promise<UserGameResult>;
   getLeaderboard(): Promise<LeaderboardEntry[]>;
@@ -308,6 +309,18 @@ export class MemStorage implements IStorage {
       }
     }
     return true;
+  }
+
+  async searchUserByUsername(username: string, excludeUserId?: string): Promise<{ found: boolean; username: string | null }> {
+    const lowerUsername = username.toLowerCase();
+    const entries = Array.from(this.users.entries());
+    for (const [id, user] of entries) {
+      if (excludeUserId && id === excludeUserId) continue;
+      if (user.allowFriendsToFind && user.username.toLowerCase().includes(lowerUsername)) {
+        return { found: true, username: user.username };
+      }
+    }
+    return { found: false, username: null };
   }
 
   async updateUser(sessionId: string, updates: Partial<User>): Promise<User | undefined> {
