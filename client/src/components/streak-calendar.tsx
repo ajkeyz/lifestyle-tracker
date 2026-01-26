@@ -1,8 +1,9 @@
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Flame, Snowflake, Check, X, Sparkles, Crown, Zap } from "lucide-react";
+import { Flame, Snowflake, Check, X, Sparkles, Crown, Zap, ChevronDown, ChevronUp } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { StreakDay, User } from "@shared/schema";
@@ -34,6 +35,7 @@ interface StreakCalendarProps {
 
 export function StreakCalendar({ user, showMilestoneAnimation = false }: StreakCalendarProps) {
   const { toast } = useToast();
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const { data: calendar = [] } = useQuery<StreakDay[]>({
     queryKey: ["/api/streak-calendar"],
@@ -143,6 +145,7 @@ export function StreakCalendar({ user, showMilestoneAnimation = false }: StreakC
           </div>
         )}
 
+        {/* Weekly View (collapsed) */}
         <div className="grid grid-cols-7 gap-1" data-testid="streak-calendar-grid">
           {["S", "M", "T", "W", "T", "F", "S"].map((day, i) => (
             <div key={i} className="text-center text-xs text-muted-foreground py-1">
@@ -150,7 +153,7 @@ export function StreakCalendar({ user, showMilestoneAnimation = false }: StreakC
             </div>
           ))}
           
-          {calendar.slice(-28).map((day) => {
+          {calendar.slice(isExpanded ? -28 : -7).map((day) => {
             const date = new Date(day.date);
             const isToday = day.date === today;
             const dayOfMonth = date.getDate();
@@ -184,20 +187,42 @@ export function StreakCalendar({ user, showMilestoneAnimation = false }: StreakC
           })}
         </div>
 
-        <div className="flex items-center justify-center gap-4 mt-4 text-xs text-muted-foreground flex-wrap">
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded bg-green-500/20 border border-green-500/50" />
-            <span>Played</span>
+        {/* Expand/Collapse Toggle */}
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="w-full flex items-center justify-center gap-1 mt-3 py-2 text-xs text-muted-foreground hover-elevate rounded-md transition-colors"
+          data-testid="button-toggle-calendar"
+        >
+          {isExpanded ? (
+            <>
+              <ChevronUp className="h-4 w-4" />
+              Show less
+            </>
+          ) : (
+            <>
+              <ChevronDown className="h-4 w-4" />
+              Show full month
+            </>
+          )}
+        </button>
+
+        {/* Legend - only show when expanded */}
+        {isExpanded && (
+          <div className="flex items-center justify-center gap-4 mt-3 text-xs text-muted-foreground flex-wrap">
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 rounded bg-green-500/20 border border-green-500/50" />
+              <span>Played</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 rounded bg-blue-500/20 border border-blue-500/50" />
+              <span>Frozen</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 rounded bg-muted/30 border" />
+              <span>Missed</span>
+            </div>
           </div>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded bg-blue-500/20 border border-blue-500/50" />
-            <span>Frozen</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded bg-muted/30 border" />
-            <span>Missed</span>
-          </div>
-        </div>
+        )}
 
         {missedYesterday && user.streak > 0 && (
           <div className="mt-4 p-3 rounded-lg bg-orange-500/10 border border-orange-500/30">
