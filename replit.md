@@ -35,7 +35,8 @@ Key pages:
 - Friends Setup (`/friends-setup`) - Friend discovery (username search, invite contacts)
 - Mode Selection (`/setup`) - Choose game mode (Tech, Global, Fraud, Student, Boss)
 - Home (`/`) - Daily drop info, streak, play button (after auth)
-- Deep Dive (`/deep-dive`) - Post-game explanations for each scenario
+- Deep Dive (`/deep-dive`) - Post-game explanations for each scenario with community stats, tips library links, and keyboard navigation
+- Tips Library (`/tips`) - 27+ categorized financial tips with search, filtering, and category deep-linking via ?category= URL param
 - Weekly Recap (`/weekly-recap`) - Spotify Wrapped-style weekly summary with best/worst decisions, improvement areas, league rank, funny title
 - Settings (`/settings`) - Low Pressure Mode toggle and app settings
 - Help (`/help`) - FAQ cards with answers, contact support, and report scenario buttons
