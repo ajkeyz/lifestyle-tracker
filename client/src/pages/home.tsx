@@ -237,13 +237,25 @@ export default function Home() {
                     <ChevronRight className="w-4 h-4" />
                   </Button>
                 </div>
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center flex-shrink-0 glow-primary">
+                <button
+                  onClick={() => {
+                    if (hasPlayedToday) {
+                      navigate("/results");
+                    } else if (!user.mode) {
+                      navigate("/setup");
+                    } else {
+                      navigate("/play");
+                    }
+                  }}
+                  className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center flex-shrink-0 glow-primary cursor-pointer transition-transform hover:scale-105 active:scale-95"
+                  data-testid="button-play-icon"
+                >
                   {hasPlayedToday ? (
                     <Trophy className="w-10 h-10 text-white" />
                   ) : (
                     <Play className="w-10 h-10 text-white" />
                   )}
-                </div>
+                </button>
               </div>
             </Card>
             </motion.div>
