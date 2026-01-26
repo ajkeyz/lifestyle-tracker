@@ -33,7 +33,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
-import type { User, DailyDrop, LeaderboardEntry } from "@shared/schema";
+import type { User, DailyDrop, LeaderboardEntry, CommunityScenario } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const THEME_CONFIG: Record<string, { label: string; icon: typeof Plane; color: string }> = {
@@ -120,6 +120,14 @@ export default function Home() {
 
   const { data: leaderboard } = useQuery<LeaderboardEntry[]>({
     queryKey: ["/api/leaderboard"],
+  });
+
+  const { data: hotPosts } = useQuery<CommunityScenario[]>({
+    queryKey: ["/api/community/scenarios", { sortBy: "hot", limit: 3 }],
+    queryFn: async () => {
+      const res = await fetch("/api/community/scenarios?sortBy=hot");
+      return res.json();
+    },
   });
 
   const hasPlayedToday = user?.todayResult !== null;
@@ -328,6 +336,78 @@ export default function Home() {
             </Card>
             </motion.div>
 
+            {/* Community - Hot Posts Preview */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.18, ease: "easeOut" }}
+            >
+            <Card className="p-4" data-testid="card-community">
+              <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center">
+                    <MessageSquare className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">Community</h3>
+                    <p className="text-xs text-muted-foreground">Real scenarios, real advice</p>
+                  </div>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="gap-1"
+                  onClick={() => navigate("/community")}
+                  data-testid="button-view-community"
+                >
+                  View All
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+              
+              {hotPosts && hotPosts.length > 0 ? (
+                <div className="space-y-2">
+                  {hotPosts.slice(0, 2).map((post) => (
+                    <div 
+                      key={post.id}
+                      className="p-3 rounded-lg bg-muted/30 cursor-pointer hover-elevate"
+                      onClick={() => navigate(`/community/${post.id}`)}
+                      data-testid={`community-post-${post.id}`}
+                    >
+                      <div className="flex items-start gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium line-clamp-1">{post.title}</p>
+                          <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{post.context}</p>
+                        </div>
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground flex-shrink-0">
+                          <TrendingUp className="w-3 h-3 text-primary" />
+                          <span>{post.upvotes}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                        <span>by {post.authorUsername}</span>
+                        <span>·</span>
+                        <span>{post.commentCount} comments</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-4 text-sm text-muted-foreground">
+                  <p>No community posts yet</p>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="mt-1"
+                    onClick={() => navigate("/community/submit")}
+                  >
+                    Be the first to share a scenario
+                  </Button>
+                </div>
+              )}
+            </Card>
+            </motion.div>
+
             {/* Streak Calendar with Protection */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -452,25 +532,6 @@ export default function Home() {
               </div>
             </Card>
 
-            {/* Community */}
-            <Card 
-              className="p-4 cursor-pointer" 
-              onClick={() => navigate("/community")}
-              data-testid="card-community"
-            >
-              <div className="flex items-center justify-between gap-3 flex-wrap">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center">
-                    <MessageSquare className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">Community</h3>
-                    <p className="text-xs text-muted-foreground">Real scenarios, real advice</p>
-                  </div>
-                </div>
-                <ChevronRight className="w-5 h-5 text-muted-foreground" />
-              </div>
-            </Card>
 
             {/* Weekly Recap */}
             <Card 
