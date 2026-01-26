@@ -673,15 +673,6 @@ export default function Home() {
               </div>
             </Card>
 
-            {/* Money Health Stats */}
-            <Card className="p-5" data-testid="card-money-health">
-              <div className="flex items-center gap-2 mb-4 flex-wrap">
-                <Sparkles className="w-5 h-5 text-primary" />
-                <h3 className="font-semibold" data-testid="text-money-health-value">Money Health: {user.moneyHealth}</h3>
-              </div>
-              <StatBarGrid {...user.stats} />
-            </Card>
-
             {/* Share Today's Results */}
             {hasPlayedToday && (
               <Button
