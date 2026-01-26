@@ -1,18 +1,16 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { TrendingUp, Shield, Users, Zap } from "lucide-react";
+import { AppLogo } from "@/components/app-logo";
+import { Shield, Users, Zap, Mail } from "lucide-react";
 import { SiApple, SiGoogle } from "react-icons/si";
-import { Mail } from "lucide-react";
 
 export default function AuthPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
       <header className="flex items-center justify-between gap-2 p-4 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-md bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-            <TrendingUp className="w-5 h-5 text-white" />
-          </div>
+          <AppLogo size="sm" />
           <span className="font-display font-bold text-lg tracking-tight" data-testid="text-app-title">Lifestyle Creep</span>
         </div>
         <ThemeToggle />
@@ -20,8 +18,8 @@ export default function AuthPage() {
 
       <main className="container max-w-md mx-auto p-4 py-8">
         <div className="text-center mb-8">
-          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center glow-primary">
-            <TrendingUp className="w-10 h-10 text-white" />
+          <div className="mx-auto mb-6">
+            <AppLogo size="lg" glow className="rounded-full mx-auto" />
           </div>
           <h1 className="text-3xl font-display font-bold mb-3 tracking-tight" data-testid="text-auth-title">
             Build Wealth, Not Habits

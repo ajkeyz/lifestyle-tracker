@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { LeaderboardTabs } from "@/components/leaderboard-card";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { ArrowLeft, TrendingUp } from "lucide-react";
+import { AppLogo } from "@/components/app-logo";
+import { ArrowLeft } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import type { User, LeaderboardEntry } from "@shared/schema";
@@ -30,9 +31,7 @@ export default function Leaderboard() {
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <div className="w-8 h-8 rounded-md bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-            <TrendingUp className="w-5 h-5 text-white" />
-          </div>
+          <AppLogo size="sm" />
           <span className="font-bold" data-testid="text-leaderboards-header">Leaderboards</span>
         </div>
         <ThemeToggle />

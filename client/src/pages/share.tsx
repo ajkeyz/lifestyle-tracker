@@ -22,6 +22,7 @@ import {
   Users,
   Smartphone,
 } from "lucide-react";
+import { AppLogo } from "@/components/app-logo";
 import { SiInstagram } from "react-icons/si";
 import type { User, DailyDrop, League } from "@shared/schema";
 

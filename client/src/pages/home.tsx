@@ -6,6 +6,7 @@ import { StatBarGrid } from "@/components/stat-bar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { StreakCalendar } from "@/components/streak-calendar";
 import { Onboarding } from "@/components/onboarding";
+import { AppLogo } from "@/components/app-logo";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
   Play, 
@@ -159,9 +160,7 @@ export default function Home() {
       <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
       <header className="flex items-center justify-between gap-2 p-4 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-md bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-            <TrendingUp className="w-5 h-5 text-white" />
-          </div>
+          <AppLogo size="sm" />
           <span className="font-display font-bold text-lg tracking-tight" data-testid="text-app-title">Lifestyle Creep</span>
         </div>
         <div className="flex items-center gap-2">

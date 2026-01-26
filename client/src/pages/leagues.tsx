@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { 
-  TrendingUp,
   Users,
   Plus,
   Trophy,
@@ -32,6 +31,7 @@ import {
   Coins,
   type LucideIcon
 } from "lucide-react";
+import { AppLogo } from "@/components/app-logo";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -193,9 +193,7 @@ export default function Leagues() {
             <ArrowLeft className="w-5 h-5" />
           </Button>
         )}
-        <div className="w-8 h-8 rounded-md bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-          <TrendingUp className="w-5 h-5 text-white" />
-        </div>
+        <AppLogo size="sm" />
         <span className="font-bold text-lg" data-testid="text-app-title">Friend Leagues</span>
       </div>
       <ThemeToggle />

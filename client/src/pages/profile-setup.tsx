@@ -7,7 +7,6 @@ import { Switch } from "@/components/ui/switch";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { 
-  TrendingUp,
   ChevronRight,
   Check,
   X,
@@ -28,6 +27,7 @@ import {
   Flame,
   Rocket
 } from "lucide-react";
+import { AppLogo } from "@/components/app-logo";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -162,9 +162,7 @@ export default function ProfileSetup() {
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
       <header className="flex items-center justify-between gap-2 p-4 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-md bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-            <TrendingUp className="w-5 h-5 text-white" />
-          </div>
+          <AppLogo size="sm" />
           <span className="font-bold text-lg" data-testid="text-app-title">Lifestyle Creep</span>
         </div>
         <ThemeToggle />

@@ -26,6 +26,7 @@ import {
   Plus,
   MessageCircle,
 } from "lucide-react";
+import { AppLogo } from "@/components/app-logo";
 import type { User, Challenge, ChallengeType } from "@shared/schema";
 import { CHALLENGE_TYPES, TRASH_TALK_PRESETS, CHALLENGE_BADGES } from "@shared/schema";
 
