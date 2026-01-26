@@ -1,7 +1,22 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
+import webpush from "web-push";
 import { storage } from "./storage";
 import { submitGameSchema, setModeSchema, updateProfileSchema, createLeagueSchema, joinLeagueSchema, createChallengeSchema, addFreezeTokenSchema, adminScenarioSchema, banUserSchema, addModeratorSchema } from "@shared/schema";
+
+// VAPID keys for push notifications (must be set via environment variables)
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
+
+// Configure web-push only if both keys are present
+const pushNotificationsEnabled = !!(VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY);
+if (pushNotificationsEnabled) {
+  webpush.setVapidDetails(
+    'mailto:support@lifestylecreep.app',
+    VAPID_PUBLIC_KEY,
+    VAPID_PRIVATE_KEY
+  );
+}
 
 declare module "express-session" {
   interface SessionData {
@@ -894,6 +909,102 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error publishing scenario:", error);
       res.status(500).json({ error: "Failed to publish scenario" });
+    }
+  });
+
+  // Push notification routes
+  app.get("/api/push/vapid-key", (req: Request, res: Response) => {
+    if (!pushNotificationsEnabled || !VAPID_PUBLIC_KEY) {
+      return res.status(503).json({ error: "Push notifications not configured" });
+    }
+    res.json({ publicKey: VAPID_PUBLIC_KEY });
+  });
+
+  app.post("/api/push/subscribe", async (req: Request, res: Response) => {
+    try {
+      if (!pushNotificationsEnabled) {
+        return res.status(503).json({ error: "Push notifications not configured" });
+      }
+      
+      const sessionId = getSessionId(req);
+      const subscription = req.body;
+      
+      // Validate subscription format
+      if (!subscription || typeof subscription.endpoint !== 'string' || !subscription.endpoint.startsWith('https://')) {
+        return res.status(400).json({ error: "Invalid subscription endpoint" });
+      }
+      
+      if (!subscription.keys || typeof subscription.keys.p256dh !== 'string' || typeof subscription.keys.auth !== 'string') {
+        return res.status(400).json({ error: "Invalid subscription keys" });
+      }
+      
+      await storage.savePushSubscription(sessionId, {
+        endpoint: subscription.endpoint,
+        keys: {
+          p256dh: subscription.keys.p256dh,
+          auth: subscription.keys.auth,
+        }
+      });
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error saving push subscription:", error);
+      res.status(500).json({ error: "Failed to save subscription" });
+    }
+  });
+
+  app.post("/api/push/unsubscribe", async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const { endpoint } = req.body;
+      
+      if (!endpoint || typeof endpoint !== 'string') {
+        return res.status(400).json({ error: "Valid endpoint required" });
+      }
+      
+      await storage.removePushSubscription(sessionId, endpoint);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error removing push subscription:", error);
+      res.status(500).json({ error: "Failed to remove subscription" });
+    }
+  });
+
+  app.post("/api/push/send-reminder", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      if (!pushNotificationsEnabled) {
+        return res.status(503).json({ error: "Push notifications not configured" });
+      }
+      
+      const subscriptions = await storage.getAllPushSubscriptions();
+      const results = await Promise.allSettled(
+        subscriptions.map(async (sub) => {
+          try {
+            await webpush.sendNotification(
+              sub.subscription as webpush.PushSubscription,
+              JSON.stringify({
+                title: "Lifestyle Creep",
+                body: "Your daily drop is ready! Make smart money moves today.",
+                icon: "/icons/icon-192.png"
+              })
+            );
+            return { success: true, userId: sub.userId };
+          } catch (error: any) {
+            if (error.statusCode === 410) {
+              // Subscription expired, remove it
+              await storage.removePushSubscription(sub.userId, sub.subscription.endpoint);
+            }
+            return { success: false, userId: sub.userId, error: error.message };
+          }
+        })
+      );
+      
+      res.json({
+        sent: results.filter(r => r.status === 'fulfilled' && (r.value as any).success).length,
+        failed: results.filter(r => r.status === 'rejected' || !(r.value as any)?.success).length
+      });
+    } catch (error) {
+      console.error("Error sending reminders:", error);
+      res.status(500).json({ error: "Failed to send reminders" });
     }
   });
 

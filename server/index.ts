@@ -3,6 +3,8 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import { setupAuth, registerAuthRoutes } from "./replit_integrations/auth";
+import path from "path";
+import fs from "fs";
 
 const app = express();
 const httpServer = createServer(app);
@@ -61,6 +63,18 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Serve service worker with correct headers
+  app.get('/sw.js', (req: Request, res: Response) => {
+    const swPath = path.resolve(import.meta.dirname, '..', 'public', 'sw.js');
+    if (fs.existsSync(swPath)) {
+      res.setHeader('Content-Type', 'application/javascript');
+      res.setHeader('Service-Worker-Allowed', '/');
+      res.sendFile(swPath);
+    } else {
+      res.status(404).send('Service worker not found');
+    }
+  });
+
   await setupAuth(app);
   registerAuthRoutes(app);
   

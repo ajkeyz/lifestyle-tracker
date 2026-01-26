@@ -328,6 +328,18 @@ export interface IStorage {
   // Referral system
   getUserByReferralCode(code: string): Promise<User | undefined>;
   applyReferralBonus(referrerId: string, referredUserId: string): Promise<boolean>;
+  // Push notification methods
+  savePushSubscription(userId: string, subscription: PushSubscriptionJSON): Promise<void>;
+  removePushSubscription(userId: string, endpoint: string): Promise<void>;
+  getAllPushSubscriptions(): Promise<{ userId: string; subscription: PushSubscriptionJSON }[]>;
+}
+
+interface PushSubscriptionJSON {
+  endpoint: string;
+  keys: {
+    p256dh: string;
+    auth: string;
+  };
 }
 
 function generateInviteCode(): string {
@@ -408,6 +420,8 @@ export class MemStorage implements IStorage {
   private moderators: Map<string, Moderator> = new Map();
   private bannedUsers: Map<string, BannedUser> = new Map();
   private adminUserIds: Set<string> = new Set(["admin", "608498"]); // Default admin users
+  // Push notification subscriptions
+  private pushSubscriptions: Map<string, PushSubscriptionJSON[]> = new Map();
 
   constructor() {
     this.dailyDrop = {
@@ -1656,6 +1670,37 @@ export class MemStorage implements IStorage {
     this.users.set(referredUserId, referredUser);
     
     return true;
+  }
+
+  async savePushSubscription(userId: string, subscription: PushSubscriptionJSON): Promise<void> {
+    const existing = this.pushSubscriptions.get(userId) || [];
+    // Check if already subscribed with this endpoint
+    const alreadyExists = existing.some(sub => sub.endpoint === subscription.endpoint);
+    if (!alreadyExists) {
+      existing.push(subscription);
+      this.pushSubscriptions.set(userId, existing);
+    }
+  }
+
+  async removePushSubscription(userId: string, endpoint: string): Promise<void> {
+    const existing = this.pushSubscriptions.get(userId) || [];
+    const filtered = existing.filter(sub => sub.endpoint !== endpoint);
+    if (filtered.length > 0) {
+      this.pushSubscriptions.set(userId, filtered);
+    } else {
+      this.pushSubscriptions.delete(userId);
+    }
+  }
+
+  async getAllPushSubscriptions(): Promise<{ userId: string; subscription: PushSubscriptionJSON }[]> {
+    const result: { userId: string; subscription: PushSubscriptionJSON }[] = [];
+    const entries = Array.from(this.pushSubscriptions.entries());
+    for (const [userId, subs] of entries) {
+      for (const subscription of subs) {
+        result.push({ userId, subscription });
+      }
+    }
+    return result;
   }
 }
 
