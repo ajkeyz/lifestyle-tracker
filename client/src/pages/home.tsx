@@ -297,6 +297,25 @@ export default function Home() {
             </Card>
             </motion.div>
 
+            {/* Quick Tip of the Day */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.15, ease: "easeOut" }}
+            >
+            <Card className="p-4 bg-muted/30" data-testid="card-daily-tip">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-yellow-500/20 flex items-center justify-center flex-shrink-0">
+                  <Lightbulb className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Tip of the Day</p>
+                  <p className="text-sm" data-testid="text-daily-tip">{getTodaysTip()}</p>
+                </div>
+              </div>
+            </Card>
+            </motion.div>
+
             {/* Streak Calendar with Protection */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -468,19 +487,6 @@ export default function Home() {
                 <h3 className="font-semibold" data-testid="text-money-health-value">Money Health: {user.moneyHealth}</h3>
               </div>
               <StatBarGrid {...user.stats} />
-            </Card>
-
-            {/* Quick Tip of the Day */}
-            <Card className="p-4 bg-muted/30" data-testid="card-daily-tip">
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-yellow-500/20 flex items-center justify-center flex-shrink-0">
-                  <Lightbulb className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Tip of the Day</p>
-                  <p className="text-sm" data-testid="text-daily-tip">{getTodaysTip()}</p>
-                </div>
-              </div>
             </Card>
 
             {/* Share Today's Results */}
