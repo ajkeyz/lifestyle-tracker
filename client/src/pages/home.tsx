@@ -180,7 +180,7 @@ export default function Home() {
                 onClick={() => navigate("/profile")} 
                 data-testid="button-profile"
               >
-                <Avatar className="h-8 w-8">
+                <Avatar className="h-8 w-8 pointer-events-none">
                   <AvatarImage src={authUser.profileImageUrl || undefined} alt={authUser.firstName || "User"} />
                   <AvatarFallback>{authUser.firstName?.[0] || authUser.email?.[0] || "U"}</AvatarFallback>
                 </Avatar>
