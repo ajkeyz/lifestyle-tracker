@@ -125,6 +125,9 @@ export interface User {
   streakInsurance: StreakInsurance;
   gameHistory: GameHistoryEntry[];
   categoryStats: CategoryStats[];
+  referralCode: string;
+  referredBy: string | null;
+  referralCount: number;
 }
 
 export interface NotificationPrefs {

@@ -1,0 +1,42 @@
+{
+  "name": "Lifestyle Creep",
+  "short_name": "Lifestyle Creep",
+  "description": "Daily money decision game - 5 financial scenarios, 2 minutes, build your Money IQ",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#10b981",
+  "orientation": "portrait",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["games", "education", "finance"],
+  "shortcuts": [
+    {
+      "name": "Play Today's Drop",
+      "short_name": "Play",
+      "description": "Start today's daily money scenarios",
+      "url": "/play",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "View Results",
+      "short_name": "Results",
+      "description": "See your latest game results",
+      "url": "/results",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

@@ -82,6 +82,47 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/daily-stats", async (req: Request, res: Response) => {
+    try {
+      const stats = await storage.getDailyStats();
+      res.json(stats);
+    } catch (error) {
+      console.error("Error getting daily stats:", error);
+      res.status(500).json({ error: "Failed to get daily stats" });
+    }
+  });
+
+  app.post("/api/apply-referral", async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const { referralCode } = req.body;
+      
+      if (!referralCode || typeof referralCode !== "string") {
+        return res.status(400).json({ error: "Invalid referral code" });
+      }
+      
+      const referrer = await storage.getUserByReferralCode(referralCode);
+      if (!referrer) {
+        return res.status(404).json({ error: "Referral code not found" });
+      }
+      
+      if (referrer.id === sessionId) {
+        return res.status(400).json({ error: "Cannot use your own referral code" });
+      }
+      
+      const success = await storage.applyReferralBonus(referrer.id, sessionId);
+      if (!success) {
+        return res.status(400).json({ error: "Referral already applied" });
+      }
+      
+      const user = await storage.getUser(sessionId);
+      res.json({ success: true, user });
+    } catch (error) {
+      console.error("Error applying referral:", error);
+      res.status(500).json({ error: "Failed to apply referral" });
+    }
+  });
+
   app.post("/api/set-mode", async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);

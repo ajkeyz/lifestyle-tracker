@@ -7,6 +7,9 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { StreakCalendar } from "@/components/streak-calendar";
 import { Onboarding } from "@/components/onboarding";
 import { AppLogo } from "@/components/app-logo";
+import { QuickStatsBar } from "@/components/quick-stats-bar";
+import { StreakUrgencyBanner } from "@/components/streak-urgency-banner";
+import { SocialProofCounter } from "@/components/social-proof-counter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
   Play, 
@@ -194,6 +197,12 @@ export default function Home() {
           </div>
         ) : user ? (
           <>
+            {/* Streak Urgency Banner */}
+            <StreakUrgencyBanner hasPlayedToday={hasPlayedToday} streak={user.streak} />
+
+            {/* Quick Stats Bar */}
+            <QuickStatsBar user={user} rank={displayRank} className="mb-2" />
+
             {/* Daily Drop CTA Tile */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -213,9 +222,12 @@ export default function Home() {
                       Daily Drop #{dailyDrop?.dropNumber || "..."}
                     </h1>
                   )}
-                  <p className="text-muted-foreground text-sm mb-3" data-testid="text-tagline">
+                  <p className="text-muted-foreground text-sm mb-2" data-testid="text-tagline">
                     5 real-life money decisions in 2-4 minutes
                   </p>
+                  <div className="mb-3">
+                    <SocialProofCounter />
+                  </div>
                   <Button
                     size="lg"
                     className="gap-2"

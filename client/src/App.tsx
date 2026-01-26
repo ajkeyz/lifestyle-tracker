@@ -29,12 +29,16 @@ import StreakInsurance from "@/pages/streak-insurance";
 import Community from "@/pages/community";
 import CommunityDetail from "@/pages/community-detail";
 import CommunitySubmit from "@/pages/community-submit";
+import TipsLibrary from "@/pages/tips-library";
 import Admin from "@/pages/admin";
 import AdminScenarioBuilder from "@/pages/admin-scenario-builder";
 import NotFound from "@/pages/not-found";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAchievementToast } from "@/hooks/use-achievement-toast";
 
 function AuthenticatedRouter() {
+  // Monitor for badge unlocks and show celebratory toasts
+  useAchievementToast();
   return (
     <PageTransition>
       <Switch>
@@ -60,6 +64,7 @@ function AuthenticatedRouter() {
         <Route path="/community" component={Community} />
         <Route path="/community/submit" component={CommunitySubmit} />
         <Route path="/community/:id" component={CommunityDetail} />
+        <Route path="/tips" component={TipsLibrary} />
         <Route path="/admin" component={Admin} />
         <Route path="/admin/scenario-builder" component={AdminScenarioBuilder} />
         <Route path="/admin/scenario-builder/:id" component={AdminScenarioBuilder} />

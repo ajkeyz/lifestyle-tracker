@@ -22,6 +22,7 @@ import {
   VolumeX
 } from "lucide-react";
 import { useSound } from "@/hooks/use-sound";
+import { ReferralCard } from "@/components/referral-card";
 import type { User } from "@shared/schema";
 
 export default function Settings() {
@@ -197,6 +198,27 @@ export default function Settings() {
         </Card>
 
         <Card 
+          className="cursor-pointer hover-elevate"
+          onClick={() => navigate("/tips")}
+          data-testid="card-tips-library"
+        >
+          <CardHeader>
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-500 to-amber-500 flex items-center justify-center">
+                  <BookOpen className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">Financial Tips Library</CardTitle>
+                  <CardDescription>Browse all money wisdom by category</CardDescription>
+                </div>
+              </div>
+              <ChevronRight className="w-5 h-5 text-muted-foreground" />
+            </div>
+          </CardHeader>
+        </Card>
+
+        <Card 
           className="cursor-pointer"
           onClick={() => navigate("/streak-insurance")}
           data-testid="card-streak-insurance"
@@ -237,6 +259,8 @@ export default function Settings() {
             </div>
           </CardHeader>
         </Card>
+
+        <ReferralCard />
 
         <Card 
           className="cursor-pointer"

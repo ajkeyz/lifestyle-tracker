@@ -44,7 +44,7 @@ export function ScenarioCard({
   const Icon = categoryIcons[scenario.category] || ShoppingBag;
 
   return (
-    <Card className="p-6 bounce-in" data-testid={`card-scenario-${scenario.id}`}>
+    <Card className="p-6 scenario-reveal" data-testid={`card-scenario-${scenario.id}`}>
       <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
         <div className="flex items-center gap-2 flex-wrap">
           <Badge

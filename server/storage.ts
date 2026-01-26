@@ -323,6 +323,11 @@ export interface IStorage {
   deleteAdminScenario(scenarioId: string): Promise<boolean>;
   publishAdminScenario(scenarioId: string): Promise<AdminScenario | undefined>;
   getAllUsersForAdmin(): Promise<Pick<User, "id" | "username" | "avatar" | "moneyHealth" | "gamesPlayed">[]>;
+  // Daily stats for social proof
+  getDailyStats(): Promise<{ playersToday: number; totalPlayers: number }>;
+  // Referral system
+  getUserByReferralCode(code: string): Promise<User | undefined>;
+  applyReferralBonus(referrerId: string, referredUserId: string): Promise<boolean>;
 }
 
 function generateInviteCode(): string {
@@ -569,6 +574,9 @@ export class MemStorage implements IStorage {
         streakInsurance: { ...defaultStreakInsurance, isPlus: i < 2 },
         gameHistory: [],
         categoryStats: [],
+        referralCode: generateInviteCode(),
+        referredBy: null,
+        referralCount: 0,
       });
     });
   }
@@ -611,6 +619,9 @@ export class MemStorage implements IStorage {
         streakInsurance: { ...defaultStreakInsurance },
         gameHistory: [],
         categoryStats: [],
+        referralCode: generateInviteCode(),
+        referredBy: null,
+        referralCount: 0,
       };
       this.users.set(sessionId, user);
     }
@@ -1598,6 +1609,53 @@ export class MemStorage implements IStorage {
       moneyHealth: user.moneyHealth,
       gamesPlayed: user.gamesPlayed,
     }));
+  }
+
+  async getDailyStats(): Promise<{ playersToday: number; totalPlayers: number }> {
+    const today = getTodayDateString();
+    let playersToday = 0;
+    
+    const users = Array.from(this.users.values());
+    for (const user of users) {
+      if (user.lastPlayedDate === today) {
+        playersToday++;
+      }
+    }
+    
+    return {
+      playersToday,
+      totalPlayers: this.users.size,
+    };
+  }
+
+  async getUserByReferralCode(code: string): Promise<User | undefined> {
+    const users = Array.from(this.users.values());
+    for (const user of users) {
+      if (user.referralCode === code) {
+        return user;
+      }
+    }
+    return undefined;
+  }
+
+  async applyReferralBonus(referrerId: string, referredUserId: string): Promise<boolean> {
+    const referrer = this.users.get(referrerId);
+    const referredUser = this.users.get(referredUserId);
+    
+    if (!referrer || !referredUser) return false;
+    if (referredUser.referredBy) return false; // Already referred
+    
+    // Give referrer a freeze token
+    referrer.freezeTokens += 1;
+    referrer.referralCount += 1;
+    this.users.set(referrerId, referrer);
+    
+    // Mark referred user
+    referredUser.referredBy = referrerId;
+    referredUser.freezeTokens += 1; // Bonus for new user too
+    this.users.set(referredUserId, referredUser);
+    
+    return true;
   }
 }
 

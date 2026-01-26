@@ -87,7 +87,7 @@ export function StreakCalendar({ user, showMilestoneAnimation = false }: StreakC
         <div className="flex items-center justify-between gap-2 flex-wrap mb-4">
           <div className="flex items-center gap-2 flex-wrap">
             <div className={`relative ${isMilestone ? 'animate-pulse' : ''}`}>
-              <Flame className={`h-8 w-8 ${user.streak > 0 ? 'text-orange-500' : 'text-muted-foreground'}`} />
+              <Flame className={`h-8 w-8 ${user.streak > 0 ? 'text-orange-500 fire-animation' : 'text-muted-foreground'}`} />
               {isMilestone && (
                 <Sparkles className="absolute -top-1 -right-1 h-4 w-4 text-yellow-400 animate-bounce" />
               )}

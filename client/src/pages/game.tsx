@@ -13,6 +13,8 @@ import { useLocation } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useSound } from "@/hooks/use-sound";
+import { useHaptic } from "@/hooks/use-haptic";
+import { useConfetti } from "@/components/confetti";
 import type { DailyDrop, User, SubmitGame } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -22,6 +24,8 @@ export default function Game() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const { play } = useSound();
+  const { vibrateSuccess, vibrateError } = useHaptic();
+  const { fireMiniCorrect } = useConfetti();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [showResults, setShowResults] = useState<Record<string, boolean>>({});
@@ -67,14 +71,17 @@ export default function Game() {
     const choice = currentScenario.choices.find((c) => c.label === label);
     if (choice?.isCorrect) {
       play("correct");
+      vibrateSuccess();
+      fireMiniCorrect();
     } else {
       play("incorrect");
+      vibrateError();
     }
     
     setAnswers((prev) => ({ ...prev, [currentScenario.id]: label }));
     setShowResults((prev) => ({ ...prev, [currentScenario.id]: true }));
     setTimerRunning(false);
-  }, [currentScenario, showResults, play]);
+  }, [currentScenario, showResults, play, vibrateSuccess, vibrateError, fireMiniCorrect]);
 
   const handleTimeUp = useCallback(() => {
     if (!currentScenario || showResults[currentScenario.id]) return;
@@ -138,6 +145,41 @@ export default function Game() {
   };
 
   const allAnswered = scenarios.every((s) => showResults[s.id]);
+
+  // Keyboard shortcuts: 1-4 for answers, Enter to submit, Arrow keys for navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if user is typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      
+      // Number keys 1-4 to select answers
+      if (currentScenario && !showResults[currentScenario.id]) {
+        const choiceIndex = parseInt(e.key) - 1;
+        if (choiceIndex >= 0 && choiceIndex < currentScenario.choices.length) {
+          const choice = currentScenario.choices[choiceIndex];
+          if (choice) {
+            handleSelectChoice(choice.label);
+          }
+        }
+      }
+      
+      // Arrow keys for navigation
+      if (e.key === "ArrowRight" && showResults[currentScenario?.id || ""] && currentIndex < totalScenarios - 1) {
+        handleNext();
+      }
+      if (e.key === "ArrowLeft" && currentIndex > 0) {
+        handlePrev();
+      }
+      
+      // Enter to submit when all answered
+      if (e.key === "Enter" && allAnswered && !submitMutation.isPending) {
+        handleSubmit();
+      }
+    };
+    
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [currentScenario, showResults, currentIndex, totalScenarios, allAnswered, handleSelectChoice, submitMutation.isPending]);
 
   useEffect(() => {
     if (user?.todayResult) {

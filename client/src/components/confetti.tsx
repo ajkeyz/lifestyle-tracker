@@ -95,11 +95,38 @@ export function useConfetti() {
     });
   }, []);
 
+  const fireMiniCorrect = useCallback(() => {
+    confetti({
+      particleCount: 25,
+      spread: 45,
+      origin: { x: 0.5, y: 0.7 },
+      colors: ["#22c55e", "#10b981", "#34d399"],
+      gravity: 1.2,
+      scalar: 0.8,
+      ticks: 100,
+    });
+  }, []);
+
+  const fireMiniIncorrect = useCallback(() => {
+    // Subtle red particles falling for incorrect answer
+    confetti({
+      particleCount: 10,
+      spread: 30,
+      origin: { x: 0.5, y: 0.7 },
+      colors: ["#ef4444", "#dc2626"],
+      gravity: 2,
+      scalar: 0.6,
+      ticks: 50,
+    });
+  }, []);
+
   return {
     fireConfetti,
     firePerfectScore,
     fireStreakMilestone,
     fireAchievement,
+    fireMiniCorrect,
+    fireMiniIncorrect,
   };
 }
 
