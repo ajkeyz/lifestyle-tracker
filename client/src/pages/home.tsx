@@ -203,6 +203,28 @@ export default function Home() {
             {/* Quick Stats Bar */}
             <QuickStatsBar user={user} rank={displayRank} className="mb-2" />
 
+            {/* Next Drop Countdown */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.05, ease: "easeOut" }}
+            >
+            <Card className="p-3" data-testid="card-countdown">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-primary" />
+                  <span className="text-sm text-muted-foreground">Next Drop</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="text-lg font-bold font-mono" data-testid="text-countdown">
+                    {String(countdown.hours).padStart(2, '0')}:{String(countdown.minutes).padStart(2, '0')}:{String(countdown.seconds).padStart(2, '0')}
+                  </div>
+                  <span className="text-xs text-muted-foreground">until midnight UTC</span>
+                </div>
+              </div>
+            </Card>
+            </motion.div>
+
             {/* Daily Drop CTA Tile */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -426,28 +448,6 @@ export default function Home() {
               transition={{ duration: 0.4, delay: 0.2, ease: "easeOut" }}
             >
             <StreakCalendar user={user} />
-            </motion.div>
-
-            {/* Next Drop Countdown */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.3, ease: "easeOut" }}
-            >
-            <Card className="p-4" data-testid="card-countdown">
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-primary" />
-                  <span className="text-sm text-muted-foreground">Next Drop</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="text-xl font-bold font-mono" data-testid="text-countdown">
-                    {String(countdown.hours).padStart(2, '0')}:{String(countdown.minutes).padStart(2, '0')}:{String(countdown.seconds).padStart(2, '0')}
-                  </div>
-                  <span className="text-xs text-muted-foreground">until midnight UTC</span>
-                </div>
-              </div>
-            </Card>
             </motion.div>
 
             {/* Friend League Preview - hidden in low pressure mode */}
