@@ -36,7 +36,7 @@ import {
   User
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import type { User as UserType, DailyDrop, LeaderboardEntry, CommunityScenario } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -174,14 +174,14 @@ export default function Home() {
         <div className="flex items-center gap-2">
           {authUser && (
             <div className="flex items-center gap-2">
-              <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={() => navigate("/profile")} 
-                data-testid="button-profile"
-              >
-                <User className="w-4 h-4" />
-              </Button>
+              <Link href="/profile" data-testid="link-profile">
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                >
+                  <User className="w-4 h-4" />
+                </Button>
+              </Link>
               <Button variant="ghost" size="icon" onClick={() => navigate("/stats")} data-testid="button-stats">
                 <BarChart3 className="w-4 h-4" />
               </Button>
