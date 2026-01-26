@@ -23,7 +23,7 @@ export function SocialProofCounter() {
       data-testid="social-proof-counter"
     >
       <div className="flex items-center gap-1">
-        <Users className="w-4 h-4 text-primary" />
+        <Users className="w-4 h-4 text-muted-foreground" />
         <span className="font-medium text-foreground">
           {stats.playersToday.toLocaleString()}
         </span>
@@ -33,7 +33,7 @@ export function SocialProofCounter() {
         <>
           <span className="text-muted-foreground/50">|</span>
           <div className="flex items-center gap-1">
-            <TrendingUp className="w-3 h-3 text-green-500" />
+            <TrendingUp className="w-3 h-3 text-emerald-500 dark:text-emerald-400" />
             <span>{stats.totalPlayers.toLocaleString()} total</span>
           </div>
         </>

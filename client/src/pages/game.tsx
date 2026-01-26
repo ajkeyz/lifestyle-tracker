@@ -114,7 +114,7 @@ export default function Game() {
     return () => clearInterval(interval);
   }, [timerRunning, currentScenario, showResults, handleTimeUp, play]);
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     if (currentIndex < totalScenarios - 1) {
       setCurrentIndex((prev) => prev + 1);
       setTimeRemaining(TIMER_DURATION);
@@ -122,15 +122,15 @@ export default function Game() {
       playedWarnings.current.clear();
       play("whoosh");
     }
-  };
+  }, [currentIndex, totalScenarios, play]);
 
-  const handlePrev = () => {
+  const handlePrev = useCallback(() => {
     if (currentIndex > 0) {
       setCurrentIndex((prev) => prev - 1);
     }
-  };
+  }, [currentIndex]);
 
-  const handleSubmit = () => {
+  const handleSubmit = useCallback(() => {
     if (!dailyDrop) return;
 
     const submissionAnswers = scenarios.map((s) => ({
@@ -142,7 +142,7 @@ export default function Game() {
       dropId: dailyDrop.id,
       answers: submissionAnswers,
     });
-  };
+  }, [dailyDrop, scenarios, answers, submitMutation]);
 
   const allAnswered = scenarios.every((s) => showResults[s.id]);
 
@@ -179,7 +179,7 @@ export default function Game() {
     
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [currentScenario, showResults, currentIndex, totalScenarios, allAnswered, handleSelectChoice, submitMutation.isPending]);
+  }, [currentScenario, showResults, currentIndex, totalScenarios, allAnswered, handleSelectChoice, handleNext, handlePrev, handleSubmit, submitMutation.isPending]);
 
   useEffect(() => {
     if (user?.todayResult) {

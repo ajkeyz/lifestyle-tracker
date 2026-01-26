@@ -10,14 +10,8 @@
   "scope": "/",
   "icons": [
     {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
+      "src": "/favicon.png",
+      "sizes": "any",
       "type": "image/png",
       "purpose": "any maskable"
     }
@@ -29,14 +23,14 @@
       "short_name": "Play",
       "description": "Start today's daily money scenarios",
       "url": "/play",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/favicon.png", "sizes": "any" }]
     },
     {
       "name": "View Results",
       "short_name": "Results",
       "description": "See your latest game results",
       "url": "/results",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/favicon.png", "sizes": "any" }]
     }
   ]
 }

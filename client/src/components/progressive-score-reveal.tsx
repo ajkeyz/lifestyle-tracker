@@ -6,7 +6,7 @@ import type { Scenario } from "@shared/schema";
 
 interface ProgressiveScoreRevealProps {
   scenarios: Scenario[];
-  answers: string[];
+  answers: Record<string, string>;
   onComplete: () => void;
 }
 
@@ -16,11 +16,9 @@ export function ProgressiveScoreReveal({
   onComplete,
 }: ProgressiveScoreRevealProps) {
   const [revealedIndex, setRevealedIndex] = useState(-1);
-  const [isComplete, setIsComplete] = useState(false);
 
   useEffect(() => {
     if (revealedIndex >= scenarios.length) {
-      setIsComplete(true);
       setTimeout(onComplete, 500);
       return;
     }
@@ -32,13 +30,12 @@ export function ProgressiveScoreReveal({
     return () => clearTimeout(timer);
   }, [revealedIndex, scenarios.length, onComplete]);
 
-  const getResult = (index: number) => {
-    const scenario = scenarios[index];
-    const answer = answers[index];
+  const getResult = (scenario: Scenario) => {
+    const answer = answers[scenario.id];
     
-    if (!answer) return { correct: false, timedOut: true };
+    if (!answer) return { correct: false, timedOut: true, points: 0 };
     
-    const choice = scenario?.choices.find((c) => c.label === answer);
+    const choice = scenario.choices.find((c) => c.label === answer);
     return { 
       correct: choice?.isCorrect || false, 
       timedOut: false,
@@ -50,7 +47,7 @@ export function ProgressiveScoreReveal({
     <div className="space-y-3">
       {scenarios.map((scenario, index) => {
         const isRevealed = index <= revealedIndex;
-        const result = getResult(index);
+        const result = getResult(scenario);
 
         return (
           <AnimatePresence key={scenario.id}>
