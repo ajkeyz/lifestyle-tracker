@@ -32,6 +32,7 @@ import CommunitySubmit from "@/pages/community-submit";
 import TipsLibrary from "@/pages/tips-library";
 import Admin from "@/pages/admin";
 import AdminScenarioBuilder from "@/pages/admin-scenario-builder";
+import Profile from "@/pages/profile";
 import NotFound from "@/pages/not-found";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAchievementToast } from "@/hooks/use-achievement-toast";
@@ -68,6 +69,7 @@ function AuthenticatedRouter() {
         <Route path="/admin" component={Admin} />
         <Route path="/admin/scenario-builder" component={AdminScenarioBuilder} />
         <Route path="/admin/scenario-builder/:id" component={AdminScenarioBuilder} />
+        <Route path="/profile" component={Profile} />
         <Route component={NotFound} />
       </Switch>
     </PageTransition>

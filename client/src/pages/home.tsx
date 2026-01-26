@@ -173,10 +173,18 @@ export default function Home() {
         <div className="flex items-center gap-2">
           {authUser && (
             <div className="flex items-center gap-2">
-              <Avatar className="h-8 w-8" data-testid="avatar-user">
-                <AvatarImage src={authUser.profileImageUrl || undefined} alt={authUser.firstName || "User"} />
-                <AvatarFallback>{authUser.firstName?.[0] || authUser.email?.[0] || "U"}</AvatarFallback>
-              </Avatar>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="rounded-full p-0"
+                onClick={() => navigate("/profile")} 
+                data-testid="button-profile"
+              >
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={authUser.profileImageUrl || undefined} alt={authUser.firstName || "User"} />
+                  <AvatarFallback>{authUser.firstName?.[0] || authUser.email?.[0] || "U"}</AvatarFallback>
+                </Avatar>
+              </Button>
               <Button variant="ghost" size="icon" onClick={() => navigate("/stats")} data-testid="button-stats">
                 <BarChart3 className="w-4 h-4" />
               </Button>

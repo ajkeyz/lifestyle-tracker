@@ -30,6 +30,7 @@ Preferred communication style: Simple, everyday language.
 
 Key pages:
 - Auth (`/`) - Sign-in page with Replit Auth (Apple, Google, Email)
+- Profile (`/profile`) - User profile view with username, stats, friend discovery via username sharing
 - Profile Setup (`/profile-setup`) - Username, avatar, bio, privacy settings
 - Notifications Setup (`/notifications-setup`) - Pre-permission screen for notifications
 - Friends Setup (`/friends-setup`) - Friend discovery (username search, invite contacts)
