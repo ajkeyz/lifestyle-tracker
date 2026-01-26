@@ -129,6 +129,13 @@ Data models:
 - **Vite** - Development server with HMR
 - **Replit plugins** - Error overlay, cartographer, dev banner
 
+### PWA & Offline Support
+- **Service Worker** - Caches static assets, daily drop data, and provides offline fallback
+- **Push Notifications** - Web push via web-push library with VAPID authentication
+- **Manifest** - Full PWA manifest with app icons and theme colors
+
 ### Environment Variables Required
 - `DATABASE_URL` - PostgreSQL connection string
 - `SESSION_SECRET` - Session encryption key (has fallback for dev)
+- `VAPID_PUBLIC_KEY` - Public key for push notifications (optional, disables push if missing)
+- `VAPID_PRIVATE_KEY` - Private key for push notifications (optional, disables push if missing)
