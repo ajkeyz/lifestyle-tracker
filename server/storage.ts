@@ -359,6 +359,47 @@ function getWeekStartDate(): string {
   return monday.toISOString().split("T")[0];
 }
 
+// Deterministic shuffle based on seed string (scenario ID + date)
+function seededShuffle<T>(array: T[], seed: string): T[] {
+  const result = [...array];
+  
+  // Create a simple seeded random number generator
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    const char = seed.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  
+  // Simple LCG-style pseudo-random based on seed
+  const seededRandom = () => {
+    hash = (hash * 1103515245 + 12345) & 0x7fffffff;
+    return hash / 0x7fffffff;
+  };
+  
+  // Fisher-Yates shuffle with seeded random
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(seededRandom() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
+// Shuffle choices and reassign labels A, B, C, D
+function shuffleScenarioChoices(scenario: Scenario, date: string): Scenario {
+  const seed = scenario.id + date;
+  const shuffledChoices = seededShuffle(scenario.choices, seed);
+  const labels = ['A', 'B', 'C', 'D'];
+  
+  return {
+    ...scenario,
+    choices: shuffledChoices.map((choice, index) => ({
+      ...choice,
+      label: labels[index],
+    })),
+  };
+}
+
 function createInitialBadges(): UserBadge[] {
   return BADGE_DEFINITIONS.map(def => ({
     badgeId: def.id,
@@ -424,11 +465,17 @@ export class MemStorage implements IStorage {
   private pushSubscriptions: Map<string, PushSubscriptionJSON[]> = new Map();
 
   constructor() {
+    const today = getTodayDateString();
+    // Shuffle choices for each scenario so correct answer isn't always in same position
+    const shuffledScenarios = sampleScenarios.map(scenario => 
+      shuffleScenarioChoices(scenario, today)
+    );
+    
     this.dailyDrop = {
       id: randomUUID(),
       dropNumber: getDayNumber(),
-      date: getTodayDateString(),
-      scenarios: sampleScenarios,
+      date: today,
+      scenarios: shuffledScenarios,
     };
 
     this.seedLeaderboard();
@@ -677,11 +724,16 @@ export class MemStorage implements IStorage {
   async getDailyDrop(): Promise<DailyDrop> {
     const today = getTodayDateString();
     if (this.dailyDrop.date !== today) {
+      // Shuffle choices for each scenario so correct answer isn't always in same position
+      const shuffledScenarios = sampleScenarios.map(scenario => 
+        shuffleScenarioChoices(scenario, today)
+      );
+      
       this.dailyDrop = {
         id: randomUUID(),
         dropNumber: getDayNumber(),
         date: today,
-        scenarios: sampleScenarios,
+        scenarios: shuffledScenarios,
       };
       this.users.forEach((user, id) => {
         this.users.set(id, { ...user, todayResult: null });
