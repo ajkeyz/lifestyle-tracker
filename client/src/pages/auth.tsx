@@ -13,17 +13,17 @@ export default function AuthPage() {
           <div className="w-8 h-8 rounded-md bg-gradient-to-br from-primary to-accent flex items-center justify-center">
             <TrendingUp className="w-5 h-5 text-white" />
           </div>
-          <span className="font-bold text-lg" data-testid="text-app-title">Lifestyle Creep</span>
+          <span className="font-display font-bold text-lg tracking-tight" data-testid="text-app-title">Lifestyle Creep</span>
         </div>
         <ThemeToggle />
       </header>
 
       <main className="container max-w-md mx-auto p-4 py-8">
         <div className="text-center mb-8">
-          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center glow-primary">
             <TrendingUp className="w-10 h-10 text-white" />
           </div>
-          <h1 className="text-3xl font-bold mb-3" data-testid="text-auth-title">
+          <h1 className="text-3xl font-display font-bold mb-3 tracking-tight" data-testid="text-auth-title">
             Build Wealth, Not Habits
           </h1>
           <p className="text-muted-foreground text-lg" data-testid="text-auth-subtitle">

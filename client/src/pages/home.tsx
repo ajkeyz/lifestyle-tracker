@@ -154,7 +154,7 @@ export default function Home() {
           <div className="w-8 h-8 rounded-md bg-gradient-to-br from-primary to-accent flex items-center justify-center">
             <TrendingUp className="w-5 h-5 text-white" />
           </div>
-          <span className="font-bold text-lg" data-testid="text-app-title">Lifestyle Creep</span>
+          <span className="font-display font-bold text-lg tracking-tight" data-testid="text-app-title">Lifestyle Creep</span>
         </div>
         <div className="flex items-center gap-2">
           {authUser && (
@@ -194,7 +194,7 @@ export default function Home() {
               transition={{ duration: 0.4, ease: "easeOut" }}
             >
             <Card 
-              className="p-6 bg-gradient-to-br from-primary/10 to-accent/10 border-primary/20"
+              className="p-6 gradient-bg-subtle border-primary/20 overflow-hidden relative"
               data-testid="card-daily-drop-cta"
             >
               <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -202,7 +202,7 @@ export default function Home() {
                   {dropLoading ? (
                     <Skeleton className="h-8 w-40 mb-2" />
                   ) : (
-                    <h1 className="text-2xl md:text-3xl font-bold mb-1" data-testid="text-daily-drop-title">
+                    <h1 className="text-2xl md:text-3xl font-display font-bold mb-1 tracking-tight" data-testid="text-daily-drop-title">
                       Daily Drop #{dailyDrop?.dropNumber || "..."}
                     </h1>
                   )}
@@ -237,7 +237,7 @@ export default function Home() {
                     <ChevronRight className="w-4 h-4" />
                   </Button>
                 </div>
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center flex-shrink-0">
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center flex-shrink-0 glow-primary">
                   {hasPlayedToday ? (
                     <Trophy className="w-10 h-10 text-white" />
                   ) : (

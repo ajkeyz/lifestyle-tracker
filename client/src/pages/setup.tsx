@@ -134,7 +134,7 @@ export default function Setup() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
         >
-          <h1 className="text-2xl md:text-3xl font-bold mb-2" data-testid="text-setup-title">
+          <h1 className="text-2xl md:text-3xl font-display font-bold mb-2 tracking-tight" data-testid="text-setup-title">
             Choose Your Mode
           </h1>
           <p className="text-muted-foreground" data-testid="text-setup-description">

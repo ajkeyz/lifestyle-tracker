@@ -114,7 +114,7 @@ export default function Results() {
                 <Trophy className="w-6 h-6" />
                 <span className="text-sm font-medium" data-testid="text-drop-complete">Drop Complete</span>
               </div>
-              <h1 className="text-2xl font-bold" data-testid="text-great-job">Great job!</h1>
+              <h1 className="text-2xl font-display font-bold tracking-tight" data-testid="text-great-job">Great job!</h1>
               <p className="text-muted-foreground text-sm mt-1" data-testid="text-come-back">
                 Come back tomorrow for a new challenge
               </p>

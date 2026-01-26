@@ -144,7 +144,7 @@ export default function WeeklyRecap() {
       content: (
         <div className="flex flex-col items-center justify-center h-full text-center text-primary-foreground p-6">
           <Sparkles className="h-12 w-12 mb-4 animate-pulse" />
-          <h1 className="text-3xl font-bold mb-2">Your Week in Review</h1>
+          <h1 className="text-3xl font-display font-bold mb-2 tracking-tight">Your Week in Review</h1>
           <p className="text-lg opacity-90">Let's see how you did</p>
         </div>
       )
@@ -156,7 +156,7 @@ export default function WeeklyRecap() {
         <div className="flex flex-col items-center justify-center h-full text-center text-white p-6">
           <Trophy className="h-16 w-16 mb-6" />
           <p className="text-sm uppercase tracking-wide opacity-80 mb-2">Best Decision</p>
-          <h2 className="text-2xl font-bold mb-4">{recapData.bestDecision.scenario}</h2>
+          <h2 className="text-2xl font-display font-bold mb-4">{recapData.bestDecision.scenario}</h2>
           <Card className="bg-white/20 border-0 backdrop-blur-sm">
             <CardContent className="p-4">
               <p className="text-white font-medium">{recapData.bestDecision.choice}</p>

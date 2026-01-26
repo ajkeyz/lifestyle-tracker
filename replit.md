@@ -25,6 +25,8 @@ Preferred communication style: Simple, everyday language.
 - **Build Tool**: Vite with custom plugins for Replit integration
 - **Theme**: Dark/light mode support with CSS custom properties
 - **Animations**: Framer Motion for page transitions, staggered animations, and micro-interactions
+- **Typography**: Inter (body), Space Grotesk (headings/display)
+- **Color Palette**: Emerald/teal primary (#10b981), gold accent (#f59e0b)
 
 Key pages:
 - Auth (`/`) - Sign-in page with Replit Auth (Apple, Google, Email)
