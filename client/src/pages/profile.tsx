@@ -36,10 +36,14 @@ import {
   Rocket,
   Shield,
   Eye,
-  EyeOff
+  EyeOff,
+  Swords,
+  UserPlus,
+  Loader2
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { useLocation, Link } from "wouter";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation, Link, useParams } from "wouter";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { User } from "@shared/schema";
 
 const avatarOptions: Record<string, typeof Cat> = {
@@ -99,11 +103,40 @@ function StatCard({
 
 export default function Profile() {
   const [, navigate] = useLocation();
+  const params = useParams<{ userId?: string }>();
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
+  
+  const isOwnProfile = !params.userId;
 
   const { data: user, isLoading } = useQuery<User>({
+    queryKey: isOwnProfile ? ["/api/user"] : ["/api/user", params.userId],
+  });
+
+  const { data: currentUser } = useQuery<User>({
     queryKey: ["/api/user"],
+    enabled: !isOwnProfile,
+  });
+
+  const addFriendMutation = useMutation({
+    mutationFn: async (friendId: string) => {
+      const res = await apiRequest("POST", "/api/friends/add", { friendId });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/friends"] });
+      toast({
+        title: "Friend added!",
+        description: `You can now see ${user?.username} in your friends list.`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Couldn't add friend",
+        description: error.message || "Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
   const handleCopyUsername = async () => {
@@ -190,14 +223,16 @@ export default function Profile() {
           <Button 
             variant="ghost" 
             size="icon"
-            onClick={() => navigate("/")}
+            onClick={() => window.history.length > 1 ? window.history.back() : navigate("/")}
             data-testid="button-back"
           >
             <ChevronLeft className="w-5 h-5" />
           </Button>
           <div className="flex items-center gap-2">
             <AppLogo size="sm" />
-            <span className="font-display font-bold tracking-tight">Profile</span>
+            <span className="font-display font-bold tracking-tight">
+              {isOwnProfile ? "Profile" : user?.username || "Profile"}
+            </span>
           </div>
           <ThemeToggle />
         </div>
@@ -247,61 +282,93 @@ export default function Profile() {
           </div>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          <Card className="p-4 space-y-3" data-testid="card-share-username">
-            <div className="flex items-center gap-2 text-sm font-medium">
-              <Users className="w-4 h-4 text-primary" />
-              <span>Share your username to add friends</span>
-            </div>
-            
-            <div className="flex gap-2">
-              <Input 
-                value={user.username}
-                readOnly
-                className="font-mono"
-                data-testid="input-username-share"
-              />
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleCopyUsername}
-                data-testid="button-copy-username"
-              >
-                {copied ? (
-                  <Check className="w-4 h-4 text-green-500" />
-                ) : (
-                  <Copy className="w-4 h-4" />
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleShare}
-                data-testid="button-share-username"
-              >
-                <Share2 className="w-4 h-4" />
-              </Button>
-            </div>
+        {isOwnProfile ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <Card className="p-4 space-y-3" data-testid="card-share-username">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Users className="w-4 h-4 text-primary" />
+                <span>Share your username to add friends</span>
+              </div>
+              
+              <div className="flex gap-2">
+                <Input 
+                  value={user.username}
+                  readOnly
+                  className="font-mono"
+                  data-testid="input-username-share"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleCopyUsername}
+                  data-testid="button-copy-username"
+                >
+                  {copied ? (
+                    <Check className="w-4 h-4 text-green-500" />
+                  ) : (
+                    <Copy className="w-4 h-4" />
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleShare}
+                  data-testid="button-share-username"
+                >
+                  <Share2 className="w-4 h-4" />
+                </Button>
+              </div>
 
-            <p className="text-xs text-muted-foreground" data-testid="text-privacy-status">
-              {user.allowFriendsToFind ? (
-                <span className="flex items-center gap-1">
-                  <Eye className="w-3 h-3" />
-                  Friends can find you by searching your username
-                </span>
+              <p className="text-xs text-muted-foreground" data-testid="text-privacy-status">
+                {user.allowFriendsToFind ? (
+                  <span className="flex items-center gap-1">
+                    <Eye className="w-3 h-3" />
+                    Friends can find you by searching your username
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1">
+                    <EyeOff className="w-3 h-3" />
+                    Username search is disabled in your privacy settings
+                  </span>
+                )}
+              </p>
+            </Card>
+          </motion.div>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="flex gap-3"
+          >
+            <Button 
+              className="flex-1 gap-2"
+              onClick={() => navigate("/challenges")}
+              data-testid="button-challenge-user"
+            >
+              <Swords className="w-4 h-4" />
+              Challenge
+            </Button>
+            <Button 
+              variant="outline"
+              className="flex-1 gap-2"
+              onClick={() => params.userId && addFriendMutation.mutate(params.userId)}
+              disabled={addFriendMutation.isPending}
+              data-testid="button-add-friend"
+            >
+              {addFriendMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                <span className="flex items-center gap-1">
-                  <EyeOff className="w-3 h-3" />
-                  Username search is disabled in your privacy settings
-                </span>
+                <UserPlus className="w-4 h-4" />
               )}
-            </p>
-          </Card>
-        </motion.div>
+              {addFriendMutation.isPending ? "Adding..." : "Add Friend"}
+            </Button>
+          </motion.div>
+        )}
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}

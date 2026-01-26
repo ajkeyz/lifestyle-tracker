@@ -55,6 +55,49 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/user/:userId", async (req: Request, res: Response) => {
+    try {
+      const userId = req.params.userId as string;
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Return safe public profile data only
+      if (user.isProfilePrivate) {
+        return res.json({
+          id: user.id,
+          username: user.username,
+          avatar: user.avatar,
+          isProfilePrivate: true,
+          moneyHealth: 0,
+          streak: 0,
+          highestStreak: 0,
+          gamesPlayed: 0,
+          badges: [],
+          bio: "",
+        });
+      }
+      
+      // Public profile - return safe subset of fields
+      res.json({
+        id: user.id,
+        username: user.username,
+        avatar: user.avatar,
+        bio: user.bio,
+        moneyHealth: user.moneyHealth,
+        streak: user.streak,
+        highestStreak: user.highestStreak,
+        gamesPlayed: user.gamesPlayed,
+        badges: user.badges,
+        isProfilePrivate: false,
+      });
+    } catch (error) {
+      console.error("Error getting user by ID:", error);
+      res.status(500).json({ error: "Failed to get user" });
+    }
+  });
+
   app.get("/api/daily-drop", async (req: Request, res: Response) => {
     try {
       const drop = await storage.getDailyDrop();
@@ -410,6 +453,26 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error getting friends:", error);
       res.status(500).json({ error: "Failed to get friends" });
+    }
+  });
+
+  app.post("/api/friends/add", async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const { friendId } = req.body;
+      
+      if (!friendId || typeof friendId !== "string") {
+        return res.status(400).json({ error: "Friend ID is required" });
+      }
+      
+      const result = await storage.addFriend(sessionId, friendId);
+      if (!result.success) {
+        return res.status(400).json({ error: result.message });
+      }
+      res.json(result);
+    } catch (error) {
+      console.error("Error adding friend:", error);
+      res.status(500).json({ error: "Failed to add friend" });
     }
   });
 

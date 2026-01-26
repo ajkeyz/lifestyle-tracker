@@ -135,10 +135,6 @@ export default function Home() {
     },
   });
 
-  const { data: friends } = useQuery<{ id: string; username: string; avatar: string; moneyHealth: number; streak: number }[]>({
-    queryKey: ["/api/friends"],
-  });
-
   const hasPlayedToday = user?.todayResult !== null;
 
   const todaysTheme = dailyDrop?.scenarios?.[0]?.category || "lifestyle";
@@ -359,102 +355,30 @@ export default function Home() {
             </Card>
             </motion.div>
 
-            {/* Friends Leaderboard */}
+            {/* Friends */}
             {!user.lowPressureMode && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.12, ease: "easeOut" }}
               >
-              <Card className="p-4" data-testid="card-friends-leaderboard">
-                <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-                      <Users className="w-4 h-4 text-white" />
+              <Card 
+                className="p-4 cursor-pointer hover-elevate" 
+                onClick={() => navigate("/friends")}
+                data-testid="card-friends"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                      <Users className="w-5 h-5 text-white" />
                     </div>
                     <div>
                       <h3 className="font-semibold">Friends</h3>
-                      <p className="text-xs text-muted-foreground">Compare your Money Health</p>
+                      <p className="text-xs text-muted-foreground">Leagues, challenges & leaderboards</p>
                     </div>
                   </div>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="gap-1"
-                    onClick={() => navigate("/leaderboard")}
-                    data-testid="button-view-leaderboard"
-                  >
-                    Leaderboard
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
+                  <ChevronRight className="w-5 h-5 text-muted-foreground" />
                 </div>
-                
-                {friends && friends.length > 0 ? (
-                  <div className="space-y-2">
-                    {friends.slice(0, 3).map((friend, index) => (
-                      <div 
-                        key={friend.id}
-                        className="flex items-center gap-3 p-2 rounded-lg bg-muted/30"
-                        data-testid={`friend-row-${friend.id}`}
-                      >
-                        <span className="text-sm font-bold text-muted-foreground w-5">#{index + 1}</span>
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={friend.avatar} alt={friend.username} />
-                          <AvatarFallback>{friend.username[0]?.toUpperCase()}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{friend.username}</p>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <span className="flex items-center gap-1">
-                              <Sparkles className="w-3 h-3 text-primary" />
-                              {friend.moneyHealth}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <TrendingUp className="w-3 h-3 text-accent" />
-                              {friend.streak}d
-                            </span>
-                          </div>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="gap-1 text-xs"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate("/challenges");
-                          }}
-                          data-testid={`button-challenge-${friend.id}`}
-                        >
-                          <Swords className="w-3 h-3" />
-                          Challenge
-                        </Button>
-                      </div>
-                    ))}
-                    {friends.length > 3 && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="w-full text-xs"
-                        onClick={() => navigate("/leaderboard")}
-                      >
-                        View all {friends.length} friends
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-center py-4">
-                    <p className="text-sm text-muted-foreground mb-2">No friends yet</p>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => navigate("/friends-setup")}
-                      data-testid="button-add-friends"
-                    >
-                      <Users className="w-4 h-4 mr-2" />
-                      Add Friends
-                    </Button>
-                  </div>
-                )}
               </Card>
               </motion.div>
             )}
@@ -606,28 +530,6 @@ export default function Home() {
                       ))}
                     </div>
                   )}
-                </div>
-              </Card>
-            )}
-
-            {/* Challenge a Friend - hidden in low pressure mode */}
-            {!user.lowPressureMode && (
-              <Card 
-                className="p-4 cursor-pointer" 
-                onClick={() => navigate("/challenges")}
-                data-testid="card-challenge-friend"
-              >
-                <div className="flex items-center justify-between gap-3 flex-wrap">
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent to-primary flex items-center justify-center">
-                      <Swords className="w-5 h-5 text-primary-foreground" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">Challenge a Friend</h3>
-                      <p className="text-xs text-muted-foreground">See who's got better money moves</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-muted-foreground" />
                 </div>
               </Card>
             )}

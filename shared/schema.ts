@@ -128,6 +128,7 @@ export interface User {
   referralCode: string;
   referredBy: string | null;
   referralCount: number;
+  friendIds: string[];
 }
 
 export interface NotificationPrefs {

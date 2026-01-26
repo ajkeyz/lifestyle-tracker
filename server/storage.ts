@@ -269,7 +269,7 @@ export interface IStorage {
   getOrCreateUser(sessionId: string): Promise<User>;
   updateUser(sessionId: string, updates: Partial<User>): Promise<User | undefined>;
   checkUsernameAvailable(username: string, excludeUserId?: string): Promise<boolean>;
-  searchUserByUsername(username: string, excludeUserId?: string): Promise<{ found: boolean; username: string | null }>;
+  searchUserByUsername(username: string, excludeUserId?: string): Promise<{ found: boolean; username: string | null; userId: string | null }>;
   getDailyDrop(): Promise<DailyDrop>;
   submitGame(sessionId: string, submission: SubmitGame): Promise<UserGameResult>;
   getLeaderboard(): Promise<LeaderboardEntry[]>;
@@ -286,6 +286,7 @@ export interface IStorage {
   getUserChallenges(userId: string): Promise<Challenge[]>;
   respondToChallenge(challengeId: string, userId: string, accept: boolean): Promise<Challenge | undefined>;
   getFriends(userId: string): Promise<User[]>;
+  addFriend(userId: string, friendId: string): Promise<{ success: boolean; message: string }>;
   // Streak protection methods
   useStreakFreeze(userId: string): Promise<{ success: boolean; message: string }>;
   addFreezeToken(userId: string, count?: number): Promise<User | undefined>;
@@ -638,6 +639,7 @@ export class MemStorage implements IStorage {
         referralCode: generateInviteCode(),
         referredBy: null,
         referralCount: 0,
+        friendIds: [],
       });
     });
   }
@@ -683,6 +685,7 @@ export class MemStorage implements IStorage {
         referralCode: generateInviteCode(),
         referredBy: null,
         referralCount: 0,
+        friendIds: [],
       };
       this.users.set(sessionId, user);
     }
@@ -701,16 +704,16 @@ export class MemStorage implements IStorage {
     return true;
   }
 
-  async searchUserByUsername(username: string, excludeUserId?: string): Promise<{ found: boolean; username: string | null }> {
+  async searchUserByUsername(username: string, excludeUserId?: string): Promise<{ found: boolean; username: string | null; userId: string | null }> {
     const lowerUsername = username.toLowerCase();
     const entries = Array.from(this.users.entries());
     for (const [id, user] of entries) {
       if (excludeUserId && id === excludeUserId) continue;
       if (user.allowFriendsToFind && user.username.toLowerCase().includes(lowerUsername)) {
-        return { found: true, username: user.username };
+        return { found: true, username: user.username, userId: user.id };
       }
     }
-    return { found: false, username: null };
+    return { found: false, username: null, userId: null };
   }
 
   async updateUser(sessionId: string, updates: Partial<User>): Promise<User | undefined> {
@@ -1105,14 +1108,64 @@ export class MemStorage implements IStorage {
   }
 
   async getFriends(userId: string): Promise<User[]> {
+    const user = await this.getUser(userId);
+    if (!user) return [];
+    
     const friends: User[] = [];
-    const allUsers = Array.from(this.users.values());
-    for (const user of allUsers) {
-      if (user.id !== userId && user.allowFriendsToFind && user.profileSetupComplete) {
-        friends.push(user);
+    for (const friendId of user.friendIds || []) {
+      const friend = await this.getUser(friendId);
+      if (friend) {
+        friends.push(friend);
       }
     }
+    
+    if (friends.length === 0) {
+      const allUsers = Array.from(this.users.values());
+      for (const u of allUsers) {
+        if (u.id !== userId && u.allowFriendsToFind && u.profileSetupComplete) {
+          friends.push(u);
+        }
+      }
+    }
+    
     return friends;
+  }
+
+  async addFriend(userId: string, friendId: string): Promise<{ success: boolean; message: string }> {
+    const user = await this.getUser(userId);
+    if (!user) {
+      return { success: false, message: "User not found" };
+    }
+    
+    const friend = await this.getUser(friendId);
+    if (!friend) {
+      return { success: false, message: "Friend not found" };
+    }
+    
+    if (userId === friendId) {
+      return { success: false, message: "Cannot add yourself as a friend" };
+    }
+    
+    if (!user.friendIds) {
+      user.friendIds = [];
+    }
+    
+    if (user.friendIds.includes(friendId)) {
+      return { success: false, message: "Already friends" };
+    }
+    
+    user.friendIds.push(friendId);
+    this.users.set(userId, user);
+    
+    if (!friend.friendIds) {
+      friend.friendIds = [];
+    }
+    if (!friend.friendIds.includes(userId)) {
+      friend.friendIds.push(userId);
+      this.users.set(friendId, friend);
+    }
+    
+    return { success: true, message: "Friend added successfully" };
   }
 
   async useStreakFreeze(userId: string): Promise<{ success: boolean; message: string }> {
