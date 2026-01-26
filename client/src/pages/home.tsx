@@ -32,12 +32,13 @@ import {
   Settings,
   MessageSquare,
   BarChart3,
-  RefreshCw
+  RefreshCw,
+  User
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
-import type { User, DailyDrop, LeaderboardEntry, CommunityScenario } from "@shared/schema";
+import type { User as UserType, DailyDrop, LeaderboardEntry, CommunityScenario } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const THEME_CONFIG: Record<string, { label: string; icon: typeof Plane; color: string }> = {
@@ -107,7 +108,7 @@ export default function Home() {
     return () => clearInterval(timer);
   }, []);
 
-  const { data: user, isLoading: userLoading } = useQuery<User>({
+  const { data: user, isLoading: userLoading } = useQuery<UserType>({
     queryKey: ["/api/user"],
   });
 
@@ -175,15 +176,11 @@ export default function Home() {
             <div className="flex items-center gap-2">
               <Button 
                 variant="ghost" 
-                size="icon" 
-                className="rounded-full p-0"
+                size="icon"
                 onClick={() => navigate("/profile")} 
                 data-testid="button-profile"
               >
-                <Avatar className="h-8 w-8 pointer-events-none">
-                  <AvatarImage src={authUser.profileImageUrl || undefined} alt={authUser.firstName || "User"} />
-                  <AvatarFallback>{authUser.firstName?.[0] || authUser.email?.[0] || "U"}</AvatarFallback>
-                </Avatar>
+                <User className="w-4 h-4" />
               </Button>
               <Button variant="ghost" size="icon" onClick={() => navigate("/stats")} data-testid="button-stats">
                 <BarChart3 className="w-4 h-4" />
