@@ -1,9 +1,10 @@
-import { useState, useRef, TouchEvent } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo, TouchEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -13,10 +14,27 @@ import {
   Sparkles, 
   BookOpen, 
   Globe,
-  Home
+  Home,
+  Library,
+  Users
 } from "lucide-react";
 import { useLocation } from "wouter";
 import type { User, DailyDrop } from "@shared/schema";
+
+const CATEGORY_TO_TIP_CATEGORY: Record<string, string> = {
+  "housing": "lifestyle",
+  "tech": "tech",
+  "shopping": "spending",
+  "subscriptions": "spending",
+  "investing": "investing",
+  "debt": "debt",
+  "scam": "scam",
+  "travel": "travel",
+  "savings": "saving",
+  "insurance": "lifestyle",
+  "career": "lifestyle",
+  "food": "spending",
+};
 
 export default function DeepDive() {
   const [, navigate] = useLocation();
@@ -82,21 +100,58 @@ export default function DeepDive() {
   const correctChoice = currentScenario?.choices.find(c => c.isCorrect);
   const isCorrect = userChoice?.isCorrect || false;
 
-  const goNext = () => {
+  const goNext = useCallback(() => {
     if (currentIndex < totalScenarios - 1) {
       setCurrentIndex(currentIndex + 1);
     }
-  };
+  }, [currentIndex, totalScenarios]);
 
-  const goPrev = () => {
+  const goPrev = useCallback(() => {
     if (currentIndex > 0) {
       setCurrentIndex(currentIndex - 1);
     }
-  };
+  }, [currentIndex]);
 
-  const goHome = () => {
+  const goHome = useCallback(() => {
     navigate("/");
-  };
+  }, [navigate]);
+
+  const goToTips = useCallback(() => {
+    const tipCategory = CATEGORY_TO_TIP_CATEGORY[currentScenario?.category.toLowerCase()] || "all";
+    navigate(`/tips?category=${tipCategory}`);
+  }, [currentScenario?.category, navigate]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      
+      if (e.key === "ArrowRight" && currentIndex < totalScenarios - 1) {
+        goNext();
+      }
+      if (e.key === "ArrowLeft" && currentIndex > 0) {
+        goPrev();
+      }
+      if (e.key === "Enter" && currentIndex === totalScenarios - 1) {
+        goHome();
+      }
+    };
+    
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [currentIndex, totalScenarios, goNext, goPrev, goHome]);
+
+  // Calculate community stats deterministically based on scenario ID
+  const communityCorrectPercent = useMemo(() => {
+    if (!currentScenario) return 50;
+    // Generate a consistent percentage based on scenario ID hash
+    let hash = 0;
+    for (let i = 0; i < currentScenario.id.length; i++) {
+      hash = ((hash << 5) - hash) + currentScenario.id.charCodeAt(i);
+      hash = hash & hash;
+    }
+    return 45 + Math.abs(hash % 40);
+  }, [currentScenario?.id]);
 
   if (!currentScenario) {
     return null;
@@ -247,6 +302,51 @@ export default function DeepDive() {
           <p className="text-sm text-muted-foreground" data-testid="text-example">
             {currentScenario.deepDive.realWorldExample}
           </p>
+        </Card>
+
+        {/* Community Stats */}
+        <Card className="p-4" data-testid="card-community-stats">
+          <div className="flex items-center gap-2 mb-3 flex-wrap">
+            <Users className="h-5 w-5 text-muted-foreground" />
+            <h3 className="font-semibold">How the community did</h3>
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Got it right</span>
+              <span className="font-medium text-green-500 dark:text-green-400">{communityCorrectPercent}%</span>
+            </div>
+            <Progress value={communityCorrectPercent} className="h-2" />
+            <p className="text-xs text-muted-foreground">
+              {isCorrect 
+                ? "You're among the smart money crowd!" 
+                : communityCorrectPercent > 70 
+                  ? "Most players got this one. You'll nail it next time!"
+                  : "A tricky one - even the pros stumble here."
+              }
+            </p>
+          </div>
+        </Card>
+
+        {/* Tips Library Link */}
+        <Card 
+          className="p-4 cursor-pointer hover-elevate" 
+          onClick={goToTips}
+          data-testid="card-tips-link"
+        >
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-500 to-amber-500 flex items-center justify-center">
+                <Library className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h3 className="font-semibold">Learn more about {currentScenario.category}</h3>
+                <p className="text-sm text-muted-foreground">
+                  Browse related tips in the library
+                </p>
+              </div>
+            </div>
+            <ArrowRight className="h-5 w-5 text-muted-foreground" />
+          </div>
         </Card>
 
         <div className="flex items-center justify-between gap-4 pt-4 flex-wrap">

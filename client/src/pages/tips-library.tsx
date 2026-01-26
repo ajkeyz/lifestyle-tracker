@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -89,9 +89,20 @@ const CATEGORIES = [
 
 export default function TipsLibrary() {
   const [, navigate] = useLocation();
-  const [selectedCategory, setSelectedCategory] = useState("all");
+  const searchString = useSearch();
+  const params = new URLSearchParams(searchString);
+  const initialCategory = params.get("category") || "all";
+  
+  const [selectedCategory, setSelectedCategory] = useState(initialCategory);
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedTip, setExpandedTip] = useState<string | null>(null);
+  
+  // Update category from URL param on mount
+  useEffect(() => {
+    if (initialCategory && CATEGORIES.some(c => c.id === initialCategory)) {
+      setSelectedCategory(initialCategory);
+    }
+  }, [initialCategory]);
 
   const filteredTips = TIPS.filter((tip) => {
     const matchesCategory = selectedCategory === "all" || tip.category === selectedCategory;
