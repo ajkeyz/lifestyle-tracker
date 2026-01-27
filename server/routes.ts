@@ -1295,20 +1295,20 @@ export async function registerRoutes(
         const message = JSON.parse(data.toString());
         
         if (message.type === 'join_session') {
-          const { sessionId, odUserId } = message;
+          const { sessionId, userId } = message;
           currentSessionId = sessionId;
-          currentUserId = odUserId;
+          currentUserId = userId;
 
           // Add to connections map
           if (!coopConnections.has(sessionId)) {
             coopConnections.set(sessionId, new Map());
           }
-          coopConnections.get(sessionId)!.set(odUserId, ws);
+          coopConnections.get(sessionId)!.set(userId, ws);
 
           // Update player connection status
           const session = await storage.getCoopSession(sessionId);
           if (session) {
-            const playerIndex = session.players.findIndex(p => p.id === odUserId);
+            const playerIndex = session.players.findIndex(p => p.id === userId);
             if (playerIndex !== -1) {
               session.players[playerIndex].connected = true;
               await storage.updateCoopSession(sessionId, { players: session.players });
@@ -1318,8 +1318,8 @@ export async function registerRoutes(
             broadcastToSession(sessionId, {
               type: "player_reconnected",
               sessionId,
-              payload: { odUserId },
-            }, odUserId);
+              payload: { userId },
+            }, userId);
           }
         }
 
@@ -1360,7 +1360,7 @@ export async function registerRoutes(
           broadcastToSession(currentSessionId, {
             type: "player_disconnected",
             sessionId: currentSessionId,
-            payload: { odUserId: currentUserId },
+            payload: { userId: currentUserId },
           });
         }
       }
