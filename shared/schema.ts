@@ -22,7 +22,7 @@ export interface Scenario {
     points: number;
     feedback: string;
   }[];
-  category: "tech" | "travel" | "lifestyle" | "scam" | "investing" | "debt";
+  category: "tech" | "travel" | "lifestyle" | "scam" | "investing" | "debt" | "career" | "relationships" | "housing" | "insurance" | "tax" | "credit" | "emergency" | "budgeting" | "health" | "giving" | "saving" | "family" | "windfall";
   deepDive: ScenarioDeepDive;
 }
 

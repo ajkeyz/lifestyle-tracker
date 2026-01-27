@@ -34,220 +34,7 @@ import type {
 } from "@shared/schema";
 import { BADGE_DEFINITIONS, defaultNotificationPrefs, defaultStreakInsurance } from "@shared/schema";
 import { randomUUID } from "crypto";
-import { generateScenarios } from "./ai-scenarios";
-
-const sampleScenarios: Scenario[] = [
-  {
-    id: "tech-1",
-    category: "tech",
-    context: "Cash $3,800 | Debt $200 | Credit 690 | Stress 44 | Portfolio: 70% in company stock",
-    question: "$10k RSUs vest. Your portfolio is already 70% company stock. What do you do?",
-    choices: [
-      {
-        label: "A",
-        text: "Hold all RSUs — belief = wealth",
-        isCorrect: false,
-        points: -20,
-        feedback: "Concentration risk is real. Many tech workers lost everything when their company stock crashed.",
-      },
-      {
-        label: "B",
-        text: "Sell 70% and diversify into index funds",
-        isCorrect: true,
-        points: 100,
-        feedback: "Smart move! Diversification protects your wealth while keeping some company upside.",
-      },
-      {
-        label: "C",
-        text: "Sell 100% and go cash",
-        isCorrect: false,
-        points: 40,
-        feedback: "Too conservative if you have job stability, but reasonable if layoff risk is high.",
-      },
-      {
-        label: "D",
-        text: "Upgrade your apartment (fixed costs up)",
-        isCorrect: false,
-        points: -40,
-        feedback: "Classic lifestyle creep! Increasing fixed expenses with volatile income is risky.",
-      },
-    ],
-    deepDive: {
-      teaching: "Concentration risk can wipe out years of savings. Your job already depends on your company - your investments shouldn't too.",
-      alternative: "Sell 50-70% of RSUs immediately upon vesting and reinvest in broad market index funds like VTI or VOO.",
-      ruleOfThumb: "Never have more than 10-15% of your portfolio in any single stock, including company stock.",
-      realWorldExample: "Enron employees had 62% of their 401k in company stock. When it collapsed in 2001, they lost both jobs AND retirement savings.",
-    },
-  },
-  {
-    id: "scam-1",
-    category: "scam",
-    context: "Cash $1,500 | Debt $0 | Credit 700 | Stress 40",
-    question: "Caller ID shows your bank. They know your name + last transaction. They ask for OTP to \"verify\" your account.",
-    choices: [
-      {
-        label: "A",
-        text: "Give OTP to verify your identity",
-        isCorrect: false,
-        points: -100,
-        feedback: "Never give OTP over the phone! This is a spoofing scam. Banks never ask for OTP.",
-      },
-      {
-        label: "B",
-        text: "Hang up and call number on back of card",
-        isCorrect: true,
-        points: 100,
-        feedback: "Perfect! Always verify by calling official numbers you trust, not numbers given to you.",
-      },
-      {
-        label: "C",
-        text: "Ask them to email proof first",
-        isCorrect: false,
-        points: 10,
-        feedback: "Still risky. Scammers can fake emails too. Call your bank directly instead.",
-      },
-      {
-        label: "D",
-        text: "Ask for employee ID then proceed",
-        isCorrect: false,
-        points: -30,
-        feedback: "Employee IDs can be faked. Hang up and call your bank directly.",
-      },
-    ],
-    deepDive: {
-      teaching: "Caller ID spoofing is easy. Scammers buy your data from breaches, then use urgency to bypass your judgment.",
-      alternative: null,
-      ruleOfThumb: "If someone calls you asking for ANY codes or passwords, hang up. Real banks never do this.",
-      realWorldExample: "In 2023, Americans lost $10 billion to phone scams. Bank impersonation is the #1 method used.",
-    },
-  },
-  {
-    id: "travel-1",
-    category: "travel",
-    context: "Cash $1,900 | Debt $600 | Credit 675 | Stress 47 | No travel fund",
-    question: "Flight deal: $310 today. If you wait 30 days it might be $450 (60% chance). You have no travel fund.",
-    choices: [
-      {
-        label: "A",
-        text: "Book now on credit card",
-        isCorrect: false,
-        points: -20,
-        feedback: "Adding to debt for travel isn't ideal when you already have $600 in debt.",
-      },
-      {
-        label: "B",
-        text: "Wait + start $10/day sinking fund",
-        isCorrect: true,
-        points: 100,
-        feedback: "Great discipline! Building a travel fund prevents debt and teaches delayed gratification.",
-      },
-      {
-        label: "C",
-        text: "Skip travel this season",
-        isCorrect: false,
-        points: 50,
-        feedback: "Reasonable if money is tight, but you're missing the chance to build good habits.",
-      },
-      {
-        label: "D",
-        text: "Book now but cut spending to pay card in full",
-        isCorrect: true,
-        points: 80,
-        feedback: "Good if you can truly commit to paying it off. Make sure you follow through!",
-      },
-    ],
-    deepDive: {
-      teaching: "FOMO deals create urgency that bypasses good judgment. A sinking fund lets you enjoy guilt-free spending later.",
-      alternative: "Set up automatic transfers to a dedicated travel savings account before deals appear.",
-      ruleOfThumb: "If you can't pay cash for a vacation, you can't afford it yet.",
-      realWorldExample: "The average American carries $1,000 in vacation debt. Those who save first report 40% more trip satisfaction.",
-    },
-  },
-  {
-    id: "lifestyle-1",
-    category: "lifestyle",
-    context: "Cash $4,500 | Debt $0 | Credit 720 | Stress 35 | Just got a 15% raise",
-    question: "Your friends are upgrading to nicer apartments after promotions. Your lease is up. What do you do?",
-    choices: [
-      {
-        label: "A",
-        text: "Upgrade to a place that's 30% more expensive",
-        isCorrect: false,
-        points: -50,
-        feedback: "Classic lifestyle creep! Your housing should stay around 25-30% of income, not grow with raises.",
-      },
-      {
-        label: "B",
-        text: "Stay where you are and invest the raise difference",
-        isCorrect: true,
-        points: 100,
-        feedback: "Wealth building 101! Living below your means and investing the difference compounds massively.",
-      },
-      {
-        label: "C",
-        text: "Get a slightly nicer place, invest half the raise",
-        isCorrect: true,
-        points: 70,
-        feedback: "Balanced approach. Small lifestyle improvements are fine if you're still saving more.",
-      },
-      {
-        label: "D",
-        text: "Move to a luxury building to match your success",
-        isCorrect: false,
-        points: -70,
-        feedback: "This is pure lifestyle inflation. Your apartment doesn't define your success.",
-      },
-    ],
-    deepDive: {
-      teaching: "Lifestyle creep is silent wealth destruction. Every dollar spent on upgrades is a dollar not compounding for decades.",
-      alternative: "Automate investing the raise before you see it. What you don't see, you won't spend.",
-      ruleOfThumb: "Save at least 50% of every raise. The other 50% can be lifestyle.",
-      realWorldExample: "Two people earning $100k: one saves 20%, one saves 5%. After 30 years, the saver has $1.2M more.",
-    },
-  },
-  {
-    id: "investing-1",
-    category: "investing",
-    context: "Cash $8,000 | Emergency Fund: 3 months | No debt | Credit 750 | Age 28",
-    question: "A friend's crypto pick is up 400% this year. They're \"sure\" it'll keep going. You have $5k to invest.",
-    choices: [
-      {
-        label: "A",
-        text: "Put all $5k into the crypto",
-        isCorrect: false,
-        points: -80,
-        feedback: "FOMO investing rarely works. Past performance doesn't predict future returns, especially in crypto.",
-      },
-      {
-        label: "B",
-        text: "Put $500 in crypto, $4,500 in index funds",
-        isCorrect: true,
-        points: 100,
-        feedback: "Smart allocation! Small speculative bets are fine, but the bulk should be in diversified investments.",
-      },
-      {
-        label: "C",
-        text: "Put all $5k in a total market index fund",
-        isCorrect: true,
-        points: 90,
-        feedback: "Conservative but wise. Consistent index investing beats most active strategies over time.",
-      },
-      {
-        label: "D",
-        text: "Keep it in savings, crypto is too risky",
-        isCorrect: false,
-        points: 20,
-        feedback: "Holding cash long-term loses to inflation. At 28, you can afford market risk for higher returns.",
-      },
-    ],
-    deepDive: {
-      teaching: "FOMO (Fear Of Missing Out) is the enemy of good investing. Hot tips from friends usually arrive after the big gains.",
-      alternative: "Use a 90/10 rule: 90% in boring index funds, 10% max for speculation.",
-      ruleOfThumb: "If a friend is bragging about gains, it's probably too late to join.",
-      realWorldExample: "90% of individual crypto traders lose money. The average S&P 500 return is 10%/year over decades.",
-    },
-  },
-];
+import { getDailyScenarios } from "./static-scenarios";
 
 function getTodayDateString(): string {
   return new Date().toISOString().split("T")[0];
@@ -482,16 +269,20 @@ export class MemStorage implements IStorage {
   constructor() {
     const today = getTodayDateString();
     // Shuffle choices for each scenario so correct answer isn't always in same position
-    const shuffledScenarios = sampleScenarios.map(scenario => 
+    // Use static scenarios based on the day number (cycles through 30 days)
+    const dropNumber = getDayNumber();
+    const todayScenarios = getDailyScenarios(dropNumber);
+    const shuffledScenarios = todayScenarios.map(scenario => 
       shuffleScenarioChoices(scenario, today)
     );
     
     this.dailyDrop = {
       id: randomUUID(),
-      dropNumber: getDayNumber(),
+      dropNumber: dropNumber,
       date: today,
       scenarios: shuffledScenarios,
     };
+    console.log(`Initialized with static scenarios for day ${dropNumber} (${today})`);
 
     this.seedLeaderboard();
     this.seedCommunityScenarios();
@@ -740,43 +531,30 @@ export class MemStorage implements IStorage {
 
   async getDailyDrop(): Promise<DailyDrop> {
     const today = getTodayDateString();
-    // Generate new scenarios when:
-    // 1. Date has changed, OR
-    // 2. We still have sample scenarios (IDs don't start with "ai-") from server restart
-    // AI scenarios have IDs starting with "ai-", sample data starts with "tech-", "scam-", etc.
-    const hasAiScenarios = this.dailyDrop.scenarios.some(s => s.id.startsWith("ai-"));
-    const needsNewScenarios = this.dailyDrop.date !== today || !hasAiScenarios;
     
-    if (needsNewScenarios) {
-      try {
-        // Generate new AI scenarios
-        const aiScenarios = await generateScenarios(5);
-        const shuffledScenarios = aiScenarios.map(scenario => 
-          shuffleScenarioChoices(scenario, today)
-        );
-        
-        this.dailyDrop = {
-          id: randomUUID(),
-          dropNumber: getDayNumber(),
-          date: today,
-          scenarios: shuffledScenarios,
-        };
-        console.log("Generated AI scenarios for", today);
-      } catch (error) {
-        console.error("Failed to generate AI scenarios, using sample:", error);
-        // Fallback to sample scenarios if AI fails
-        const shuffledScenarios = sampleScenarios.map(scenario => 
-          shuffleScenarioChoices(scenario, today)
-        );
-        
-        this.dailyDrop = {
-          id: randomUUID(),
-          dropNumber: getDayNumber(),
-          date: today,
-          scenarios: shuffledScenarios,
-        };
-      }
+    // Check if we need to load new scenarios for today
+    if (this.dailyDrop.date !== today) {
+      // Get the day number (cycles 1-30)
+      const dropNumber = getDayNumber();
       
+      // Get static scenarios for this day (cycles through 30 days of content)
+      const todayScenarios = getDailyScenarios(dropNumber);
+      
+      // Shuffle the choices for each scenario to prevent memorization
+      const shuffledScenarios = todayScenarios.map(scenario => 
+        shuffleScenarioChoices(scenario, today)
+      );
+      
+      this.dailyDrop = {
+        id: randomUUID(),
+        dropNumber: dropNumber,
+        date: today,
+        scenarios: shuffledScenarios,
+      };
+      
+      console.log(`Loaded static scenarios for day ${dropNumber} (${today})`);
+      
+      // Reset today's results for all users
       this.users.forEach((user, id) => {
         this.users.set(id, { ...user, todayResult: null });
       });
