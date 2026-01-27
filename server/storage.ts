@@ -31,6 +31,7 @@ import type {
 } from "@shared/schema";
 import { BADGE_DEFINITIONS, defaultNotificationPrefs, defaultStreakInsurance } from "@shared/schema";
 import { randomUUID } from "crypto";
+import { generateScenarios } from "./ai-scenarios";
 
 const sampleScenarios: Scenario[] = [
   {
@@ -726,18 +727,40 @@ export class MemStorage implements IStorage {
 
   async getDailyDrop(): Promise<DailyDrop> {
     const today = getTodayDateString();
-    if (this.dailyDrop.date !== today) {
-      // Shuffle choices for each scenario so correct answer isn't always in same position
-      const shuffledScenarios = sampleScenarios.map(scenario => 
-        shuffleScenarioChoices(scenario, today)
-      );
+    // Generate new scenarios only when date changes (once per day)
+    // AI scenarios have IDs starting with "ai-", sample data starts with "tech-", "scam-", etc.
+    const needsNewScenarios = this.dailyDrop.date !== today;
+    
+    if (needsNewScenarios) {
+      try {
+        // Generate new AI scenarios
+        const aiScenarios = await generateScenarios(5);
+        const shuffledScenarios = aiScenarios.map(scenario => 
+          shuffleScenarioChoices(scenario, today)
+        );
+        
+        this.dailyDrop = {
+          id: randomUUID(),
+          dropNumber: getDayNumber(),
+          date: today,
+          scenarios: shuffledScenarios,
+        };
+        console.log("Generated AI scenarios for", today);
+      } catch (error) {
+        console.error("Failed to generate AI scenarios, using sample:", error);
+        // Fallback to sample scenarios if AI fails
+        const shuffledScenarios = sampleScenarios.map(scenario => 
+          shuffleScenarioChoices(scenario, today)
+        );
+        
+        this.dailyDrop = {
+          id: randomUUID(),
+          dropNumber: getDayNumber(),
+          date: today,
+          scenarios: shuffledScenarios,
+        };
+      }
       
-      this.dailyDrop = {
-        id: randomUUID(),
-        dropNumber: getDayNumber(),
-        date: today,
-        scenarios: shuffledScenarios,
-      };
       this.users.forEach((user, id) => {
         this.users.set(id, { ...user, todayResult: null });
       });
