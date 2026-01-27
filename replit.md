@@ -146,14 +146,15 @@ Data models:
 - **Push Notifications** - Web push via web-push library with VAPID authentication
 - **Manifest** - Full PWA manifest with app icons and theme colors
 
-### AI Integration
-- **OpenAI GPT-5** - Generates fresh financial scenarios daily via `server/ai-scenarios.ts`
-- Scenarios are generated dynamically each day (or each app load for testing)
-- Falls back to sample scenarios if AI generation fails
+### Scenario System
+- **Static Scenarios** - 30 days of pre-generated financial scenarios (150 total) in `server/static-scenarios.ts`
+- **Day Cycling** - Uses `getDayNumber() % 30` to cycle through scenario sets (day 758 → day 8 scenarios)
+- **Categories** - tech, scam, travel, lifestyle, investing, career, debt, relationships, housing, insurance, tax, credit, emergency, budgeting, health, giving, saving, family, windfall
+- **No External Dependencies** - Scenarios load instantly without API calls
 
 ### Environment Variables Required
 - `DATABASE_URL` - PostgreSQL connection string
 - `SESSION_SECRET` - Session encryption key (has fallback for dev)
-- `OPENAI_API_KEY` - OpenAI API key for AI scenario generation
+- `OPENAI_API_KEY` - OpenAI API key (used for other features, not scenarios)
 - `VAPID_PUBLIC_KEY` - Public key for push notifications (optional, disables push if missing)
 - `VAPID_PRIVATE_KEY` - Private key for push notifications (optional, disables push if missing)
