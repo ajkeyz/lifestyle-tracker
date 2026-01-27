@@ -34,6 +34,9 @@ import Admin from "@/pages/admin";
 import AdminScenarioBuilder from "@/pages/admin-scenario-builder";
 import Profile from "@/pages/profile";
 import Friends from "@/pages/friends";
+import CoopLobby from "@/pages/coop-lobby";
+import CoopGame from "@/pages/coop-game";
+import CoopResults from "@/pages/coop-results";
 import NotFound from "@/pages/not-found";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAchievementToast } from "@/hooks/use-achievement-toast";
@@ -73,6 +76,9 @@ function AuthenticatedRouter() {
         <Route path="/profile" component={Profile} />
         <Route path="/profile/:userId" component={Profile} />
         <Route path="/friends" component={Friends} />
+        <Route path="/coop-lobby" component={CoopLobby} />
+        <Route path="/coop-game/:sessionId" component={CoopGame} />
+        <Route path="/coop-results/:sessionId" component={CoopResults} />
         <Route component={NotFound} />
       </Switch>
     </PageTransition>
