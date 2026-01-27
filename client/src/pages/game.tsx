@@ -33,6 +33,23 @@ export default function Game() {
   const [timerRunning, setTimerRunning] = useState(true);
   const playedWarnings = useRef<Set<number>>(new Set());
 
+  // Prevent back navigation during quiz
+  useEffect(() => {
+    // Push a state to prevent immediate back
+    window.history.pushState({ inGame: true }, "");
+    
+    const handlePopState = (e: PopStateEvent) => {
+      // Push state again to prevent going back
+      window.history.pushState({ inGame: true }, "");
+    };
+    
+    window.addEventListener("popstate", handlePopState);
+    
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, []);
+
   const { data: dailyDrop, isLoading } = useQuery<DailyDrop>({
     queryKey: ["/api/daily-drop"],
   });
