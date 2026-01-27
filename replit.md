@@ -51,6 +51,9 @@ Key pages:
 - Community (`/community`) - User-submitted scenarios for community voting and discussion
 - Community Detail (`/community/:id`) - Scenario detail with comments, financial advice, and voting
 - Community Submit (`/community/submit`) - Form to submit new real or hypothetical financial scenarios
+- Co-op Lobby (`/coop-lobby`) - Create or join a co-op game session with 6-character code
+- Co-op Game (`/coop-game/:sessionId`) - Play with a friend in real-time with synchronized timer and WebSocket updates
+- Co-op Results (`/coop-results/:sessionId`) - View shared results showing both players' scores and winner
 
 ### Backend Architecture
 - **Framework**: Express 5 on Node.js
@@ -91,6 +94,14 @@ Key endpoints:
 - `POST /api/community/comments` - Add a comment to a scenario
 - `POST /api/community/comments/:id/vote` - Vote on a comment
 - `GET /api/community/realest-of-week` - Get top scenarios of the week
+- `POST /api/coop/create` - Create a new co-op session (returns 6-character join code)
+- `GET /api/coop/session/:sessionId` - Get co-op session details
+- `POST /api/coop/join` - Join a co-op session by code
+- `POST /api/coop/session/:sessionId/start` - Start the co-op game (host only)
+- `POST /api/coop/session/:sessionId/answer` - Submit answer in co-op game
+- `POST /api/coop/session/:sessionId/next` - Move to next question (both must answer)
+- `GET /api/coop/session/:sessionId/result` - Get co-op game results
+- WebSocket `/ws` - Real-time co-op game synchronization
 
 ### Data Storage
 - **ORM**: Drizzle ORM with PostgreSQL dialect
