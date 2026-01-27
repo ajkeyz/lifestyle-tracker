@@ -2,7 +2,9 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Share2, Copy, Check, Brain, Heart, Flame } from "lucide-react";
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { StatBarGrid } from "./stat-bar";
+import { RollingNumber } from "./animated-progress";
 import type { UserGameResult } from "@shared/schema";
 
 interface ShareCardProps {
@@ -56,42 +58,92 @@ Play at: lifestyle-creep.replit.app`;
       </div>
 
       <div className="grid grid-cols-3 gap-4 mb-6 text-center">
-        <div className="space-y-1">
-          <div className="flex justify-center mb-1">
-            <Brain className="w-4 h-4 text-primary" />
+        <motion.div 
+          className="space-y-1"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <motion.div 
+            className="flex justify-center mb-1"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", delay: 0.2 }}
+          >
+            <Brain className="w-5 h-5 text-primary" />
+          </motion.div>
+          <div data-testid="text-iq-score">
+            <RollingNumber value={result.iq} size="sm" color="primary" />
           </div>
-          <div className="text-2xl font-bold text-primary" data-testid="text-iq-score">{result.iq}</div>
           <div className="text-xs text-muted-foreground">IQ Score</div>
-        </div>
-        <div className="space-y-1">
-          <div className="flex justify-center mb-1">
-            <Heart className="w-4 h-4 text-accent" />
+        </motion.div>
+        <motion.div 
+          className="space-y-1"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <motion.div 
+            className="flex justify-center mb-1"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", delay: 0.3 }}
+          >
+            <Heart className="w-5 h-5 text-accent" />
+          </motion.div>
+          <div data-testid="text-money-health">
+            <RollingNumber value={result.moneyHealth} size="sm" color="accent" />
           </div>
-          <div className="text-2xl font-bold text-accent" data-testid="text-money-health">{result.moneyHealth}</div>
           <div className="text-xs text-muted-foreground">Money Health</div>
-        </div>
-        <div className="space-y-1">
-          <div className="flex justify-center mb-1">
-            <Flame className="w-4 h-4 text-destructive" />
+        </motion.div>
+        <motion.div 
+          className="space-y-1"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          <motion.div 
+            className="flex justify-center mb-1"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", delay: 0.4 }}
+          >
+            <Flame className="w-5 h-5 text-destructive" />
+          </motion.div>
+          <div data-testid="text-streak">
+            <RollingNumber value={streak} size="sm" color="destructive" />
           </div>
-          <div className="text-2xl font-bold text-destructive" data-testid="text-streak">{streak}</div>
           <div className="text-xs text-muted-foreground">Streak</div>
-        </div>
+        </motion.div>
       </div>
 
-      <div className="flex justify-center gap-1 mb-6" data-testid="answers-grid">
+      <div className="flex justify-center gap-1.5 mb-6" data-testid="answers-grid">
         {answers.map((correct, i) => (
-          <div
+          <motion.div
             key={i}
-            className={`w-10 h-10 rounded-md flex items-center justify-center text-lg font-bold ${
+            initial={{ scale: 0, rotate: -180 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ 
+              type: "spring", 
+              stiffness: 200, 
+              damping: 15,
+              delay: 0.4 + i * 0.1 
+            }}
+            className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg font-bold shadow-md ${
               correct
                 ? "bg-primary text-primary-foreground"
                 : "bg-destructive text-destructive-foreground"
             }`}
             data-testid={`answer-result-${i}`}
           >
-            {correct ? "+" : "-"}
-          </div>
+            <motion.span
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 + i * 0.1 }}
+            >
+              {correct ? "+" : "-"}
+            </motion.span>
+          </motion.div>
         ))}
       </div>
 

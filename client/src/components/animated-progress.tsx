@@ -75,6 +75,7 @@ export function AnimatedNumber({
       initial={{ opacity: 0, scale: 0.8 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
+      data-testid="animated-number"
     >
       {prefix}{displayValue}{suffix}
     </motion.span>
@@ -91,7 +92,7 @@ export function ScoreAnimation({ score, maxScore, className }: ScoreAnimationPro
   const percentage = (score / maxScore) * 100;
   
   return (
-    <div className={cn("text-center", className)}>
+    <div className={cn("text-center", className)} data-testid="score-animation">
       <motion.div
         initial={{ scale: 0.5, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -131,16 +132,214 @@ export function TimerProgress({ timeLeft, maxTime, warning, danger }: TimerProgr
   const percentage = (timeLeft / maxTime) * 100;
   
   return (
-    <div className="relative w-full h-2 bg-muted rounded-full overflow-hidden">
-      <motion.div
+    <div className="relative">
+      <motion.div 
         className={cn(
-          "h-full rounded-full transition-colors",
-          danger ? "bg-destructive" : warning ? "bg-yellow-500" : "bg-primary"
+          "relative w-full h-3 bg-muted rounded-full overflow-hidden",
+          danger && "shadow-lg shadow-destructive/30"
         )}
-        initial={{ width: "100%" }}
-        animate={{ width: `${percentage}%` }}
-        transition={{ duration: 0.3, ease: "linear" }}
-      />
+        animate={danger ? {
+          scale: [1, 1.02, 1],
+          boxShadow: [
+            "0 0 0px rgba(239, 68, 68, 0)",
+            "0 0 20px rgba(239, 68, 68, 0.5)",
+            "0 0 0px rgba(239, 68, 68, 0)"
+          ]
+        } : {}}
+        transition={danger ? {
+          duration: 0.5,
+          repeat: Infinity,
+          ease: "easeInOut"
+        } : {}}
+      >
+        <motion.div
+          className={cn(
+            "h-full rounded-full transition-colors relative",
+            danger ? "bg-destructive" : warning ? "bg-chart-5" : "bg-primary"
+          )}
+          initial={{ width: "100%" }}
+          animate={{ width: `${percentage}%` }}
+          transition={{ duration: 0.3, ease: "linear" }}
+        >
+          {danger && (
+            <motion.div
+              className="absolute inset-0 bg-white/30 rounded-full"
+              animate={{ opacity: [0.3, 0.6, 0.3] }}
+              transition={{ duration: 0.3, repeat: Infinity }}
+            />
+          )}
+        </motion.div>
+      </motion.div>
+      {danger && (
+        <motion.div
+          className="absolute -top-1 -bottom-1 -left-1 -right-1 rounded-full border-2 border-destructive/50"
+          animate={{ scale: [1, 1.1, 1], opacity: [0.5, 0, 0.5] }}
+          transition={{ duration: 0.8, repeat: Infinity }}
+        />
+      )}
     </div>
+  );
+}
+
+interface RollingNumberProps {
+  value: number;
+  className?: string;
+  duration?: number;
+  suffix?: string;
+  prefix?: string;
+  size?: "sm" | "md" | "lg" | "xl";
+  color?: "default" | "primary" | "accent" | "destructive";
+}
+
+export function RollingNumber({ 
+  value, 
+  className, 
+  duration = 1.2,
+  suffix = "",
+  prefix = "",
+  size = "md",
+  color = "default"
+}: RollingNumberProps) {
+  const springValue = useSpring(0, { 
+    stiffness: 50, 
+    damping: 20,
+  });
+  const [displayValue, setDisplayValue] = useState(0);
+  const [hasAnimated, setHasAnimated] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      springValue.set(value);
+      setHasAnimated(true);
+    }, 100);
+    
+    const unsubscribe = springValue.on("change", (v) => {
+      setDisplayValue(Math.round(v));
+    });
+    
+    return () => {
+      clearTimeout(timer);
+      unsubscribe();
+    };
+  }, [value, springValue]);
+
+  const sizeClasses = {
+    sm: "text-xl",
+    md: "text-3xl",
+    lg: "text-5xl",
+    xl: "text-7xl"
+  };
+
+  const colorClasses = {
+    default: "text-foreground",
+    primary: "text-primary",
+    accent: "text-accent",
+    destructive: "text-destructive"
+  };
+
+  return (
+    <motion.div 
+      className={cn(
+        "font-display font-bold tabular-nums",
+        sizeClasses[size],
+        colorClasses[color],
+        className
+      )}
+      initial={{ opacity: 0, y: 20, scale: 0.8 }}
+      animate={{ 
+        opacity: 1, 
+        y: 0, 
+        scale: hasAnimated ? [1, 1.05, 1] : 1 
+      }}
+      transition={{ 
+        duration: 0.4,
+        scale: { duration: 0.3, delay: duration }
+      }}
+    >
+      <motion.span
+        animate={hasAnimated && displayValue === value ? {
+          textShadow: [
+            "0 0 0px currentColor",
+            "0 0 20px currentColor",
+            "0 0 0px currentColor"
+          ]
+        } : {}}
+        transition={{ duration: 0.5 }}
+      >
+        {prefix}{displayValue.toLocaleString()}{suffix}
+      </motion.span>
+    </motion.div>
+  );
+}
+
+interface ScoreRevealProps {
+  score: number;
+  maxScore: number;
+  label: string;
+  icon?: React.ReactNode;
+  delay?: number;
+  color?: "primary" | "accent" | "destructive";
+}
+
+export function ScoreReveal({ score, maxScore, label, icon, delay = 0, color = "primary" }: ScoreRevealProps) {
+  const percentage = Math.min((score / maxScore) * 100, 100);
+  
+  const colorClasses = {
+    primary: "text-primary",
+    accent: "text-accent", 
+    destructive: "text-destructive"
+  };
+
+  const bgClasses = {
+    primary: "bg-primary",
+    accent: "bg-accent",
+    destructive: "bg-destructive"
+  };
+  
+  return (
+    <motion.div 
+      className="text-center space-y-2"
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay }}
+    >
+      {icon && (
+        <motion.div 
+          className={cn("flex justify-center", colorClasses[color])}
+          initial={{ scale: 0, rotate: -180 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ type: "spring", stiffness: 200, delay: delay + 0.2 }}
+        >
+          {icon}
+        </motion.div>
+      )}
+      <RollingNumber 
+        value={score} 
+        size="lg" 
+        color={color}
+        duration={1}
+      />
+      <motion.p 
+        className="text-sm text-muted-foreground"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: delay + 0.5 }}
+      >
+        {label}
+      </motion.p>
+      <motion.div
+        className="h-1.5 bg-muted rounded-full overflow-hidden mt-2"
+        initial={{ width: 0 }}
+        animate={{ width: "100%" }}
+        transition={{ delay: delay + 0.3, duration: 0.3 }}
+      >
+        <motion.div
+          className={cn("h-full rounded-full", bgClasses[color])}
+          initial={{ width: 0 }}
+          animate={{ width: `${percentage}%` }}
+          transition={{ delay: delay + 0.6, duration: 0.8, ease: "easeOut" }}
+        />
+      </motion.div>
+    </motion.div>
   );
 }

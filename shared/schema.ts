@@ -4,6 +4,8 @@ export * from "./models/auth";
 
 export type GameMode = "tech" | "global" | "scam" | "student" | "boss";
 
+export type ScenarioCategory = "tech" | "travel" | "lifestyle" | "scam" | "investing" | "debt" | "career" | "relationships" | "housing" | "insurance" | "tax" | "credit" | "emergency" | "budgeting" | "health" | "giving" | "saving" | "family" | "windfall";
+
 export interface ScenarioDeepDive {
   teaching: string;
   alternative: string | null;
@@ -22,7 +24,7 @@ export interface Scenario {
     points: number;
     feedback: string;
   }[];
-  category: "tech" | "travel" | "lifestyle" | "scam" | "investing" | "debt" | "career" | "relationships" | "housing" | "insurance" | "tax" | "credit" | "emergency" | "budgeting" | "health" | "giving" | "saving" | "family" | "windfall";
+  category: ScenarioCategory;
   deepDive: ScenarioDeepDive;
 }
 

@@ -28,6 +28,36 @@ Preferred communication style: Simple, everyday language.
 - **Typography**: Inter (body), Space Grotesk (headings/display)
 - **Color Palette**: Emerald/teal primary (#10b981), gold accent (#f59e0b)
 
+### UI Enhancement Components
+
+**Stage 1 - Core Celebrations:**
+- `confetti.tsx` - 5 confetti types (fireworks, stars, money rain, side cannons, celebration combo)
+- `animated-progress.tsx` - Timer with pulse animation at 5 seconds, glow effects
+- `RollingNumber` - Spring-animated score display with scale/glow on completion
+
+**Stage 2 - Visual Polish:**
+- `glass-card.tsx` - Glassmorphism cards with blur/glow variants
+- `gradient-background.tsx` - Mesh gradient backgrounds with floating orbs
+- `enhanced-skeleton.tsx` - Shimmer/pulse skeleton loading states
+
+**Stage 3 - Game Feedback:**
+- `scenario-card.tsx` - Enhanced with 19 category icons/colors, animated answer reveals, shake effects for wrong answers
+- `streak-fire.tsx` - StreakFire component with intensity levels (7, 30, 100 day milestones), StreakMilestone progress bar
+
+**Stage 4 - Micro-interactions:**
+- `animated-icons.tsx` - Animated icons (check, trophy, star, heart, zap, crown, award, target, trending)
+- `progress-ring.tsx` - Circular progress indicators (ProgressRing, MultiProgressRing, ScoreRing, TimerRing)
+
+**Stage 5 - Social Features:**
+- `live-players.tsx` - LivePlayers count with pulse animation, RecentPlayerActivity feed
+- `leaderboard-animations.tsx` - AnimatedLeaderboard with rank changes, LeaderboardPodium
+- `notification-toast.tsx` - NotificationToast system, AchievementUnlock overlay
+
+**Stage 6 - Premium Touches:**
+- `sound-system.tsx` - SoundSystemProvider with Web Audio API (click, correct, incorrect, tick, timeWarning, complete, levelUp, streak, achievement)
+- `theme-customizer.tsx` - ThemeProvider with 6 color themes (emerald, blue, purple, rose, orange, cyan), dark/light toggle
+- `daily-rewards.tsx` - DailyRewards calendar with claim animations, RewardClaimAnimation overlay
+
 Key pages:
 - Auth (`/`) - Sign-in page with Replit Auth (Apple, Google, Email)
 - Profile (`/profile`) - User profile view with username, stats, friend discovery via username sharing

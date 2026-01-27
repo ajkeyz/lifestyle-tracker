@@ -120,6 +120,138 @@ export function useConfetti() {
     });
   }, []);
 
+  // Firework burst effect - multiple bursts in sequence
+  const fireFireworks = useCallback(() => {
+    const count = 200;
+    const defaults = {
+      origin: { y: 0.7 },
+      colors: ["#22c55e", "#10b981", "#f59e0b", "#8b5cf6"],
+    };
+
+    function fire(particleRatio: number, opts: confetti.Options) {
+      confetti({
+        ...defaults,
+        ...opts,
+        particleCount: Math.floor(count * particleRatio),
+      });
+    }
+
+    fire(0.25, { spread: 26, startVelocity: 55 });
+    fire(0.2, { spread: 60 });
+    fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
+    fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
+    fire(0.1, { spread: 120, startVelocity: 45 });
+  }, []);
+
+  // Star burst effect - stars shooting from center
+  const fireStars = useCallback(() => {
+    const defaults = {
+      spread: 360,
+      ticks: 100,
+      gravity: 0,
+      decay: 0.94,
+      startVelocity: 30,
+      colors: ["#ffd700", "#ff6b00", "#fff"],
+      shapes: ["star"] as confetti.Shape[],
+    };
+
+    confetti({
+      ...defaults,
+      particleCount: 40,
+      scalar: 1.2,
+      origin: { x: 0.5, y: 0.5 },
+    });
+
+    confetti({
+      ...defaults,
+      particleCount: 25,
+      scalar: 0.75,
+      origin: { x: 0.5, y: 0.5 },
+    });
+  }, []);
+
+  // Money rain effect - green particles falling from top
+  const fireMoneyRain = useCallback(() => {
+    const duration = 2000;
+    const end = Date.now() + duration;
+
+    const frame = () => {
+      confetti({
+        particleCount: 2,
+        angle: 90,
+        spread: 160,
+        origin: { x: Math.random(), y: -0.1 },
+        colors: ["#22c55e", "#10b981", "#059669", "#047857"],
+        shapes: ["square"],
+        gravity: 0.8,
+        scalar: 1.5,
+        drift: Math.random() - 0.5,
+      });
+
+      if (Date.now() < end) {
+        requestAnimationFrame(frame);
+      }
+    };
+
+    frame();
+  }, []);
+
+  // Side cannons - shoot from both sides
+  const fireSideCannons = useCallback(() => {
+    const colors = ["#22c55e", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899"];
+    
+    // Left cannon
+    confetti({
+      particleCount: 50,
+      angle: 60,
+      spread: 55,
+      origin: { x: 0, y: 0.65 },
+      colors,
+    });
+    
+    // Right cannon
+    confetti({
+      particleCount: 50,
+      angle: 120,
+      spread: 55,
+      origin: { x: 1, y: 0.65 },
+      colors,
+    });
+
+    // Delayed second burst
+    setTimeout(() => {
+      confetti({
+        particleCount: 30,
+        angle: 60,
+        spread: 70,
+        origin: { x: 0, y: 0.7 },
+        colors,
+      });
+      confetti({
+        particleCount: 30,
+        angle: 120,
+        spread: 70,
+        origin: { x: 1, y: 0.7 },
+        colors,
+      });
+    }, 200);
+  }, []);
+
+  // Celebration combo - ultimate celebration
+  const fireCelebration = useCallback(() => {
+    // Initial burst
+    fireFireworks();
+    
+    // Stars after delay
+    setTimeout(() => fireStars(), 300);
+    
+    // Side cannons
+    setTimeout(() => fireSideCannons(), 600);
+    
+    // Money rain finale
+    setTimeout(() => fireMoneyRain(), 900);
+  }, [fireFireworks, fireStars, fireSideCannons, fireMoneyRain]);
+
   return {
     fireConfetti,
     firePerfectScore,
@@ -127,6 +259,11 @@ export function useConfetti() {
     fireAchievement,
     fireMiniCorrect,
     fireMiniIncorrect,
+    fireFireworks,
+    fireStars,
+    fireMoneyRain,
+    fireSideCannons,
+    fireCelebration,
   };
 }
 
