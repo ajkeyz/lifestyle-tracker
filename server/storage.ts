@@ -740,9 +740,12 @@ export class MemStorage implements IStorage {
 
   async getDailyDrop(): Promise<DailyDrop> {
     const today = getTodayDateString();
-    // Generate new scenarios only when date changes (once per day)
+    // Generate new scenarios when:
+    // 1. Date has changed, OR
+    // 2. We still have sample scenarios (IDs don't start with "ai-") from server restart
     // AI scenarios have IDs starting with "ai-", sample data starts with "tech-", "scam-", etc.
-    const needsNewScenarios = this.dailyDrop.date !== today;
+    const hasAiScenarios = this.dailyDrop.scenarios.some(s => s.id.startsWith("ai-"));
+    const needsNewScenarios = this.dailyDrop.date !== today || !hasAiScenarios;
     
     if (needsNewScenarios) {
       try {
