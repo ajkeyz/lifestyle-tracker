@@ -63,6 +63,14 @@ export default function CoopGame() {
   const currentPlayer = session?.players.find(p => p.id === user?.id);
   const partnerPlayer = session?.players.find(p => p.id !== user?.id);
 
+  // Check if partner has answered based on session data (fallback for WebSocket)
+  const partnerHasAnsweredFromSession = currentScenario && partnerPlayer?.answers[currentScenario.id];
+  const currentPlayerHasAnsweredFromSession = currentScenario && currentPlayer?.answers[currentScenario.id];
+
+  // Use session data as source of truth for both answered status
+  const effectivePartnerAnswered = partnerAnswered || !!partnerHasAnsweredFromSession;
+  const effectiveLocalAnswered = localAnswered || !!currentPlayerHasAnsweredFromSession;
+
   const submitAnswerMutation = useMutation({
     mutationFn: async ({ scenarioId, choiceLabel }: { scenarioId: string; choiceLabel: string }) => {
       const res = await apiRequest("POST", `/api/coop/session/${sessionId}/answer`, {
@@ -223,7 +231,7 @@ export default function CoopGame() {
     nextQuestionMutation.mutate();
   }, [nextQuestionMutation]);
 
-  const bothAnswered = localAnswered && partnerAnswered;
+  const bothAnswered = effectiveLocalAnswered && effectivePartnerAnswered;
 
   if (!session || !dailyDrop) {
     return (
@@ -267,7 +275,7 @@ export default function CoopGame() {
                 Score: {currentPlayer?.score || 0}
               </p>
             </div>
-            {localAnswered && (
+            {effectiveLocalAnswered && (
               <div className="bg-primary/10 text-primary px-2 py-1 rounded-full text-xs flex items-center gap-1">
                 <Check className="h-3 w-3" />
                 Answered
@@ -278,7 +286,7 @@ export default function CoopGame() {
             <span className="text-sm text-muted-foreground">vs</span>
           </div>
           <div className="flex items-center gap-3">
-            {partnerAnswered && (
+            {effectivePartnerAnswered && (
               <div className="bg-primary/10 text-primary px-2 py-1 rounded-full text-xs flex items-center gap-1">
                 <Check className="h-3 w-3" />
                 Answered
@@ -331,7 +339,7 @@ export default function CoopGame() {
               <ScenarioCard
                 scenario={currentScenario}
                 selectedChoice={currentPlayer?.answers[currentScenario.id] || null}
-                showResult={localAnswered}
+                showResult={effectiveLocalAnswered}
                 onSelectChoice={handleSelectChoice}
                 questionNumber={currentIndex + 1}
                 totalQuestions={totalScenarios}
@@ -372,7 +380,7 @@ export default function CoopGame() {
           </motion.div>
         )}
 
-        {localAnswered && !partnerAnswered && (
+        {effectiveLocalAnswered && !effectivePartnerAnswered && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
