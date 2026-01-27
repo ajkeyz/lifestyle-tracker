@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lifestyle-creep-v1';
+const CACHE_NAME = 'lifestyle-creep-v2';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
