@@ -46,6 +46,11 @@ export default function CoopGame() {
 
   const { data: session, refetch: refetchSession } = useQuery<CoopSession>({
     queryKey: ["/api/coop/session", sessionId],
+    queryFn: async () => {
+      const res = await fetch(`/api/coop/session/${sessionId}`);
+      if (!res.ok) throw new Error("Failed to fetch session");
+      return res.json();
+    },
     refetchInterval: 3000,
   });
 

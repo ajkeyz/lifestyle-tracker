@@ -383,6 +383,32 @@ export default function Home() {
               </motion.div>
             )}
 
+            {/* Play with Friend (Co-op Mode) */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.13, ease: "easeOut" }}
+            >
+            <Card 
+              className="p-4 cursor-pointer hover-elevate border-primary/20 bg-gradient-to-r from-primary/5 to-accent/5" 
+              onClick={() => navigate("/coop-lobby")}
+              data-testid="card-coop-play"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
+                    <Swords className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">Play with a Friend</h3>
+                    <p className="text-xs text-muted-foreground">Challenge a friend to today&apos;s drop in real-time</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-5 h-5 text-muted-foreground" />
+              </div>
+            </Card>
+            </motion.div>
+
             {/* Quick Tip of the Day */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}

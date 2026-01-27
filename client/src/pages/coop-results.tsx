@@ -23,6 +23,11 @@ export default function CoopResults() {
 
   const { data: result, isLoading } = useQuery<CoopGameResult>({
     queryKey: ["/api/coop/session", sessionId, "result"],
+    queryFn: async () => {
+      const res = await fetch(`/api/coop/session/${sessionId}/result`);
+      if (!res.ok) throw new Error("Failed to fetch result");
+      return res.json();
+    },
   });
 
   const currentPlayerResult = result?.players.find(p => p.id === user?.id);
