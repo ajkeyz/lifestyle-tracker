@@ -502,6 +502,74 @@ export const addModeratorSchema = z.object({
 
 export type AddModerator = z.infer<typeof addModeratorSchema>;
 
+// Co-op Game Session types
+export type CoopSessionStatus = "waiting" | "playing" | "completed";
+
+export interface CoopPlayer {
+  id: string;
+  username: string;
+  avatar: string;
+  answers: Record<string, string>;
+  currentQuestionIndex: number;
+  score: number;
+  connected: boolean;
+}
+
+export interface CoopSession {
+  id: string;
+  code: string; // 6-character join code
+  hostId: string;
+  guestId: string | null;
+  status: CoopSessionStatus;
+  dropId: string;
+  currentQuestionIndex: number;
+  questionStartTime: number; // timestamp when current question started
+  players: CoopPlayer[];
+  createdAt: string;
+  startedAt: string | null;
+  completedAt: string | null;
+}
+
+export interface CoopGameResult {
+  sessionId: string;
+  players: {
+    id: string;
+    username: string;
+    avatar: string;
+    score: number;
+    correctAnswers: number;
+    answers: { scenarioId: string; choiceLabel: string; points: number; isCorrect: boolean }[];
+  }[];
+  totalQuestions: number;
+  winner: string | null; // null if tie
+}
+
+export const createCoopSessionSchema = z.object({});
+
+export const joinCoopSessionSchema = z.object({
+  code: z.string().length(6).toUpperCase(),
+});
+
+export type CreateCoopSession = z.infer<typeof createCoopSessionSchema>;
+export type JoinCoopSession = z.infer<typeof joinCoopSessionSchema>;
+
+// WebSocket message types for co-op
+export type CoopMessageType = 
+  | "player_joined"
+  | "game_start"
+  | "answer_submitted"
+  | "next_question"
+  | "timer_sync"
+  | "game_complete"
+  | "player_disconnected"
+  | "player_reconnected";
+
+export interface CoopMessage {
+  type: CoopMessageType;
+  sessionId: string;
+  payload: unknown;
+}
+
 export const BADGE_DEFINITIONS: BadgeDefinition[] = [
   {
     id: "no_spend_ninja",
