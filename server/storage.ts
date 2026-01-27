@@ -28,6 +28,9 @@ import type {
   BanUser,
   GameHistoryEntry,
   CategoryStats,
+  CoopSession,
+  CoopPlayer,
+  CoopGameResult,
 } from "@shared/schema";
 import { BADGE_DEFINITIONS, defaultNotificationPrefs, defaultStreakInsurance } from "@shared/schema";
 import { randomUUID } from "crypto";
@@ -334,6 +337,14 @@ export interface IStorage {
   savePushSubscription(userId: string, subscription: PushSubscriptionJSON): Promise<void>;
   removePushSubscription(userId: string, endpoint: string): Promise<void>;
   getAllPushSubscriptions(): Promise<{ userId: string; subscription: PushSubscriptionJSON }[]>;
+  // Co-op game session methods
+  createCoopSession(hostId: string): Promise<CoopSession>;
+  getCoopSession(sessionId: string): Promise<CoopSession | undefined>;
+  getCoopSessionByCode(code: string): Promise<CoopSession | undefined>;
+  joinCoopSession(guestId: string, code: string): Promise<CoopSession | undefined>;
+  updateCoopSession(sessionId: string, updates: Partial<CoopSession>): Promise<CoopSession | undefined>;
+  submitCoopAnswer(sessionId: string, playerId: string, scenarioId: string, choiceLabel: string): Promise<CoopSession | undefined>;
+  getCoopGameResult(sessionId: string): Promise<CoopGameResult | undefined>;
 }
 
 interface PushSubscriptionJSON {
@@ -465,6 +476,8 @@ export class MemStorage implements IStorage {
   private adminUserIds: Set<string> = new Set(["admin", "608498"]); // Default admin users
   // Push notification subscriptions
   private pushSubscriptions: Map<string, PushSubscriptionJSON[]> = new Map();
+  // Co-op game sessions
+  private coopSessions: Map<string, CoopSession> = new Map();
 
   constructor() {
     const today = getTodayDateString();
@@ -1829,6 +1842,166 @@ export class MemStorage implements IStorage {
       }
     }
     return result;
+  }
+
+  // Co-op Game Session Methods
+  private generateCoopCode(): string {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    let code = "";
+    for (let i = 0; i < 6; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+  }
+
+  async createCoopSession(hostId: string): Promise<CoopSession> {
+    const host = await this.getUser(hostId);
+    if (!host) throw new Error("Host user not found");
+
+    // Generate unique code
+    let code = this.generateCoopCode();
+    while (await this.getCoopSessionByCode(code)) {
+      code = this.generateCoopCode();
+    }
+
+    const session: CoopSession = {
+      id: randomUUID(),
+      code,
+      hostId,
+      guestId: null,
+      status: "waiting",
+      dropId: this.dailyDrop.id,
+      currentQuestionIndex: 0,
+      questionStartTime: 0,
+      players: [
+        {
+          id: hostId,
+          username: host.username,
+          avatar: host.avatar,
+          answers: {},
+          currentQuestionIndex: 0,
+          score: 0,
+          connected: true,
+        },
+      ],
+      createdAt: new Date().toISOString(),
+      startedAt: null,
+      completedAt: null,
+    };
+
+    this.coopSessions.set(session.id, session);
+    return session;
+  }
+
+  async getCoopSession(sessionId: string): Promise<CoopSession | undefined> {
+    return this.coopSessions.get(sessionId);
+  }
+
+  async getCoopSessionByCode(code: string): Promise<CoopSession | undefined> {
+    const sessions = Array.from(this.coopSessions.values());
+    return sessions.find(s => s.code === code.toUpperCase() && s.status === "waiting");
+  }
+
+  async joinCoopSession(guestId: string, code: string): Promise<CoopSession | undefined> {
+    const session = await this.getCoopSessionByCode(code);
+    if (!session) return undefined;
+    if (session.guestId) return undefined; // Already has a guest
+    if (session.hostId === guestId) return undefined; // Can't join your own session
+
+    const guest = await this.getUser(guestId);
+    if (!guest) return undefined;
+
+    session.guestId = guestId;
+    session.players.push({
+      id: guestId,
+      username: guest.username,
+      avatar: guest.avatar,
+      answers: {},
+      currentQuestionIndex: 0,
+      score: 0,
+      connected: true,
+    });
+
+    this.coopSessions.set(session.id, session);
+    return session;
+  }
+
+  async updateCoopSession(sessionId: string, updates: Partial<CoopSession>): Promise<CoopSession | undefined> {
+    const session = this.coopSessions.get(sessionId);
+    if (!session) return undefined;
+
+    const updated = { ...session, ...updates };
+    this.coopSessions.set(sessionId, updated);
+    return updated;
+  }
+
+  async submitCoopAnswer(sessionId: string, playerId: string, scenarioId: string, choiceLabel: string): Promise<CoopSession | undefined> {
+    const session = this.coopSessions.get(sessionId);
+    if (!session) return undefined;
+
+    const playerIndex = session.players.findIndex(p => p.id === playerId);
+    if (playerIndex === -1) return undefined;
+
+    // Get the scenario to calculate points
+    const scenario = this.dailyDrop.scenarios.find(s => s.id === scenarioId);
+    if (!scenario) return undefined;
+
+    const choice = scenario.choices.find(c => c.label === choiceLabel);
+    const points = choice?.points || 0;
+
+    // Update player's answer
+    session.players[playerIndex].answers[scenarioId] = choiceLabel;
+    session.players[playerIndex].score += points;
+
+    this.coopSessions.set(sessionId, session);
+    return session;
+  }
+
+  async getCoopGameResult(sessionId: string): Promise<CoopGameResult | undefined> {
+    const session = this.coopSessions.get(sessionId);
+    if (!session || session.status !== "completed") return undefined;
+
+    const scenarios = this.dailyDrop.scenarios;
+    
+    const playerResults = session.players.map(player => {
+      const answers = scenarios.map(scenario => {
+        const choiceLabel = player.answers[scenario.id] || "";
+        const choice = scenario.choices.find(c => c.label === choiceLabel);
+        return {
+          scenarioId: scenario.id,
+          choiceLabel,
+          points: choice?.points || 0,
+          isCorrect: choice?.isCorrect || false,
+        };
+      });
+
+      return {
+        id: player.id,
+        username: player.username,
+        avatar: player.avatar,
+        score: player.score,
+        correctAnswers: answers.filter(a => a.isCorrect).length,
+        answers,
+      };
+    });
+
+    // Determine winner
+    let winner: string | null = null;
+    if (playerResults.length === 2) {
+      if (playerResults[0].score > playerResults[1].score) {
+        winner = playerResults[0].id;
+      } else if (playerResults[1].score > playerResults[0].score) {
+        winner = playerResults[1].id;
+      }
+      // null if tie
+    }
+
+    return {
+      sessionId,
+      players: playerResults,
+      totalQuestions: scenarios.length,
+      winner,
+    };
   }
 }
 

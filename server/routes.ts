@@ -1,8 +1,9 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import webpush from "web-push";
+import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
-import { submitGameSchema, setModeSchema, updateProfileSchema, createLeagueSchema, joinLeagueSchema, createChallengeSchema, addFreezeTokenSchema, adminScenarioSchema, banUserSchema, addModeratorSchema } from "@shared/schema";
+import { submitGameSchema, setModeSchema, updateProfileSchema, createLeagueSchema, joinLeagueSchema, createChallengeSchema, addFreezeTokenSchema, adminScenarioSchema, banUserSchema, addModeratorSchema, joinCoopSessionSchema, type CoopMessage } from "@shared/schema";
 
 // VAPID keys for push notifications (must be set via environment variables)
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
@@ -1069,6 +1070,301 @@ export async function registerRoutes(
       console.error("Error sending reminders:", error);
       res.status(500).json({ error: "Failed to send reminders" });
     }
+  });
+
+  // ==================== CO-OP GAME ROUTES ====================
+  
+  // Store WebSocket connections by session and user
+  const coopConnections: Map<string, Map<string, WebSocket>> = new Map();
+
+  // Broadcast to all players in a session
+  function broadcastToSession(sessionId: string, message: CoopMessage, excludeUserId?: string) {
+    const sessionConnections = coopConnections.get(sessionId);
+    if (!sessionConnections) return;
+
+    const messageStr = JSON.stringify(message);
+    sessionConnections.forEach((ws, odUserId) => {
+      if (excludeUserId && odUserId === excludeUserId) return;
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(messageStr);
+      }
+    });
+  }
+
+  // Create co-op session
+  app.post("/api/coop/create", async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const session = await storage.createCoopSession(sessionId);
+      res.json(session);
+    } catch (error) {
+      console.error("Error creating co-op session:", error);
+      res.status(500).json({ error: "Failed to create co-op session" });
+    }
+  });
+
+  // Get co-op session
+  app.get("/api/coop/session/:sessionId", async (req: Request, res: Response) => {
+    try {
+      const { sessionId } = req.params;
+      const session = await storage.getCoopSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ error: "Session not found" });
+      }
+      res.json(session);
+    } catch (error) {
+      console.error("Error getting co-op session:", error);
+      res.status(500).json({ error: "Failed to get co-op session" });
+    }
+  });
+
+  // Join co-op session by code
+  app.post("/api/coop/join", async (req: Request, res: Response) => {
+    try {
+      const userId = getSessionId(req);
+      const parsed = joinCoopSessionSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+      }
+
+      const session = await storage.joinCoopSession(userId, parsed.data.code);
+      if (!session) {
+        return res.status(404).json({ error: "Session not found or already full" });
+      }
+
+      // Broadcast player joined to host
+      broadcastToSession(session.id, {
+        type: "player_joined",
+        sessionId: session.id,
+        payload: { session },
+      });
+
+      res.json(session);
+    } catch (error) {
+      console.error("Error joining co-op session:", error);
+      res.status(500).json({ error: "Failed to join co-op session" });
+    }
+  });
+
+  // Start co-op game (host only)
+  app.post("/api/coop/session/:sessionId/start", async (req: Request, res: Response) => {
+    try {
+      const userId = getSessionId(req);
+      const { sessionId } = req.params;
+      
+      const session = await storage.getCoopSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ error: "Session not found" });
+      }
+      if (session.hostId !== userId) {
+        return res.status(403).json({ error: "Only the host can start the game" });
+      }
+      if (session.players.length < 2) {
+        return res.status(400).json({ error: "Need 2 players to start" });
+      }
+
+      const updated = await storage.updateCoopSession(sessionId, {
+        status: "playing",
+        startedAt: new Date().toISOString(),
+        questionStartTime: Date.now(),
+      });
+
+      // Broadcast game start to all players
+      broadcastToSession(sessionId, {
+        type: "game_start",
+        sessionId,
+        payload: { session: updated },
+      });
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Error starting co-op game:", error);
+      res.status(500).json({ error: "Failed to start co-op game" });
+    }
+  });
+
+  // Submit answer in co-op game
+  app.post("/api/coop/session/:sessionId/answer", async (req: Request, res: Response) => {
+    try {
+      const userId = getSessionId(req);
+      const { sessionId } = req.params;
+      const { scenarioId, choiceLabel } = req.body;
+
+      const session = await storage.submitCoopAnswer(sessionId, userId, scenarioId, choiceLabel);
+      if (!session) {
+        return res.status(404).json({ error: "Session not found" });
+      }
+
+      // Broadcast answer submitted to partner
+      broadcastToSession(sessionId, {
+        type: "answer_submitted",
+        sessionId,
+        payload: { 
+          playerId: userId, 
+          scenarioId,
+          hasAnswered: true,
+        },
+      }, userId);
+
+      res.json(session);
+    } catch (error) {
+      console.error("Error submitting co-op answer:", error);
+      res.status(500).json({ error: "Failed to submit answer" });
+    }
+  });
+
+  // Move to next question (both must have answered)
+  app.post("/api/coop/session/:sessionId/next", async (req: Request, res: Response) => {
+    try {
+      const { sessionId } = req.params;
+      
+      const session = await storage.getCoopSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ error: "Session not found" });
+      }
+
+      const dailyDrop = await storage.getDailyDrop();
+      const totalQuestions = dailyDrop.scenarios.length;
+      const nextIndex = session.currentQuestionIndex + 1;
+
+      if (nextIndex >= totalQuestions) {
+        // Game complete
+        const updated = await storage.updateCoopSession(sessionId, {
+          status: "completed",
+          completedAt: new Date().toISOString(),
+        });
+
+        const result = await storage.getCoopGameResult(sessionId);
+
+        broadcastToSession(sessionId, {
+          type: "game_complete",
+          sessionId,
+          payload: { result },
+        });
+
+        return res.json({ session: updated, result });
+      }
+
+      // Move to next question
+      const updated = await storage.updateCoopSession(sessionId, {
+        currentQuestionIndex: nextIndex,
+        questionStartTime: Date.now(),
+      });
+
+      broadcastToSession(sessionId, {
+        type: "next_question",
+        sessionId,
+        payload: { 
+          currentQuestionIndex: nextIndex,
+          questionStartTime: Date.now(),
+        },
+      });
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Error moving to next question:", error);
+      res.status(500).json({ error: "Failed to move to next question" });
+    }
+  });
+
+  // Get co-op game result
+  app.get("/api/coop/session/:sessionId/result", async (req: Request, res: Response) => {
+    try {
+      const { sessionId } = req.params;
+      const result = await storage.getCoopGameResult(sessionId);
+      if (!result) {
+        return res.status(404).json({ error: "Result not found" });
+      }
+      res.json(result);
+    } catch (error) {
+      console.error("Error getting co-op result:", error);
+      res.status(500).json({ error: "Failed to get result" });
+    }
+  });
+
+  // ==================== WEBSOCKET SERVER FOR CO-OP ====================
+  
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+
+  wss.on('connection', (ws: WebSocket) => {
+    let currentSessionId: string | null = null;
+    let currentUserId: string | null = null;
+
+    ws.on('message', async (data: Buffer) => {
+      try {
+        const message = JSON.parse(data.toString());
+        
+        if (message.type === 'join_session') {
+          const { sessionId, odUserId } = message;
+          currentSessionId = sessionId;
+          currentUserId = odUserId;
+
+          // Add to connections map
+          if (!coopConnections.has(sessionId)) {
+            coopConnections.set(sessionId, new Map());
+          }
+          coopConnections.get(sessionId)!.set(odUserId, ws);
+
+          // Update player connection status
+          const session = await storage.getCoopSession(sessionId);
+          if (session) {
+            const playerIndex = session.players.findIndex(p => p.id === odUserId);
+            if (playerIndex !== -1) {
+              session.players[playerIndex].connected = true;
+              await storage.updateCoopSession(sessionId, { players: session.players });
+            }
+
+            // Notify other player of reconnection
+            broadcastToSession(sessionId, {
+              type: "player_reconnected",
+              sessionId,
+              payload: { odUserId },
+            }, odUserId);
+          }
+        }
+
+        if (message.type === 'timer_sync' && currentSessionId) {
+          // Broadcast timer sync to other player
+          broadcastToSession(currentSessionId, {
+            type: "timer_sync",
+            sessionId: currentSessionId,
+            payload: message.payload,
+          }, currentUserId || undefined);
+        }
+      } catch (error) {
+        console.error("WebSocket message error:", error);
+      }
+    });
+
+    ws.on('close', async () => {
+      if (currentSessionId && currentUserId) {
+        // Remove from connections
+        const sessionConnections = coopConnections.get(currentSessionId);
+        if (sessionConnections) {
+          sessionConnections.delete(currentUserId);
+          if (sessionConnections.size === 0) {
+            coopConnections.delete(currentSessionId);
+          }
+        }
+
+        // Update player connection status
+        const session = await storage.getCoopSession(currentSessionId);
+        if (session) {
+          const playerIndex = session.players.findIndex(p => p.id === currentUserId);
+          if (playerIndex !== -1) {
+            session.players[playerIndex].connected = false;
+            await storage.updateCoopSession(currentSessionId, { players: session.players });
+          }
+
+          // Notify other player of disconnection
+          broadcastToSession(currentSessionId, {
+            type: "player_disconnected",
+            sessionId: currentSessionId,
+            payload: { odUserId: currentUserId },
+          });
+        }
+      }
+    });
   });
 
   return httpServer;
