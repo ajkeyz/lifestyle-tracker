@@ -96,7 +96,7 @@ export interface IStorage {
   voteCommunityScenario(userId: string, scenarioId: string, voteType: "up" | "down"): Promise<CommunityScenario | undefined>;
   getScenarioComments(scenarioId: string, userId: string): Promise<CommunityComment[]>;
   addComment(userId: string, data: CreateCommunityComment): Promise<CommunityComment>;
-  voteComment(userId: string, commentId: string): Promise<CommunityComment | undefined>;
+  voteComment(userId: string, commentId: string, voteType: "up" | "down"): Promise<CommunityComment | undefined>;
   getRealistOfWeek(userId: string): Promise<CommunityScenario[]>;
   // Admin methods
   isAdmin(userId: string): Promise<boolean>;
@@ -234,6 +234,7 @@ interface StoredCommunityScenario {
 interface StoredCommunityComment {
   id: string;
   scenarioId: string;
+  parentId: string | null;
   authorId: string;
   content: string;
   isAdvice: boolean;
@@ -373,6 +374,7 @@ export class MemStorage implements IStorage {
       {
         id: "comment-1",
         scenarioId: "comm-1",
+        parentId: null,
         authorId: "seed-1",
         content: "Master bedroom should cost more. Suggest a 60/40 split or find a different Airbnb with equal rooms.",
         isAdvice: true,
@@ -381,6 +383,7 @@ export class MemStorage implements IStorage {
       {
         id: "comment-2",
         scenarioId: "comm-1",
+        parentId: null,
         authorId: "seed-2",
         content: "Been there! We rotated rooms each night. Fairest solution.",
         isAdvice: false,
@@ -389,6 +392,7 @@ export class MemStorage implements IStorage {
       {
         id: "comment-3",
         scenarioId: "comm-3",
+        parentId: null,
         authorId: "seed-4",
         content: "Emergency fund FIRST. Always. Crypto can wait - your peace of mind can't.",
         isAdvice: true,
@@ -1231,21 +1235,34 @@ export class MemStorage implements IStorage {
     };
   }
 
-  private enrichCommunityComment(comment: StoredCommunityComment, currentUserId: string): CommunityComment {
+  private enrichCommunityComment(comment: StoredCommunityComment, currentUserId: string, includeReplies: boolean = false): CommunityComment {
     const author = this.users.get(comment.authorId);
     const votes = Array.from(this.communityVotes.values()).filter(v => v.commentId === comment.id);
-    const upvotes = votes.length;
-    const userVote = votes.find(v => v.userId === currentUserId) ? "up" : null;
+    const upvotes = votes.filter(v => v.type === "up").length;
+    const downvotes = votes.filter(v => v.type === "down").length;
+    const userVoteEntry = votes.find(v => v.userId === currentUserId);
+    const userVote = userVoteEntry ? userVoteEntry.type : null;
 
-    return {
+    const enriched: CommunityComment = {
       ...comment,
       authorUsername: author?.username || "Unknown",
       authorAvatar: author?.avatar || "ghost",
       authorBadges: author?.badges || [],
       authorMoneyHealth: author?.moneyHealth || 0,
       upvotes,
+      downvotes,
       userVote,
     };
+
+    if (includeReplies) {
+      const replies = Array.from(this.communityComments.values())
+        .filter(c => c.parentId === comment.id)
+        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+        .map(c => this.enrichCommunityComment(c, currentUserId, false));
+      enriched.replies = replies;
+    }
+
+    return enriched;
   }
 
   async createCommunityScenario(userId: string, data: CreateCommunityScenario): Promise<CommunityScenario> {
@@ -1342,11 +1359,13 @@ export class MemStorage implements IStorage {
   }
 
   async getScenarioComments(scenarioId: string, userId: string): Promise<CommunityComment[]> {
+    // Get top-level comments only (parentId is null)
     const comments = Array.from(this.communityComments.values())
-      .filter(c => c.scenarioId === scenarioId)
+      .filter(c => c.scenarioId === scenarioId && c.parentId === null)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-    return comments.map(c => this.enrichCommunityComment(c, userId));
+    // Include replies for each top-level comment
+    return comments.map(c => this.enrichCommunityComment(c, userId, true));
   }
 
   async addComment(userId: string, data: CreateCommunityComment): Promise<CommunityComment> {
@@ -1356,6 +1375,7 @@ export class MemStorage implements IStorage {
     const comment: StoredCommunityComment = {
       id: randomUUID(),
       scenarioId: data.scenarioId,
+      parentId: data.parentId || null,
       authorId: userId,
       content: data.content,
       isAdvice: data.isAdvice,
@@ -1366,7 +1386,7 @@ export class MemStorage implements IStorage {
     return this.enrichCommunityComment(comment, userId);
   }
 
-  async voteComment(userId: string, commentId: string): Promise<CommunityComment | undefined> {
+  async voteComment(userId: string, commentId: string, voteType: "up" | "down"): Promise<CommunityComment | undefined> {
     const comment = this.communityComments.get(commentId);
     if (!comment) return undefined;
 
@@ -1376,16 +1396,22 @@ export class MemStorage implements IStorage {
     );
 
     if (existingVote) {
-      // Remove vote (toggle off)
-      this.communityVotes.delete(existingVote.id);
+      if (existingVote.type === voteType) {
+        // Same vote type, toggle off
+        this.communityVotes.delete(existingVote.id);
+      } else {
+        // Different vote type, update the vote
+        existingVote.type = voteType;
+        this.communityVotes.set(existingVote.id, existingVote);
+      }
     } else {
-      // Add upvote
+      // Add new vote
       const vote: StoredCommunityVote = {
         id: randomUUID(),
         scenarioId: null,
         commentId,
         userId,
-        type: "up",
+        type: voteType,
         createdAt: new Date().toISOString(),
       };
       this.communityVotes.set(vote.id, vote);

@@ -30,6 +30,9 @@ import {
   Award,
   Lightbulb,
   Shield,
+  Reply,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import type { CommunityScenario, CommunityComment } from "@shared/schema";
 
@@ -73,65 +76,125 @@ function formatTimeAgo(dateStr: string): string {
 function CommentCard({ 
   comment, 
   onVote,
+  onReply,
   isVoting,
+  isReply = false,
 }: { 
   comment: CommunityComment; 
-  onVote: () => void;
+  onVote: (type: "up" | "down") => void;
+  onReply?: () => void;
   isVoting: boolean;
+  isReply?: boolean;
 }) {
+  const [showReplies, setShowReplies] = useState(true);
   const unlockedBadges = comment.authorBadges.filter(b => b.unlocked);
+  const netVotes = comment.upvotes - comment.downvotes;
   
   return (
-    <Card className={comment.isAdvice ? "border-l-4 border-l-green-500" : ""} data-testid={`card-comment-${comment.id}`}>
-      <CardContent className="p-4">
-        <div className="flex items-start gap-3">
-          <Avatar className="h-8 w-8">
-            <AvatarFallback className="text-xs bg-primary/10">
-              {comment.authorUsername.charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap mb-1">
-              <span className="font-medium text-sm">{comment.authorUsername}</span>
-              {comment.isAdvice && (
-                <Badge className="bg-green-500/10 text-green-500 border-green-500/30">
-                  <Lightbulb className="w-3 h-3 mr-1" />
-                  Advice
-                </Badge>
-              )}
-              {unlockedBadges.length > 0 && (
-                <Badge variant="outline" className="text-xs h-5">
-                  <Award className="w-3 h-3 mr-1" />
-                  {unlockedBadges.length}
-                </Badge>
-              )}
-              {comment.authorMoneyHealth > 80 && (
-                <Badge variant="outline" className="text-xs h-5 border-green-500/50 text-green-500">
-                  <Heart className="w-3 h-3 mr-1" />
-                  {comment.authorMoneyHealth}
-                </Badge>
-              )}
-              <span className="text-xs text-muted-foreground">{formatTimeAgo(comment.createdAt)}</span>
+    <div className={isReply ? "ml-8 mt-2" : ""}>
+      <Card className={comment.isAdvice ? "border-l-4 border-l-green-500" : ""} data-testid={`card-comment-${comment.id}`}>
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            <Avatar className="h-8 w-8">
+              <AvatarFallback className="text-xs bg-primary/10">
+                {comment.authorUsername.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                <span className="font-medium text-sm">{comment.authorUsername}</span>
+                {comment.isAdvice && (
+                  <Badge className="bg-green-500/10 text-green-500 border-green-500/30">
+                    <Lightbulb className="w-3 h-3 mr-1" />
+                    Advice
+                  </Badge>
+                )}
+                {unlockedBadges.length > 0 && (
+                  <Badge variant="outline" className="text-xs h-5">
+                    <Award className="w-3 h-3 mr-1" />
+                    {unlockedBadges.length}
+                  </Badge>
+                )}
+                {comment.authorMoneyHealth > 80 && (
+                  <Badge variant="outline" className="text-xs h-5 border-green-500/50 text-green-500">
+                    <Heart className="w-3 h-3 mr-1" />
+                    {comment.authorMoneyHealth}
+                  </Badge>
+                )}
+                <span className="text-xs text-muted-foreground">{formatTimeAgo(comment.createdAt)}</span>
+              </div>
+              
+              <p className="text-sm mb-2">{comment.content}</p>
+              
+              <div className="flex items-center gap-1">
+                <Button
+                  variant={comment.userVote === "up" ? "default" : "ghost"}
+                  size="sm"
+                  className="h-7 px-2"
+                  onClick={() => onVote("up")}
+                  disabled={isVoting}
+                  data-testid={`button-upvote-comment-${comment.id}`}
+                >
+                  <ArrowUp className="w-3 h-3" />
+                </Button>
+                
+                <span className={`text-sm font-medium min-w-[24px] text-center ${netVotes > 0 ? "text-green-500" : netVotes < 0 ? "text-red-500" : "text-muted-foreground"}`}>
+                  {netVotes}
+                </span>
+                
+                <Button
+                  variant={comment.userVote === "down" ? "destructive" : "ghost"}
+                  size="sm"
+                  className="h-7 px-2"
+                  onClick={() => onVote("down")}
+                  disabled={isVoting}
+                  data-testid={`button-downvote-comment-${comment.id}`}
+                >
+                  <ArrowDown className="w-3 h-3" />
+                </Button>
+                
+                {!isReply && onReply && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 ml-2"
+                    onClick={onReply}
+                    data-testid={`button-reply-comment-${comment.id}`}
+                  >
+                    <Reply className="w-3 h-3 mr-1" />
+                    Reply
+                  </Button>
+                )}
+                
+                {!isReply && comment.replies && comment.replies.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 ml-auto"
+                    onClick={() => setShowReplies(!showReplies)}
+                    data-testid={`button-toggle-replies-${comment.id}`}
+                  >
+                    {showReplies ? <ChevronUp className="w-3 h-3 mr-1" /> : <ChevronDown className="w-3 h-3 mr-1" />}
+                    {comment.replies.length} {comment.replies.length === 1 ? "reply" : "replies"}
+                  </Button>
+                )}
+              </div>
             </div>
-            
-            <p className="text-sm mb-2">{comment.content}</p>
-            
-            <Button
-              variant={comment.userVote === "up" ? "default" : "ghost"}
-              size="sm"
-              className="h-7 px-2"
-              onClick={onVote}
-              disabled={isVoting}
-              data-testid={`button-vote-comment-${comment.id}`}
-            >
-              <ArrowUp className="w-3 h-3 mr-1" />
-              {comment.upvotes}
-            </Button>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+      
+      {showReplies && comment.replies && comment.replies.map(reply => (
+        <CommentCard
+          key={reply.id}
+          comment={reply}
+          onVote={(type) => onVote(type)}
+          isVoting={isVoting}
+          isReply
+        />
+      ))}
+    </div>
   );
 }
 
@@ -144,6 +207,8 @@ export default function CommunityDetail() {
   const [commentText, setCommentText] = useState("");
   const [isAdvice, setIsAdvice] = useState(false);
   const [votingCommentId, setVotingCommentId] = useState<string | null>(null);
+  const [replyingToId, setReplyingToId] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState("");
 
   const { data: scenario, isLoading: scenarioLoading } = useQuery<CommunityScenario>({
     queryKey: ["/api/community/scenarios", scenarioId],
@@ -173,9 +238,9 @@ export default function CommunityDetail() {
   });
 
   const voteComment = useMutation({
-    mutationFn: async (commentId: string) => {
+    mutationFn: async ({ commentId, type }: { commentId: string; type: "up" | "down" }) => {
       setVotingCommentId(commentId);
-      return apiRequest("POST", `/api/community/comments/${commentId}/vote`);
+      return apiRequest("POST", `/api/community/comments/${commentId}/vote`, { type });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/community/scenarios", scenarioId, "comments"] });
@@ -207,6 +272,33 @@ export default function CommunityDetail() {
       toast({
         title: "Error",
         description: "Failed to add comment. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const addReply = useMutation({
+    mutationFn: async (parentId: string) => {
+      return apiRequest("POST", "/api/community/comments", {
+        scenarioId,
+        parentId,
+        content: replyText,
+        isAdvice: false,
+      });
+    },
+    onSuccess: () => {
+      setReplyText("");
+      setReplyingToId(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/community/scenarios", scenarioId, "comments"] });
+      toast({
+        title: "Reply added",
+        description: "Your reply has been posted!",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to add reply. Please try again.",
         variant: "destructive",
       });
     },
@@ -343,12 +435,48 @@ export default function CommunityDetail() {
               <Badge variant="secondary" className="text-xs">{adviceComments.length}</Badge>
             </div>
             {adviceComments.map((comment) => (
-              <CommentCard
-                key={comment.id}
-                comment={comment}
-                onVote={() => voteComment.mutate(comment.id)}
-                isVoting={votingCommentId === comment.id}
-              />
+              <div key={comment.id}>
+                <CommentCard
+                  comment={comment}
+                  onVote={(type) => voteComment.mutate({ commentId: comment.id, type })}
+                  onReply={() => setReplyingToId(replyingToId === comment.id ? null : comment.id)}
+                  isVoting={votingCommentId === comment.id}
+                />
+                {replyingToId === comment.id && (
+                  <Card className="ml-8 mt-2">
+                    <CardContent className="p-3 space-y-2">
+                      <Textarea
+                        placeholder="Write a reply..."
+                        value={replyText}
+                        onChange={(e) => setReplyText(e.target.value)}
+                        className="min-h-16"
+                        data-testid={`input-reply-${comment.id}`}
+                      />
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setReplyingToId(null);
+                            setReplyText("");
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => addReply.mutate(comment.id)}
+                          disabled={!replyText.trim() || addReply.isPending}
+                          data-testid={`button-submit-reply-${comment.id}`}
+                        >
+                          <Send className="w-3 h-3 mr-1" />
+                          Reply
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
             ))}
           </div>
         )}
@@ -401,12 +529,48 @@ export default function CommunityDetail() {
             </>
           ) : regularComments.length > 0 ? (
             regularComments.map((comment) => (
-              <CommentCard
-                key={comment.id}
-                comment={comment}
-                onVote={() => voteComment.mutate(comment.id)}
-                isVoting={votingCommentId === comment.id}
-              />
+              <div key={comment.id}>
+                <CommentCard
+                  comment={comment}
+                  onVote={(type) => voteComment.mutate({ commentId: comment.id, type })}
+                  onReply={() => setReplyingToId(replyingToId === comment.id ? null : comment.id)}
+                  isVoting={votingCommentId === comment.id}
+                />
+                {replyingToId === comment.id && (
+                  <Card className="ml-8 mt-2">
+                    <CardContent className="p-3 space-y-2">
+                      <Textarea
+                        placeholder="Write a reply..."
+                        value={replyText}
+                        onChange={(e) => setReplyText(e.target.value)}
+                        className="min-h-16"
+                        data-testid={`input-reply-${comment.id}`}
+                      />
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setReplyingToId(null);
+                            setReplyText("");
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => addReply.mutate(comment.id)}
+                          disabled={!replyText.trim() || addReply.isPending}
+                          data-testid={`button-submit-reply-${comment.id}`}
+                        >
+                          <Send className="w-3 h-3 mr-1" />
+                          Reply
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
             ))
           ) : (
             <Card>

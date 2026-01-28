@@ -772,7 +772,13 @@ export async function registerRoutes(
     try {
       const sessionId = getSessionId(req);
       const commentId = req.params.id as string;
-      const comment = await storage.voteComment(sessionId, commentId);
+      const { type } = req.body;
+      
+      if (type !== "up" && type !== "down") {
+        return res.status(400).json({ error: "Vote type must be 'up' or 'down'" });
+      }
+      
+      const comment = await storage.voteComment(sessionId, commentId, type);
       if (!comment) {
         return res.status(404).json({ error: "Comment not found" });
       }

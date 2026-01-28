@@ -349,6 +349,7 @@ export interface CommunityScenario {
 export interface CommunityComment {
   id: string;
   scenarioId: string;
+  parentId: string | null; // For replies
   authorId: string;
   authorUsername: string;
   authorAvatar: string;
@@ -357,8 +358,10 @@ export interface CommunityComment {
   content: string;
   isAdvice: boolean; // Marked as financial advice
   upvotes: number;
+  downvotes: number;
   createdAt: string;
-  userVote: "up" | null; // For current user
+  userVote: "up" | "down" | null; // For current user
+  replies?: CommunityComment[]; // Nested replies
 }
 
 export interface CommunityVote {
@@ -382,6 +385,7 @@ export type CreateCommunityScenario = z.infer<typeof communityScenarioSchema>;
 
 export const communityCommentSchema = z.object({
   scenarioId: z.string(),
+  parentId: z.string().optional(),
   content: z.string().min(5).max(500),
   isAdvice: z.boolean().default(false),
 });
