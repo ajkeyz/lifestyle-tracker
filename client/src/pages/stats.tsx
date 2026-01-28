@@ -24,6 +24,19 @@ const categoryColors: Record<string, string> = {
   scam: "from-red-500 to-orange-500",
   investing: "from-yellow-500 to-amber-500",
   debt: "from-gray-500 to-slate-500",
+  relationships: "from-pink-500 to-rose-500",
+  housing: "from-orange-500 to-amber-500",
+  insurance: "from-teal-500 to-cyan-500",
+  tax: "from-indigo-500 to-blue-500",
+  credit: "from-violet-500 to-purple-500",
+  emergency: "from-red-500 to-rose-500",
+  budgeting: "from-emerald-500 to-green-500",
+  health: "from-lime-500 to-green-500",
+  giving: "from-fuchsia-500 to-pink-500",
+  saving: "from-cyan-500 to-teal-500",
+  family: "from-amber-500 to-orange-500",
+  windfall: "from-yellow-400 to-amber-500",
+  career: "from-sky-500 to-blue-500",
 };
 
 const categoryLabels: Record<string, string> = {
@@ -33,6 +46,19 @@ const categoryLabels: Record<string, string> = {
   scam: "Scam Detection",
   investing: "Investing",
   debt: "Debt Management",
+  relationships: "Relationships",
+  housing: "Housing",
+  insurance: "Insurance",
+  tax: "Tax & Filing",
+  credit: "Credit",
+  emergency: "Emergency Fund",
+  budgeting: "Budgeting",
+  health: "Health",
+  giving: "Giving",
+  saving: "Saving",
+  family: "Family",
+  windfall: "Windfall",
+  career: "Career",
 };
 
 export default function Stats() {
