@@ -4,37 +4,20 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AppLogo } from "@/components/app-logo";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import { AnimatedAvatar } from "@/components/animated-avatar";
 import { 
   ChevronLeft,
   Copy,
   Check,
   Settings,
-  Trophy,
   Flame,
   TrendingUp,
-  Target,
-  Gamepad2,
-  Award,
   Users,
   Share2,
-  Cat,
-  Dog,
-  Bird,
-  Bot,
-  Skull,
-  Ghost,
-  Fish,
-  Rabbit,
-  Squirrel,
-  Bug,
-  Flame as FlameIcon,
-  Rocket,
-  Shield,
   Eye,
   EyeOff,
   Swords,
@@ -46,25 +29,6 @@ import { useLocation, Link, useParams } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { User } from "@shared/schema";
 
-const avatarOptions: Record<string, typeof Cat> = {
-  cat: Cat,
-  dog: Dog,
-  bird: Bird,
-  robot: Bot,
-  skull: Skull,
-  ghost: Ghost,
-  fish: Fish,
-  rabbit: Rabbit,
-  squirrel: Squirrel,
-  bug: Bug,
-  flame: FlameIcon,
-  rocket: Rocket,
-};
-
-const getAvatarIcon = (id: string) => {
-  return avatarOptions[id] || Cat;
-};
-
 function getMoneyHealthLabel(score: number): { label: string; color: string } {
   if (score >= 90) return { label: "Excellent", color: "text-emerald-500" };
   if (score >= 75) return { label: "Great", color: "text-green-500" };
@@ -72,33 +36,6 @@ function getMoneyHealthLabel(score: number): { label: string; color: string } {
   if (score >= 45) return { label: "Fair", color: "text-yellow-500" };
   if (score >= 30) return { label: "Needs Work", color: "text-orange-500" };
   return { label: "Starting Out", color: "text-red-500" };
-}
-
-function StatCard({ 
-  icon: Icon, 
-  label, 
-  value, 
-  subtext,
-  testId
-}: { 
-  icon: typeof Trophy; 
-  label: string; 
-  value: string | number; 
-  subtext?: string;
-  testId: string;
-}) {
-  return (
-    <Card className="p-4 flex flex-col items-center gap-2 text-center" data-testid={`card-stat-${testId}`}>
-      <div className="p-2 rounded-lg bg-primary/10">
-        <Icon className="w-5 h-5 text-primary" />
-      </div>
-      <div className="text-2xl font-display font-bold tracking-tight" data-testid={`text-stat-value-${testId}`}>{value}</div>
-      <div className="text-sm text-muted-foreground">{label}</div>
-      {subtext && (
-        <div className="text-xs text-muted-foreground/70" data-testid={`text-stat-subtext-${testId}`}>{subtext}</div>
-      )}
-    </Card>
-  );
 }
 
 export default function Profile() {
@@ -212,9 +149,7 @@ export default function Profile() {
     );
   }
 
-  const AvatarIcon = getAvatarIcon(user.avatar);
   const healthInfo = getMoneyHealthLabel(user.moneyHealth);
-  const badgeCount = user.badges?.filter(b => b.unlockedAt).length || 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
@@ -244,16 +179,22 @@ export default function Profile() {
           animate={{ opacity: 1, y: 0 }}
           className="flex flex-col items-center gap-4"
         >
-          <div className="relative">
-            <Avatar className="w-24 h-24 border-4 border-primary/20" data-testid="avatar-user">
-              <AvatarFallback className="bg-primary/10">
-                <AvatarIcon className="w-12 h-12 text-primary" />
-              </AvatarFallback>
-            </Avatar>
+          <div className="relative" data-testid="avatar-user">
+            <AnimatedAvatar 
+              avatarId={user.avatar || "cosmic-cat"} 
+              size="lg" 
+              showRing={user.streak >= 7}
+              isAnimated={true}
+            />
             {user.streak >= 7 && (
-              <div className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-orange-500 text-white" data-testid="badge-streak-fire">
+              <motion.div 
+                className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg"
+                data-testid="badge-streak-fire"
+                animate={{ scale: [1, 1.1, 1] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              >
                 <Flame className="w-4 h-4" />
-              </div>
+              </motion.div>
             )}
           </div>
 
@@ -370,101 +311,6 @@ export default function Profile() {
           </motion.div>
         )}
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="grid grid-cols-2 gap-4"
-        >
-          <StatCard 
-            icon={TrendingUp}
-            label="Money Health"
-            value={user.moneyHealth}
-            subtext={healthInfo.label}
-            testId="money-health"
-          />
-          <StatCard 
-            icon={Flame}
-            label="Current Streak"
-            value={user.streak}
-            subtext={`Best: ${user.highestStreak}`}
-            testId="streak"
-          />
-          <StatCard 
-            icon={Gamepad2}
-            label="Games Played"
-            value={user.gamesPlayed}
-            testId="games-played"
-          />
-          <StatCard 
-            icon={Award}
-            label="Badges Earned"
-            value={badgeCount}
-            subtext={user.badges?.length ? `of ${user.badges.length}` : undefined}
-            testId="badges"
-          />
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <Card className="p-4 space-y-3" data-testid="card-performance-stats">
-            <div className="flex items-center gap-2 text-sm font-medium">
-              <Target className="w-4 h-4 text-primary" />
-              <span>Performance Stats</span>
-            </div>
-            
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div>
-                <div className="text-xl font-display font-bold tracking-tight" data-testid="text-avg-score">
-                  {user.gamesPlayed > 0 ? Math.round(user.totalScore / user.gamesPlayed) : 0}
-                </div>
-                <div className="text-xs text-muted-foreground">Avg Score</div>
-              </div>
-              <div>
-                <div className="text-xl font-display font-bold tracking-tight" data-testid="text-perfect-games">
-                  {user.perfectGames || 0}
-                </div>
-                <div className="text-xs text-muted-foreground">Perfect Games</div>
-              </div>
-              <div>
-                <div className="text-xl font-display font-bold tracking-tight" data-testid="text-total-score">
-                  {user.totalScore || 0}
-                </div>
-                <div className="text-xs text-muted-foreground">Total Score</div>
-              </div>
-            </div>
-          </Card>
-        </motion.div>
-
-        {user.freezeTokens > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.35 }}
-          >
-            <Card className="p-4 bg-blue-500/10 border-blue-500/20" data-testid="card-freeze-tokens">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-blue-500/20">
-                    <Shield className="w-5 h-5 text-blue-500" />
-                  </div>
-                  <div>
-                    <div className="font-medium">Streak Freeze Tokens</div>
-                    <div className="text-sm text-muted-foreground">
-                      Protect your streak on busy days
-                    </div>
-                  </div>
-                </div>
-                <div className="text-2xl font-display font-bold text-blue-500" data-testid="text-freeze-tokens">
-                  {user.freezeTokens}
-                </div>
-              </div>
-            </Card>
-          </motion.div>
-        )}
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}

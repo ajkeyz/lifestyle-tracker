@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { AnimatedAvatar, avatarConfigs } from "@/components/animated-avatar";
 import { 
   ChevronRight,
   Check,
@@ -13,19 +14,7 @@ import {
   RefreshCw,
   Loader2,
   Users,
-  Lock,
-  Cat,
-  Dog,
-  Bird,
-  Bot,
-  Skull,
-  Ghost,
-  Fish,
-  Rabbit,
-  Squirrel,
-  Bug,
-  Flame,
-  Rocket
+  Lock
 } from "lucide-react";
 import { AppLogo } from "@/components/app-logo";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -38,26 +27,6 @@ import { updateProfileSchema } from "@shared/schema";
 import type { User, UpdateProfile } from "@shared/schema";
 import { cn } from "@/lib/utils";
 import { z } from "zod";
-
-const avatarOptions = [
-  { id: "cat", label: "Cat", icon: Cat },
-  { id: "dog", label: "Dog", icon: Dog },
-  { id: "bird", label: "Bird", icon: Bird },
-  { id: "robot", label: "Robot", icon: Bot },
-  { id: "skull", label: "Skull", icon: Skull },
-  { id: "ghost", label: "Ghost", icon: Ghost },
-  { id: "fish", label: "Fish", icon: Fish },
-  { id: "rabbit", label: "Rabbit", icon: Rabbit },
-  { id: "squirrel", label: "Squirrel", icon: Squirrel },
-  { id: "bug", label: "Bug", icon: Bug },
-  { id: "flame", label: "Flame", icon: Flame },
-  { id: "rocket", label: "Rocket", icon: Rocket },
-];
-
-const getAvatarIcon = (id: string) => {
-  const option = avatarOptions.find(opt => opt.id === id);
-  return option?.icon || Cat;
-};
 
 const formSchema = updateProfileSchema.extend({
   username: z.string()
@@ -80,7 +49,7 @@ export default function ProfileSetup() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       username: "",
-      avatar: "cat",
+      avatar: "cosmic-cat",
       bio: "",
       allowFriendsToFind: true,
       isProfilePrivate: false,
@@ -146,7 +115,7 @@ export default function ProfileSetup() {
   });
 
   const randomizeAvatar = () => {
-    const options = avatarOptions.filter(opt => opt.id !== avatar);
+    const options = avatarConfigs.filter(opt => opt.id !== avatar);
     const random = options[Math.floor(Math.random() * options.length)];
     form.setValue("avatar", random.id);
   };
@@ -164,11 +133,9 @@ export default function ProfileSetup() {
     }
   };
 
-  if (user?.profileSetupComplete) {
+  if (user?.profileSetupComplete && !isEditMode) {
     return null;
   }
-
-  const SelectedAvatarIcon = getAvatarIcon(avatar);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
@@ -262,36 +229,39 @@ export default function ProfileSetup() {
                         Randomize
                       </Button>
                     </div>
-                    <div className="flex justify-center mb-4">
-                      <div 
-                        className="w-24 h-24 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center border-2 border-primary/30"
-                        data-testid="display-selected-avatar"
-                      >
-                        <SelectedAvatarIcon className="w-12 h-12 text-primary" />
-                      </div>
+                    <div className="flex justify-center mb-6" data-testid="display-selected-avatar">
+                      <AnimatedAvatar 
+                        avatarId={field.value} 
+                        size="xl" 
+                        showRing={true}
+                        isAnimated={true}
+                      />
                     </div>
                     <FormControl>
-                      <div className="grid grid-cols-6 gap-2">
-                        {avatarOptions.map((opt) => {
-                          const Icon = opt.icon;
-                          return (
-                            <button
-                              key={opt.id}
-                              type="button"
-                              onClick={() => field.onChange(opt.id)}
-                              className={cn(
-                                "w-full aspect-square rounded-md flex items-center justify-center transition-all",
-                                field.value === opt.id
-                                  ? "bg-primary/20 ring-2 ring-primary"
-                                  : "bg-muted/50 hover-elevate"
-                              )}
-                              title={opt.label}
-                              data-testid={`button-avatar-${opt.id}`}
-                            >
-                              <Icon className="w-5 h-5" />
-                            </button>
-                          );
-                        })}
+                      <div className="grid grid-cols-5 gap-3">
+                        {avatarConfigs.map((config) => (
+                          <button
+                            key={config.id}
+                            type="button"
+                            onClick={() => field.onChange(config.id)}
+                            className={cn(
+                              "flex flex-col items-center gap-1 p-2 rounded-xl transition-all",
+                              field.value === config.id
+                                ? "bg-primary/20 ring-2 ring-primary"
+                                : "hover-elevate"
+                            )}
+                            data-testid={`button-avatar-${config.id}`}
+                          >
+                            <AnimatedAvatar 
+                              avatarId={config.id} 
+                              size="sm" 
+                              isAnimated={field.value === config.id}
+                            />
+                            <span className="text-[9px] text-muted-foreground truncate max-w-full">
+                              {config.label}
+                            </span>
+                          </button>
+                        ))}
                       </div>
                     </FormControl>
                   </FormItem>
