@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { AnimatedAvatar } from "@/components/animated-avatar";
+import { Floating3DAvatar, FloatingCard } from "@/components/ui/tilt-card";
 import { 
   ChevronLeft,
   Copy,
@@ -179,24 +180,26 @@ export default function Profile() {
           animate={{ opacity: 1, y: 0 }}
           className="flex flex-col items-center gap-4"
         >
-          <div className="relative" data-testid="avatar-user">
-            <AnimatedAvatar 
-              avatarId={user.avatar || "cosmic-cat"} 
-              size="lg" 
-              showRing={user.streak >= 7}
-              isAnimated={true}
-            />
-            {user.streak >= 7 && (
-              <motion.div 
-                className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg"
-                data-testid="badge-streak-fire"
-                animate={{ scale: [1, 1.1, 1] }}
-                transition={{ duration: 1.5, repeat: Infinity }}
-              >
-                <Flame className="w-4 h-4" />
-              </motion.div>
-            )}
-          </div>
+          <Floating3DAvatar data-testid="avatar-user">
+            <div className="relative">
+              <AnimatedAvatar 
+                avatarId={user.avatar || "cosmic-cat"} 
+                size="lg" 
+                showRing={user.streak >= 7}
+                isAnimated={true}
+              />
+              {user.streak >= 7 && (
+                <motion.div 
+                  className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg"
+                  data-testid="badge-streak-fire"
+                  animate={{ scale: [1, 1.1, 1] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                >
+                  <Flame className="w-4 h-4" />
+                </motion.div>
+              )}
+            </div>
+          </Floating3DAvatar>
 
           <div className="text-center space-y-1">
             <h1 className="text-2xl font-display font-bold tracking-tight" data-testid="text-username">
@@ -229,7 +232,7 @@ export default function Profile() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
           >
-            <Card className="p-4 space-y-3" data-testid="card-share-username">
+            <FloatingCard className="p-4 space-y-3" depth="lg" data-testid="card-share-username">
               <div className="flex items-center gap-2 text-sm font-medium">
                 <Users className="w-4 h-4 text-primary" />
                 <span>Share your username to add friends</span>
@@ -277,7 +280,7 @@ export default function Profile() {
                   </span>
                 )}
               </p>
-            </Card>
+            </FloatingCard>
           </motion.div>
         ) : (
           <motion.div

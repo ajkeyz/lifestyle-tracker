@@ -5,6 +5,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { StatBarGrid } from "./stat-bar";
 import { RollingNumber } from "./animated-progress";
+import { TiltCard } from "@/components/ui/tilt-card";
 import type { UserGameResult } from "@shared/schema";
 
 interface ShareCardProps {
@@ -51,7 +52,8 @@ Play at: lifestyle-creep.replit.app`;
   };
 
   return (
-    <Card className="p-6 bg-gradient-to-br from-card to-muted/30 border-2" data-testid="card-share-results">
+    <TiltCard tiltAmount={8} glareEnabled={true} scale={1.01}>
+      <Card className="p-6 bg-gradient-to-br from-card to-muted/30 border-2 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.4)]" data-testid="card-share-results">
       <div className="text-center mb-4">
         <h2 className="text-xl font-bold" data-testid="text-drop-number">Lifestyle Creep #{dropNumber}</h2>
         <p className="text-muted-foreground text-sm">Daily Drop Complete</p>
@@ -181,5 +183,6 @@ Play at: lifestyle-creep.replit.app`;
         </Button>
       </div>
     </Card>
+    </TiltCard>
   );
 }

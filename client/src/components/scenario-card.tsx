@@ -2,6 +2,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { TiltCard } from "@/components/ui/tilt-card";
 import type { Scenario, ScenarioCategory } from "@shared/schema";
 import { 
   Laptop, Plane, ShoppingBag, ShieldAlert, TrendingUp, CreditCard,
@@ -75,7 +76,8 @@ export function ScenarioCard({
   const Icon = categoryIcons[scenario.category] || ShoppingBag;
 
   return (
-    <Card className="p-6 scenario-reveal" data-testid={`card-scenario-${scenario.id}`}>
+    <TiltCard tiltAmount={5} glareEnabled={true} floatOnHover={false}>
+      <Card className="p-6 scenario-reveal" data-testid={`card-scenario-${scenario.id}`}>
       <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
         <div className="flex items-center gap-2 flex-wrap">
           <Badge
@@ -194,5 +196,6 @@ export function ScenarioCard({
         })}
       </div>
     </Card>
+    </TiltCard>
   );
 }
