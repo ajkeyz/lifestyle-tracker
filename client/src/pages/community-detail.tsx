@@ -7,8 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
@@ -205,7 +203,6 @@ export default function CommunityDetail() {
   const { toast } = useToast();
   
   const [commentText, setCommentText] = useState("");
-  const [isAdvice, setIsAdvice] = useState(false);
   const [votingCommentId, setVotingCommentId] = useState<string | null>(null);
   const [replyingToId, setReplyingToId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
@@ -255,17 +252,16 @@ export default function CommunityDetail() {
       return apiRequest("POST", "/api/community/comments", {
         scenarioId,
         content: commentText,
-        isAdvice,
+        isAdvice: false,
       });
     },
     onSuccess: () => {
       setCommentText("");
-      setIsAdvice(false);
       queryClient.invalidateQueries({ queryKey: ["/api/community/scenarios", scenarioId, "comments"] });
       queryClient.invalidateQueries({ queryKey: ["/api/community/scenarios", scenarioId] });
       toast({
         title: "Comment added",
-        description: isAdvice ? "Your financial advice has been shared!" : "Your comment has been posted!",
+        description: "Your comment has been posted!",
       });
     },
     onError: () => {
@@ -497,19 +493,7 @@ export default function CommunityDetail() {
                 className="min-h-24"
                 data-testid="input-comment"
               />
-              <div className="flex items-center justify-between gap-4 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <Switch
-                    id="is-advice"
-                    checked={isAdvice}
-                    onCheckedChange={setIsAdvice}
-                    data-testid="switch-is-advice"
-                  />
-                  <Label htmlFor="is-advice" className="text-sm flex items-center gap-1">
-                    <Lightbulb className="w-4 h-4 text-green-500" />
-                    This is financial advice
-                  </Label>
-                </div>
+              <div className="flex items-center justify-end">
                 <Button
                   onClick={() => addComment.mutate()}
                   disabled={!commentText.trim() || addComment.isPending}
