@@ -6,7 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { ScenarioCard } from "@/components/scenario-card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { TimerProgress } from "@/components/animated-progress";
-import { ArrowLeft, ArrowRight, Send, Clock } from "lucide-react";
+import { ArrowRight, Send, Clock } from "lucide-react";
 import { AppLogo } from "@/components/app-logo";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -141,11 +141,8 @@ export default function Game() {
     }
   }, [currentIndex, totalScenarios, play]);
 
-  const handlePrev = useCallback(() => {
-    if (currentIndex > 0) {
-      setCurrentIndex((prev) => prev - 1);
-    }
-  }, [currentIndex]);
+  // Previous button removed - users cannot go back during gameplay
+  // This ensures the timer is meaningful and prevents exploiting navigation
 
   const handleSubmit = useCallback(() => {
     if (!dailyDrop) return;
@@ -180,12 +177,9 @@ export default function Game() {
         }
       }
       
-      // Arrow keys for navigation
+      // Arrow right for next question (no going back)
       if (e.key === "ArrowRight" && showResults[currentScenario?.id || ""] && currentIndex < totalScenarios - 1) {
         handleNext();
-      }
-      if (e.key === "ArrowLeft" && currentIndex > 0) {
-        handlePrev();
       }
       
       // Enter to submit when all answered
@@ -196,7 +190,7 @@ export default function Game() {
     
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [currentScenario, showResults, currentIndex, totalScenarios, allAnswered, handleSelectChoice, handleNext, handlePrev, handleSubmit, submitMutation.isPending]);
+  }, [currentScenario, showResults, currentIndex, totalScenarios, allAnswered, handleSelectChoice, handleNext, handleSubmit, submitMutation.isPending]);
 
   useEffect(() => {
     if (user?.todayResult) {
@@ -278,17 +272,6 @@ export default function Game() {
             </AnimatePresence>
 
             <div className="flex gap-3">
-              <Button
-                variant="outline"
-                onClick={handlePrev}
-                disabled={currentIndex === 0}
-                className="flex-1"
-                data-testid="button-prev-question"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Previous
-              </Button>
-
               {currentIndex < totalScenarios - 1 ? (
                 <Button
                   onClick={handleNext}
