@@ -71,6 +71,11 @@ export default function AdminScenarioBuilder() {
 
   const { data: existingScenario, isLoading: loadingScenario } = useQuery<AdminScenario>({
     queryKey: ["/api/admin/scenarios", scenarioId],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/scenarios/${scenarioId}`);
+      if (!res.ok) throw new Error("Failed to fetch scenario");
+      return res.json();
+    },
     enabled: isEditing && adminCheck?.hasAccess,
   });
 

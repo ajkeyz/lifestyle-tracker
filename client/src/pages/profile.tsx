@@ -49,6 +49,12 @@ export default function Profile() {
 
   const { data: user, isLoading } = useQuery<User>({
     queryKey: isOwnProfile ? ["/api/user"] : ["/api/user", params.userId],
+    queryFn: async () => {
+      const endpoint = isOwnProfile ? "/api/user" : `/api/user/${params.userId}`;
+      const res = await fetch(endpoint);
+      if (!res.ok) throw new Error("Failed to fetch user");
+      return res.json();
+    },
   });
 
   const { data: currentUser } = useQuery<User>({

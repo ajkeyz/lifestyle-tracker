@@ -77,6 +77,11 @@ export default function ProfileSetup() {
 
   const { data: usernameCheck, isLoading: isCheckingUsername } = useQuery<{ available: boolean; reason: string | null }>({
     queryKey: ["/api/check-username", debouncedUsername],
+    queryFn: async () => {
+      const res = await fetch(`/api/check-username/${encodeURIComponent(debouncedUsername)}`);
+      if (!res.ok) throw new Error("Failed to check username");
+      return res.json();
+    },
     enabled: debouncedUsername.length >= 3,
     staleTime: 5000,
   });

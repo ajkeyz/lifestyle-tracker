@@ -100,6 +100,11 @@ export default function Leagues() {
 
   const { data: selectedLeague, isLoading: leagueLoading } = useQuery<League>({
     queryKey: ["/api/leagues", selectedLeagueId],
+    queryFn: async () => {
+      const res = await fetch(`/api/leagues/${selectedLeagueId}`);
+      if (!res.ok) throw new Error("Failed to fetch league");
+      return res.json();
+    },
     enabled: !!selectedLeagueId && viewMode === "detail",
   });
 

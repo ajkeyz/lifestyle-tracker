@@ -1180,11 +1180,14 @@ export class MemStorage implements IStorage {
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = yesterday.toISOString().split("T")[0];
 
+    const yesterdayDropNumber = getDayNumber() - 1;
+    const yesterdayScenarios = getDailyScenarios(yesterdayDropNumber);
+    
     const yesterdayDrop: DailyDrop = {
       id: `yesterday-${yesterdayStr}`,
-      dropNumber: getDayNumber() - 1,
+      dropNumber: yesterdayDropNumber,
       date: yesterdayStr,
-      scenarios: sampleScenarios,
+      scenarios: yesterdayScenarios,
     };
 
     await this.updateUser(userId, {

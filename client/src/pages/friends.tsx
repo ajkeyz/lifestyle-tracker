@@ -51,6 +51,11 @@ export default function Friends() {
 
   const { data: searchResult, isLoading: isSearching } = useQuery<{ found: boolean; username: string | null; userId: string | null }>({
     queryKey: ["/api/search-user", debouncedQuery],
+    queryFn: async () => {
+      const res = await fetch(`/api/search-user/${encodeURIComponent(debouncedQuery)}`);
+      if (!res.ok) throw new Error("Failed to search user");
+      return res.json();
+    },
     enabled: debouncedQuery.length >= 3,
     staleTime: 5000,
   });
