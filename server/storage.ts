@@ -122,6 +122,7 @@ export interface IStorage {
   applyReferralBonus(referrerId: string, referredUserId: string): Promise<boolean>;
   // Push notification methods
   savePushSubscription(userId: string, subscription: PushSubscriptionJSON): Promise<void>;
+  getPushSubscription(userId: string): Promise<PushSubscriptionJSON | null>;
   removePushSubscription(userId: string, endpoint: string): Promise<void>;
   getAllPushSubscriptions(): Promise<{ userId: string; subscription: PushSubscriptionJSON }[]>;
   // Co-op game session methods
@@ -1602,6 +1603,13 @@ export class MemStorage implements IStorage {
       existing.push(subscription);
       this.pushSubscriptions.set(userId, existing);
     }
+  }
+
+  async getPushSubscription(userId: string): Promise<PushSubscriptionJSON | null> {
+    const subscriptions = this.pushSubscriptions.get(userId);
+    if (!subscriptions || subscriptions.length === 0) return null;
+    // Return the first (most recent) subscription
+    return subscriptions[0];
   }
 
   async removePushSubscription(userId: string, endpoint: string): Promise<void> {

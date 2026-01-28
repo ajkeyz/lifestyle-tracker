@@ -25,6 +25,37 @@ declare module "express-session" {
   }
 }
 
+// Helper function to send push notification to a specific user
+async function sendPushToUser(userId: string, title: string, body: string, data?: Record<string, any>): Promise<boolean> {
+  if (!pushNotificationsEnabled) return false;
+  
+  try {
+    const subscription = await storage.getPushSubscription(userId);
+    if (!subscription) return false;
+    
+    await webpush.sendNotification(
+      subscription as webpush.PushSubscription,
+      JSON.stringify({
+        title,
+        body,
+        icon: "/icons/icon-192.png",
+        data
+      })
+    );
+    return true;
+  } catch (error: any) {
+    if (error.statusCode === 410) {
+      // Subscription expired, remove it
+      const sub = await storage.getPushSubscription(userId);
+      if (sub) {
+        await storage.removePushSubscription(userId, sub.endpoint);
+      }
+    }
+    console.error("Push notification error:", error.message);
+    return false;
+  }
+}
+
 function getSessionId(req: Request): string {
   if (!req.session) {
     throw new Error("Session not available");
@@ -498,6 +529,17 @@ export async function registerRoutes(
       }
 
       const challenge = await storage.createChallenge(sessionId, parsed.data);
+      
+      // Send push notification to the challenged user
+      const challenger = await storage.getUser(sessionId);
+      const challengerName = challenger?.username || "Someone";
+      sendPushToUser(
+        parsed.data.challengeeId,
+        "You've been challenged!",
+        `${challengerName} challenged you to a ${parsed.data.type.replace("_", " ")} battle!`,
+        { type: "challenge", challengeId: challenge.id }
+      );
+      
       res.json(challenge);
     } catch (error) {
       console.error("Error creating challenge:", error);

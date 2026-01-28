@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -7,10 +8,13 @@ import {
   Flame,
   Users,
   Swords,
-  ChevronRight
+  ChevronRight,
+  Loader2
 } from "lucide-react";
 import { AppLogo } from "@/components/app-logo";
 import { useLocation } from "wouter";
+import { registerServiceWorker, subscribeToPushNotifications } from "@/lib/service-worker";
+import { useToast } from "@/hooks/use-toast";
 
 const benefits = [
   {
@@ -37,18 +41,46 @@ const benefits = [
 
 export default function NotificationsSetup() {
   const [, navigate] = useLocation();
+  const [isSubscribing, setIsSubscribing] = useState(false);
+  const { toast } = useToast();
 
   const handleEnableNotifications = async () => {
+    setIsSubscribing(true);
     try {
-      if ("Notification" in window) {
-        const permission = await Notification.requestPermission();
-        if (permission === "granted") {
+      // Register service worker first
+      const registration = await registerServiceWorker();
+      
+      if (registration) {
+        // Subscribe to push notifications
+        const subscription = await subscribeToPushNotifications(registration);
+        
+        if (subscription) {
           localStorage.setItem("notificationsEnabled", "true");
+          toast({
+            title: "Notifications enabled",
+            description: "You'll receive reminders for daily drops and more!",
+          });
+        } else {
+          // Permission was denied or subscription failed
+          toast({
+            title: "Notifications not enabled",
+            description: "You can enable them later in settings.",
+            variant: "destructive",
+          });
         }
+      } else {
+        // Service worker not supported
+        localStorage.setItem("notificationsEnabled", "false");
       }
     } catch (error) {
       console.error("Notification permission error:", error);
+      toast({
+        title: "Something went wrong",
+        description: "Could not enable notifications. Try again later.",
+        variant: "destructive",
+      });
     }
+    setIsSubscribing(false);
     navigate("/friends-setup");
   };
 
@@ -112,11 +144,16 @@ export default function NotificationsSetup() {
             size="lg"
             className="w-full"
             onClick={handleEnableNotifications}
+            disabled={isSubscribing}
             data-testid="button-enable-notifications"
           >
-            <Bell className="w-5 h-5 mr-2" />
-            Enable Notifications
-            <ChevronRight className="w-5 h-5 ml-2" />
+            {isSubscribing ? (
+              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+            ) : (
+              <Bell className="w-5 h-5 mr-2" />
+            )}
+            {isSubscribing ? "Setting up..." : "Enable Notifications"}
+            {!isSubscribing && <ChevronRight className="w-5 h-5 ml-2" />}
           </Button>
 
           <Button
