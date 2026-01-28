@@ -479,12 +479,6 @@ export default function Profile() {
             </Button>
           </Link>
 
-          <Link href="/settings">
-            <Button variant="ghost" className="w-full gap-2" data-testid="button-settings">
-              <Settings className="w-4 h-4" />
-              App Settings
-            </Button>
-          </Link>
         </motion.div>
       </main>
     </div>
