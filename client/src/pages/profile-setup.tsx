@@ -69,8 +69,11 @@ const formSchema = updateProfileSchema.extend({
 type FormData = z.infer<typeof formSchema>;
 
 export default function ProfileSetup() {
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const { toast } = useToast();
+  
+  // Check if we're in edit mode (coming from profile page)
+  const isEditMode = location.includes("edit=true");
   const [debouncedUsername, setDebouncedUsername] = useState("");
 
   const form = useForm<FormData>({
@@ -110,10 +113,11 @@ export default function ProfileSetup() {
   });
 
   useEffect(() => {
-    if (user?.profileSetupComplete) {
+    // Only redirect if profile is complete AND we're not in edit mode
+    if (user?.profileSetupComplete && !isEditMode) {
       navigate("/setup");
     }
-  }, [user?.profileSetupComplete, navigate]);
+  }, [user?.profileSetupComplete, isEditMode, navigate]);
 
   const saveProfileMutation = useMutation({
     mutationFn: async (data: FormData) => {
@@ -122,7 +126,15 @@ export default function ProfileSetup() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      navigate("/notifications-setup");
+      if (isEditMode) {
+        toast({
+          title: "Profile updated",
+          description: "Your changes have been saved.",
+        });
+        navigate("/profile");
+      } else {
+        navigate("/notifications-setup");
+      }
     },
     onError: (error: Error) => {
       toast({

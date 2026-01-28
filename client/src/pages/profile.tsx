@@ -472,7 +472,7 @@ export default function Profile() {
           transition={{ delay: 0.4 }}
           className="space-y-3"
         >
-          <Link href="/profile-setup">
+          <Link href="/profile-setup?edit=true">
             <Button variant="outline" className="w-full gap-2" data-testid="button-edit-profile">
               <Settings className="w-4 h-4" />
               Edit Profile
