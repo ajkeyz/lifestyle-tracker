@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Trophy, Flame, Star, TrendingUp, Users, Zap } from "lucide-react";
@@ -35,17 +35,23 @@ export function LiveActivityTicker({
 }: LiveActivityTickerProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isVisible, setIsVisible] = useState(true);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const timer = setInterval(() => {
       setIsVisible(false);
-      setTimeout(() => {
+      timeoutRef.current = setTimeout(() => {
         setCurrentIndex((prev) => (prev + 1) % activities.length);
         setIsVisible(true);
       }, 300);
     }, interval);
 
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
   }, [activities.length, interval]);
 
   const activity = activities[currentIndex];

@@ -21,13 +21,13 @@ interface GradientTextProps {
 
 const gradients: Record<GradientVariant, string> = {
   primary: "from-primary via-primary/80 to-accent",
-  accent: "from-accent via-yellow-400 to-orange-500",
-  rainbow: "from-red-500 via-yellow-500 to-green-500",
-  fire: "from-yellow-400 via-orange-500 to-red-600",
-  ice: "from-cyan-400 via-blue-500 to-indigo-600",
-  gold: "from-yellow-300 via-amber-400 to-yellow-600",
-  emerald: "from-emerald-400 via-green-500 to-teal-600",
-  purple: "from-purple-400 via-violet-500 to-indigo-600",
+  accent: "from-accent via-amber-400 dark:via-amber-500 to-orange-500 dark:to-orange-400",
+  rainbow: "from-rose-500 dark:from-rose-400 via-amber-500 dark:via-amber-400 to-emerald-500 dark:to-emerald-400",
+  fire: "from-amber-400 dark:from-amber-300 via-orange-500 dark:via-orange-400 to-red-600 dark:to-red-500",
+  ice: "from-cyan-400 dark:from-cyan-300 via-blue-500 dark:via-blue-400 to-indigo-600 dark:to-indigo-500",
+  gold: "from-amber-300 dark:from-amber-200 via-amber-400 dark:via-amber-300 to-amber-600 dark:to-amber-500",
+  emerald: "from-emerald-400 dark:from-emerald-300 via-green-500 dark:via-green-400 to-teal-600 dark:to-teal-500",
+  purple: "from-purple-400 dark:from-purple-300 via-violet-500 dark:via-violet-400 to-indigo-600 dark:to-indigo-500",
 };
 
 export function GradientText({

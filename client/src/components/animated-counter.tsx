@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { motion, useSpring, useTransform } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { Flame } from "lucide-react";
 
 interface AnimatedCounterProps {
   value: number;
@@ -21,7 +22,6 @@ export function AnimatedCounter({
   decimals = 0,
   delay = 0,
 }: AnimatedCounterProps) {
-  const [hasAnimated, setHasAnimated] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);
 
   const spring = useSpring(0, {
@@ -36,7 +36,6 @@ export function AnimatedCounter({
   useEffect(() => {
     const timeout = setTimeout(() => {
       spring.set(value);
-      setHasAnimated(true);
     }, delay * 1000);
 
     return () => clearTimeout(timeout);
@@ -166,8 +165,7 @@ export function StreakCounter({
       {showFlame && (
         <motion.span
           className={cn(
-            "text-2xl",
-            isBurning ? "text-red-500" : isHot ? "text-orange-500" : "text-muted-foreground"
+            isBurning ? "text-red-500 dark:text-red-400" : isHot ? "text-orange-500 dark:text-orange-400" : "text-muted-foreground"
           )}
           animate={isHot ? { 
             scale: [1, 1.1, 1],
@@ -175,7 +173,7 @@ export function StreakCounter({
           } : {}}
           transition={{ duration: 0.5, repeat: isHot ? Infinity : 0, repeatDelay: 1 }}
         >
-          🔥
+          <Flame className="w-6 h-6" />
         </motion.span>
       )}
       <span className="font-bold text-2xl">

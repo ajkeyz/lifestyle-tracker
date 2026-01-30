@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { motion, useMotionValue, useTransform, PanInfo } from "framer-motion";
+import { motion, useMotionValue, useTransform } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Loader2, ArrowDown, Check } from "lucide-react";
 import { useHaptic } from "@/hooks/use-haptic";
@@ -21,10 +21,10 @@ export function PullToRefresh({
 }: PullToRefreshProps) {
   const [state, setState] = useState<"idle" | "pulling" | "ready" | "refreshing" | "complete">("idle");
   const containerRef = useRef<HTMLDivElement>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { vibrateRefresh, vibrateLight, vibrateSuccess } = useHaptic();
   
   const y = useMotionValue(0);
-  const pullProgress = useTransform(y, [0, threshold], [0, 1]);
   const indicatorY = useTransform(y, [0, threshold], [-40, 20]);
   const indicatorOpacity = useTransform(y, [0, threshold * 0.3], [0, 1]);
   const indicatorScale = useTransform(y, [0, threshold], [0.5, 1]);
@@ -40,7 +40,7 @@ export function PullToRefresh({
   }, [disabled, state]);
 
   const handlePan = useCallback(
-    (_: any, info: PanInfo) => {
+    (_: unknown, info: { offset: { y: number } }) => {
       if (disabled || state === "refreshing") return;
       
       const scrollTop = containerRef.current?.scrollTop || 0;
@@ -69,7 +69,7 @@ export function PullToRefresh({
         setState("complete");
         vibrateSuccess();
         
-        setTimeout(() => {
+        timeoutRef.current = setTimeout(() => {
           y.set(0);
           setState("idle");
         }, 500);
@@ -82,6 +82,14 @@ export function PullToRefresh({
       setState("idle");
     }
   }, [state, onRefresh, y, vibrateRefresh, vibrateSuccess]);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (state === "idle" || state === "complete") {

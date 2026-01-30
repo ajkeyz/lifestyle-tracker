@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 interface BentoGridProps {
@@ -62,22 +61,20 @@ export function BentoCard({
   };
 
   return (
-    <motion.div
+    <div
       className={cn(
-        "rounded-xl p-4 overflow-hidden",
+        "rounded-xl p-4 overflow-visible",
         colSpanClasses[colSpan],
         rowSpanClasses[rowSpan],
         variantClasses[variant],
-        interactive && "cursor-pointer hover-elevate",
+        interactive && "cursor-pointer hover-elevate active-elevate-2",
         className
       )}
       onClick={onClick}
-      whileHover={interactive ? { scale: 1.02 } : {}}
-      whileTap={interactive ? { scale: 0.98 } : {}}
       data-testid={testId}
     >
       {children}
-    </motion.div>
+    </div>
   );
 }
 
@@ -104,7 +101,7 @@ export function BentoHeroCard({
     <BentoCard
       colSpan={2}
       rowSpan={2}
-      className={cn("relative overflow-hidden", className)}
+      className={cn("relative overflow-visible", className)}
       data-testid={testId}
     >
       <div
@@ -115,14 +112,9 @@ export function BentoHeroCard({
       />
       <div className="relative z-10 h-full flex flex-col">
         {icon && (
-          <motion.div
-            className="mb-4"
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          >
+          <div className="mb-4">
             {icon}
-          </motion.div>
+          </div>
         )}
         <div className="flex-1">
           <h2 className="text-2xl md:text-3xl font-bold mb-2">{title}</h2>
@@ -156,8 +148,8 @@ export function BentoStatCard({
   "data-testid": testId,
 }: BentoStatCardProps) {
   const trendColors = {
-    up: "text-emerald-500",
-    down: "text-red-500",
+    up: "text-emerald-500 dark:text-emerald-400",
+    down: "text-red-500 dark:text-red-400",
     neutral: "text-muted-foreground",
   };
 
@@ -170,13 +162,9 @@ export function BentoStatCard({
         {icon && <div className="text-muted-foreground">{icon}</div>}
       </div>
       <div className="mt-2">
-        <motion.p
-          className="text-2xl md:text-3xl font-bold"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
+        <p className="text-2xl md:text-3xl font-bold">
           {value}
-        </motion.p>
+        </p>
         {trend && trendValue && (
           <p className={cn("text-xs mt-1", trendColors[trend])}>
             {trend === "up" ? "↑" : trend === "down" ? "↓" : "→"} {trendValue}

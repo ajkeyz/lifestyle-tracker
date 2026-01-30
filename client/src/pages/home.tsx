@@ -11,6 +11,9 @@ import { QuickStatsBar } from "@/components/quick-stats-bar";
 import { StreakUrgencyBanner } from "@/components/streak-urgency-banner";
 import { SocialProofCounter } from "@/components/social-proof-counter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { LiveActivityTicker, PlayerCounter } from "@/components/live-activity-ticker";
+import { TipCardCarousel } from "@/components/stories-tips";
+import { AnimatedCounter } from "@/components/animated-counter";
 import { 
   Play, 
   Trophy, 
@@ -252,8 +255,11 @@ export default function Home() {
                   <p className="text-muted-foreground text-sm mb-2" data-testid="text-tagline">
                     5 real-life money decisions in 2-4 minutes
                   </p>
-                  <div className="mb-3">
+                  <div className="mb-2">
                     <SocialProofCounter />
+                  </div>
+                  <div className="mb-3">
+                    <LiveActivityTicker className="text-xs" />
                   </div>
                   <Button
                     size="lg"
@@ -409,23 +415,19 @@ export default function Home() {
             </Card>
             </motion.div>
 
-            {/* Quick Tip of the Day */}
+            {/* Quick Tip of the Day - Enhanced Carousel */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.15, ease: "easeOut" }}
             >
-            <Card className="p-4 bg-muted/30" data-testid="card-daily-tip">
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-yellow-500/20 flex items-center justify-center flex-shrink-0">
-                  <Lightbulb className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Tip of the Day</p>
-                  <p className="text-sm" data-testid="text-daily-tip">{getTodaysTip()}</p>
-                </div>
-              </div>
-            </Card>
+            <TipCardCarousel
+              tips={DAILY_TIPS.map((content, index) => ({
+                id: String(index),
+                content,
+              }))}
+              data-testid="card-daily-tip"
+            />
             </motion.div>
 
             {/* Community - Hot Posts Preview */}
