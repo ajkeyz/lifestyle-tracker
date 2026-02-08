@@ -6,11 +6,11 @@ import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { 
-  ArrowLeft, 
-  Heart, 
-  EyeOff, 
-  Users, 
+import {
+  ArrowLeft,
+  Heart,
+  EyeOff,
+  Users,
   Flame,
   BookOpen,
   HelpCircle,
@@ -19,7 +19,9 @@ import {
   Shield,
   Settings2,
   Volume2,
-  VolumeX
+  VolumeX,
+  Crown,
+  Sparkles
 } from "lucide-react";
 import { useSound } from "@/hooks/use-sound";
 import { ReferralCard } from "@/components/referral-card";
@@ -218,7 +220,7 @@ export default function Settings() {
           </CardHeader>
         </Card>
 
-        <Card 
+        <Card
           className="cursor-pointer"
           onClick={() => navigate("/streak-insurance")}
           data-testid="card-streak-insurance"
@@ -239,7 +241,42 @@ export default function Settings() {
           </CardHeader>
         </Card>
 
-        <Card 
+        <Card
+          className="cursor-pointer hover-elevate relative overflow-hidden"
+          onClick={() => navigate("/membership")}
+          data-testid="card-membership"
+        >
+          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-yellow-500/20 to-amber-500/20 rounded-full blur-3xl" />
+          <CardHeader>
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-500 via-amber-500 to-orange-500 flex items-center justify-center relative">
+                  <Crown className="w-5 h-5 text-white" />
+                  <Sparkles className="w-3 h-3 text-white absolute -top-1 -right-1" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    Membership
+                    {user.membershipTier === "pro" && (
+                      <span className="text-xs font-normal px-2 py-0.5 rounded-full bg-gradient-to-r from-yellow-500 to-orange-500 text-white">PRO</span>
+                    )}
+                    {user.membershipTier === "plus" && (
+                      <span className="text-xs font-normal px-2 py-0.5 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 text-white">PLUS</span>
+                    )}
+                  </CardTitle>
+                  <CardDescription>
+                    {user.membershipTier === "free" && "Unlock premium features"}
+                    {user.membershipTier === "plus" && "Manage your Plus membership"}
+                    {user.membershipTier === "pro" && "Manage your Pro membership"}
+                  </CardDescription>
+                </div>
+              </div>
+              <ChevronRight className="w-5 h-5 text-muted-foreground" />
+            </div>
+          </CardHeader>
+        </Card>
+
+        <Card
           className="cursor-pointer"
           onClick={() => navigate("/notifications-prefs")}
           data-testid="card-notifications"

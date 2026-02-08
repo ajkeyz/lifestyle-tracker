@@ -145,46 +145,118 @@ export function StreakCalendar({ user, showMilestoneAnimation = false }: StreakC
           </div>
         )}
 
-        {/* Weekly View (collapsed) */}
-        <div className="grid grid-cols-7 gap-1" data-testid="streak-calendar-grid">
-          {["S", "M", "T", "W", "T", "F", "S"].map((day, i) => (
-            <div key={i} className="text-center text-xs text-muted-foreground py-1">
-              {day}
-            </div>
-          ))}
-          
-          {calendar.slice(isExpanded ? -28 : -7).map((day) => {
-            const date = new Date(day.date);
-            const isToday = day.date === today;
-            const dayOfMonth = date.getDate();
-            const isPast = day.date < today;
-            
-            let bgColor = "bg-muted/30";
-            let icon = null;
-
-            if (day.played) {
-              bgColor = "bg-green-500/20 border-green-500/50";
-              icon = <Check className="h-3 w-3 text-green-500" />;
-            } else if (day.frozen) {
-              bgColor = "bg-blue-500/20 border-blue-500/50";
-              icon = <Snowflake className="h-3 w-3 text-blue-400" />;
-            } else if (isPast) {
-              bgColor = "bg-red-500/10 border-red-500/30";
-              icon = <X className="h-3 w-3 text-red-400/50" />;
-            }
-
-            return (
-              <div
-                key={day.date}
-                className={`relative aspect-square flex flex-col items-center justify-center rounded-md border text-xs ${bgColor} ${isToday ? 'ring-2 ring-primary' : ''}`}
-                title={day.date}
-                data-testid={`calendar-day-${day.date}`}
-              >
-                <span className="text-[10px] text-muted-foreground">{dayOfMonth}</span>
-                {icon}
+        {/* GitHub-style Heatmap */}
+        <div className="space-y-2" data-testid="streak-calendar-grid">
+          <div className="grid grid-cols-7 gap-1.5">
+            {["S", "M", "T", "W", "T", "F", "S"].map((day, i) => (
+              <div key={i} className="text-center text-[10px] text-muted-foreground font-medium">
+                {day}
               </div>
-            );
-          })}
+            ))}
+          </div>
+
+          <div className="grid grid-cols-7 gap-1.5">
+            {calendar.slice(isExpanded ? -28 : -7).map((day, index) => {
+              const date = new Date(day.date);
+              const isToday = day.date === today;
+              const isPast = day.date < today;
+              const dayNum = date.getDate();
+              const score = day.score || 0;
+
+              // Determine intensity level (0-4) like GitHub
+              let intensityLevel = 0;
+              let bgColor = "bg-muted/20";
+              let borderColor = "border-border/30";
+              let tooltip = day.date;
+
+              if (day.played) {
+                // Intensity based on score
+                if (score >= 450) intensityLevel = 4;
+                else if (score >= 350) intensityLevel = 3;
+                else if (score >= 250) intensityLevel = 2;
+                else intensityLevel = 1;
+
+                const colors = [
+                  "",
+                  "bg-emerald-500/30 border-emerald-500/50",
+                  "bg-emerald-500/50 border-emerald-500/70",
+                  "bg-emerald-500/70 border-emerald-600/80",
+                  "bg-emerald-600/90 border-emerald-700"
+                ];
+                bgColor = colors[intensityLevel];
+                tooltip = `${day.date}\nScore: ${score}/500`;
+              } else if (day.frozen) {
+                bgColor = "bg-sky-400/40 border-sky-500/60";
+                borderColor = "border-sky-500/60";
+                tooltip = `${day.date}\n❄️ Frozen`;
+              } else if (isPast) {
+                bgColor = "bg-red-500/10 border-red-500/20";
+                borderColor = "border-red-500/20";
+                tooltip = `${day.date}\n✗ Missed`;
+              }
+
+              // Check if this day is a milestone
+              const consecutiveDaysFromThisDay = calendar
+                .slice(0, index + 1)
+                .reverse()
+                .findIndex(d => !d.played && !d.frozen) + 1;
+              const isMilestoneDay = MILESTONES.includes(consecutiveDaysFromThisDay) && day.played;
+
+              return (
+                <div
+                  key={day.date}
+                  className={`group relative aspect-square flex items-center justify-center rounded-md border-2 transition-all duration-200 ${bgColor} ${borderColor} ${isToday ? 'ring-2 ring-primary ring-offset-1' : ''} ${isMilestoneDay ? 'border-yellow-500 shadow-lg shadow-yellow-500/30' : ''} hover:scale-110 hover:shadow-md cursor-pointer`}
+                  title={tooltip}
+                  data-testid={`calendar-day-${day.date}`}
+                >
+                  {/* Day number */}
+                  <span className={`text-[9px] font-bold ${day.played ? 'text-white' : day.frozen ? 'text-sky-100' : 'text-muted-foreground'}`}>
+                    {dayNum}
+                  </span>
+
+                  {/* Milestone crown */}
+                  {isMilestoneDay && (
+                    <Crown className="absolute -top-1 -right-1 h-3 w-3 text-yellow-500 drop-shadow-lg animate-pulse" />
+                  )}
+
+                  {/* Hover tooltip */}
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-popover text-popover-foreground text-xs rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10 border">
+                    {day.played ? (
+                      <div className="text-center">
+                        <div className="font-semibold">{score}/500</div>
+                        <div className="text-[10px] text-muted-foreground">{date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                      </div>
+                    ) : day.frozen ? (
+                      <div className="flex items-center gap-1">
+                        <Snowflake className="h-3 w-3" />
+                        <span>Frozen</span>
+                      </div>
+                    ) : isPast ? (
+                      <div className="flex items-center gap-1">
+                        <X className="h-3 w-3" />
+                        <span>Missed</span>
+                      </div>
+                    ) : (
+                      <span>Not played</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Legend */}
+          <div className="flex items-center justify-end gap-2 mt-3 text-xs text-muted-foreground">
+            <span>Less</span>
+            <div className="flex gap-1">
+              <div className="w-3 h-3 rounded-sm bg-muted/20 border border-border/30" title="No activity" />
+              <div className="w-3 h-3 rounded-sm bg-emerald-500/30 border border-emerald-500/50" title="1-249 pts" />
+              <div className="w-3 h-3 rounded-sm bg-emerald-500/50 border border-emerald-500/70" title="250-349 pts" />
+              <div className="w-3 h-3 rounded-sm bg-emerald-500/70 border border-emerald-600/80" title="350-449 pts" />
+              <div className="w-3 h-3 rounded-sm bg-emerald-600/90 border border-emerald-700" title="450-500 pts" />
+            </div>
+            <span>More</span>
+          </div>
         </div>
 
         {/* Expand/Collapse Toggle */}

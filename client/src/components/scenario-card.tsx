@@ -1,9 +1,11 @@
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { TiltCard } from "@/components/ui/tilt-card";
 import type { Scenario, ScenarioCategory } from "@shared/schema";
+import { Check, X } from "lucide-react";
 import { 
   Laptop, Plane, ShoppingBag, ShieldAlert, TrendingUp, CreditCard,
   Briefcase, Heart, Home, Shield, Receipt, Wallet, AlertTriangle,
@@ -75,6 +77,23 @@ export function ScenarioCard({
 }: ScenarioCardProps) {
   const Icon = categoryIcons[scenario.category] || ShoppingBag;
 
+  // Multi-stage reveal animation states
+  const [revealStage, setRevealStage] = useState(0);
+
+  // Trigger reveal sequence when showResult changes to true
+  useEffect(() => {
+    if (showResult && revealStage === 0) {
+      // Stage 1: Pause (0.5s tension)
+      setTimeout(() => setRevealStage(1), 500);
+      // Stage 2: Show result indicators (flip + icons)
+      setTimeout(() => setRevealStage(2), 800);
+      // Stage 3: Show points and feedback
+      setTimeout(() => setRevealStage(3), 1200);
+    } else if (!showResult) {
+      setRevealStage(0);
+    }
+  }, [showResult, revealStage]);
+
   return (
     <TiltCard tiltAmount={5} glareEnabled={true} floatOnHover={false}>
       <Card className="p-6 scenario-reveal" data-testid={`card-scenario-${scenario.id}`}>
@@ -119,36 +138,40 @@ export function ScenarioCard({
             <motion.button
               key={choice.label}
               initial={{ opacity: 0, x: -20 }}
-              animate={{ 
-                opacity: 1, 
-                x: 0,
-                scale: showResult && isSelected && !isCorrect ? [1, 1.02, 0.98, 1.01, 0.99, 1] : 1,
+              animate={{
+                opacity: showResult && !isSelected && !isCorrect ? 0.3 : 1,
+                x: showResult && isSelected && !isCorrect ? [-10, 10, -8, 8, -5, 5, 0] : 0,
+                scale: showResult && isSelected ? [1, 1.05, 1] : 1,
+                y: showResult && isSelected && !isCorrect ? [0, -5, 0, -3, 0] : 0,
               }}
-              transition={{ 
-                delay: index * 0.05,
-                scale: { duration: 0.4, ease: "easeInOut" }
+              transition={{
+                opacity: { duration: 0.5, delay: index * 0.05 },
+                x: { duration: 0.6, delay: revealStage >= 2 ? 0 : 999 },
+                scale: { duration: 0.5, delay: revealStage >= 1 ? 0 : 999 },
+                y: { duration: 0.4, delay: revealStage >= 2 ? 0 : 999 },
               }}
               onClick={() => !showResult && onSelectChoice(choice.label)}
               disabled={showResult}
               className={cn(
-                "w-full p-4 rounded-lg border-2 text-left transition-colors",
+                "w-full p-4 rounded-lg border-2 text-left transition-all relative overflow-hidden",
                 "flex items-start gap-3",
-                !showResult && !isSelected && "hover-elevate border-border",
-                !showResult && isSelected && "border-primary bg-primary/5",
-                showResult && isSelected && isCorrect && "border-primary bg-primary/10",
-                showResult && isSelected && !isCorrect && "border-destructive bg-destructive/10",
-                showResult && !isSelected && isCorrect && "border-primary/50 bg-primary/5"
+                !showResult && !isSelected && "hover-elevate border-border hover:border-primary/30 hover:bg-primary/5",
+                !showResult && isSelected && "border-primary bg-primary/5 shadow-lg",
+                showResult && isSelected && isCorrect && "border-primary bg-gradient-to-r from-primary/10 to-primary/20 shadow-lg",
+                showResult && isSelected && !isCorrect && "border-destructive bg-gradient-to-r from-destructive/10 to-destructive/20",
+                showResult && !isSelected && isCorrect && "border-primary/50 bg-primary/5",
+                showResult && !isSelected && !isCorrect && "opacity-50"
               )}
               data-testid={`button-choice-${choice.label}`}
             >
               <motion.span
-                animate={showResult && isCorrect ? {
-                  scale: [1, 1.2, 1],
-                  rotate: [0, -10, 10, 0]
+                animate={showResult && revealStage >= 1 ? {
+                  scale: isCorrect || isSelected ? [1, 1.3, 1] : 1,
+                  rotate: isCorrect ? [0, -10, 10, 0] : (isSelected && !isCorrect ? [0, 5, -5, 0] : 0)
                 } : {}}
-                transition={{ duration: 0.4, delay: 0.2 }}
+                transition={{ duration: 0.5, delay: revealStage >= 1 ? 0 : 999 }}
                 className={cn(
-                  "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm",
+                  "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm relative",
                   !showResult && !isSelected && "bg-secondary text-secondary-foreground",
                   !showResult && isSelected && "bg-primary text-primary-foreground",
                   showResult && isCorrect && "bg-primary text-primary-foreground",
@@ -156,19 +179,33 @@ export function ScenarioCard({
                 )}
                 data-testid={`label-choice-${choice.label}`}
               >
-                {choice.label}
+                {showResult && revealStage >= 2 && (isCorrect || isSelected) ? (
+                  <motion.div
+                    initial={{ scale: 0, rotate: -180 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                  >
+                    {isCorrect ? (
+                      <Check className="w-5 h-5" />
+                    ) : (
+                      <X className="w-5 h-5" />
+                    )}
+                  </motion.div>
+                ) : (
+                  choice.label
+                )}
               </motion.span>
               <div className="flex-1">
                 <p className="font-medium" data-testid={`text-choice-${choice.label}`}>{choice.text}</p>
                 <AnimatePresence>
-                  {showResult && showCorrectness && (
+                  {showResult && showCorrectness && revealStage >= 3 && (
                     <motion.p
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
+                      initial={{ opacity: 0, height: 0, y: -10 }}
+                      animate={{ opacity: 1, height: "auto", y: 0 }}
                       exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.3 }}
+                      transition={{ duration: 0.4, delay: 0.1 }}
                       className={cn(
-                        "text-sm mt-1",
+                        "text-sm mt-2 font-medium",
                         isCorrect ? "text-primary" : "text-destructive"
                       )}
                       data-testid={`text-feedback-${choice.label}`}
@@ -179,13 +216,26 @@ export function ScenarioCard({
                 </AnimatePresence>
               </div>
               <AnimatePresence>
-                {showResult && isCorrect && (
+                {showResult && isCorrect && revealStage >= 3 && (
                   <motion.div
-                    initial={{ scale: 0, rotate: -180 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    transition={{ type: "spring", stiffness: 200, delay: 0.3 }}
+                    initial={{ scale: 0, y: 20, opacity: 0 }}
+                    animate={{
+                      scale: [0, 1.3, 1],
+                      y: [20, -10, 0],
+                      opacity: [0, 1, 1]
+                    }}
+                    transition={{
+                      type: "spring",
+                      stiffness: 300,
+                      damping: 15,
+                      delay: 0
+                    }}
                   >
-                    <Badge variant="default" className="flex-shrink-0" data-testid={`badge-points-${choice.label}`}>
+                    <Badge
+                      variant="default"
+                      className="flex-shrink-0 text-sm font-bold shadow-lg"
+                      data-testid={`badge-points-${choice.label}`}
+                    >
                       +{choice.points}
                     </Badge>
                   </motion.div>

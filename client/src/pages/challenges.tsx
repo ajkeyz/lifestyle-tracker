@@ -402,20 +402,53 @@ export default function Challenges() {
           )}
 
           {isCompleted && (
-            <Card className={`p-4 text-center ${isWinner ? "bg-green-500/10 border-green-500/30" : "bg-muted/50"}`}>
-              {isWinner ? (
-                <div className="flex items-center justify-center gap-2 flex-wrap">
-                  <Trophy className="w-6 h-6 text-green-600" />
-                  <p className="font-bold text-green-600" data-testid="text-result">You Won!</p>
-                </div>
-              ) : selectedChallenge.winnerId ? (
-                <p className="font-medium text-muted-foreground" data-testid="text-result">
-                  {isChallenger ? selectedChallenge.challengeeUsername : selectedChallenge.challengerUsername} won this one
-                </p>
-              ) : (
-                <p className="font-medium text-muted-foreground" data-testid="text-result">It's a tie!</p>
+            <>
+              <Card className={`p-4 text-center ${isWinner ? "bg-green-500/10 border-green-500/30" : "bg-muted/50"}`}>
+                {isWinner ? (
+                  <div className="flex items-center justify-center gap-2 flex-wrap">
+                    <Trophy className="w-6 h-6 text-green-600" />
+                    <p className="font-bold text-green-600" data-testid="text-result">You Won!</p>
+                  </div>
+                ) : selectedChallenge.winnerId ? (
+                  <p className="font-medium text-muted-foreground" data-testid="text-result">
+                    {isChallenger ? selectedChallenge.challengeeUsername : selectedChallenge.challengerUsername} won this one
+                  </p>
+                ) : (
+                  <p className="font-medium text-muted-foreground" data-testid="text-result">It's a tie!</p>
+                )}
+              </Card>
+
+              {/* Revenge Mode: Challenge back after losing */}
+              {!isWinner && selectedChallenge.winnerId && (
+                <Card className="p-4 bg-gradient-to-r from-destructive/10 to-orange-500/10 border-destructive/30">
+                  <div className="text-center mb-3">
+                    <h3 className="font-bold text-lg mb-1 flex items-center justify-center gap-2">
+                      <Swords className="w-5 h-5 text-destructive" />
+                      Revenge Mode
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Challenge them back with <span className="font-bold text-destructive">DOUBLE</span> the stakes!
+                    </p>
+                  </div>
+                  <Button
+                    size="lg"
+                    variant="destructive"
+                    className="w-full gap-2"
+                    onClick={() => {
+                      const opponentId = isChallenger ? selectedChallenge.challengeeId : selectedChallenge.challengerId;
+                      setSelectedFriendId(opponentId);
+                      setSelectedChallengeType(selectedChallenge.type as ChallengeType);
+                      setSelectedTrashTalk("Rematch time! Double or nothing! 🔥");
+                      setViewMode("create");
+                    }}
+                    data-testid="button-revenge"
+                  >
+                    <Swords className="w-5 h-5" />
+                    Challenge Again
+                  </Button>
+                </Card>
               )}
-            </Card>
+            </>
           )}
 
           {isPending && !isChallenger && (

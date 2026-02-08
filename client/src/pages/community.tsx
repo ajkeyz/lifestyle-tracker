@@ -9,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { CreatorLeaderboard } from "@/components/creator-leaderboard";
 import {
   ArrowLeft,
   Plus,
@@ -281,6 +282,9 @@ export default function Community() {
             </CardContent>
           </Card>
         )}
+
+        {/* Top Creators Leaderboard */}
+        <CreatorLeaderboard limit={5} showTitle={true} />
 
         <div className="space-y-3">
           <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">

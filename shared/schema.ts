@@ -131,6 +131,7 @@ export interface User {
   referredBy: string | null;
   referralCount: number;
   friendIds: string[];
+  membershipTier: "free" | "plus" | "pro";
 }
 
 export interface NotificationPrefs {

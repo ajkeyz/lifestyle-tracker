@@ -1,6 +1,7 @@
 import { Flame, Heart, Trophy, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { User } from "@shared/schema";
+import { LiquidMoneyMeter } from "@/components/liquid-money-meter";
 
 interface QuickStatsBarProps {
   user: User;
@@ -37,18 +38,24 @@ export function QuickStatsBar({ user, rank, className }: QuickStatsBarProps) {
   ];
 
   return (
-    <div className={cn("flex items-center justify-between gap-2 p-3 rounded-lg bg-card border", className)}>
+    <div className={cn("flex items-center justify-between gap-3 p-3 rounded-lg bg-card border", className)}>
       {stats.map((stat, index) => (
         <div key={stat.label} className="flex items-center gap-1.5 flex-1 justify-center">
-          <stat.icon className={cn("w-4 h-4", stat.color)} />
-          <div className="text-center">
-            <div className="font-bold text-sm leading-none" data-testid={`stat-${stat.label.toLowerCase()}`}>
-              {stat.value}
-            </div>
-            <div className="text-[10px] text-muted-foreground leading-tight">
-              {stat.label}
-            </div>
-          </div>
+          {stat.label === "Health" ? (
+            <LiquidMoneyMeter value={user.moneyHealth} size="sm" animated={true} />
+          ) : (
+            <>
+              <stat.icon className={cn("w-4 h-4", stat.color)} />
+              <div className="text-center">
+                <div className="font-bold text-sm leading-none" data-testid={`stat-${stat.label.toLowerCase()}`}>
+                  {stat.value}
+                </div>
+                <div className="text-[10px] text-muted-foreground leading-tight">
+                  {stat.label}
+                </div>
+              </div>
+            </>
+          )}
           {index < stats.length - 1 && (
             <div className="w-px h-6 bg-border ml-2" />
           )}

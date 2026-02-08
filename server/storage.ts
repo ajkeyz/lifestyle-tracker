@@ -1823,4 +1823,11 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// Import PostgreSQL storage
+import { postgresStorage } from "./postgres-storage";
+
+// Export PostgreSQL storage instead of MemStorage
+export const storage = postgresStorage;
+
+// Keep MemStorage class for reference/fallback
+// export const storage = new MemStorage();

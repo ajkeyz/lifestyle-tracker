@@ -26,6 +26,7 @@ import Stats from "@/pages/stats";
 import Help from "@/pages/help";
 import NotificationsPrefs from "@/pages/notifications-prefs";
 import StreakInsurance from "@/pages/streak-insurance";
+import Membership from "@/pages/membership";
 import Community from "@/pages/community";
 import CommunityDetail from "@/pages/community-detail";
 import CommunitySubmit from "@/pages/community-submit";
@@ -66,6 +67,7 @@ function AuthenticatedRouter() {
         <Route path="/help" component={Help} />
         <Route path="/notifications-prefs" component={NotificationsPrefs} />
         <Route path="/streak-insurance" component={StreakInsurance} />
+        <Route path="/membership" component={Membership} />
         <Route path="/community" component={Community} />
         <Route path="/community/submit" component={CommunitySubmit} />
         <Route path="/community/:id" component={CommunityDetail} />

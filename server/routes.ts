@@ -740,6 +740,34 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/community/top-creators", async (req: Request, res: Response) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      const topCreators = await storage.getTopCreators(limit);
+      res.json(topCreators);
+    } catch (error) {
+      console.error("Error getting top creators:", error);
+      res.status(500).json({ error: "Failed to get top creators" });
+    }
+  });
+
+  app.post("/api/membership/upgrade", async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const { tier } = req.body;
+
+      if (tier !== "free" && tier !== "plus" && tier !== "pro") {
+        return res.status(400).json({ error: "Invalid tier. Must be 'free', 'plus', or 'pro'" });
+      }
+
+      const updatedUser = await storage.updateMembershipTier(sessionId, tier);
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating membership:", error);
+      res.status(500).json({ error: "Failed to update membership" });
+    }
+  });
+
   app.get("/api/community/scenarios/:id/comments", async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);

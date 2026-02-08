@@ -253,7 +253,13 @@ export default function Home() {
                     </h1>
                   )}
                   <p className="text-muted-foreground text-sm mb-2" data-testid="text-tagline">
-                    5 real-life money decisions in 2-4 minutes
+                    {new Date().getDay() === 5 ? (
+                      <span>
+                        <span className="text-yellow-500 font-semibold">🎉 Mystery Friday:</span> 6 scenarios + bonus points!
+                      </span>
+                    ) : (
+                      "5 real-life money decisions in 2-4 minutes"
+                    )}
                   </p>
                   <div className="mb-2">
                     <SocialProofCounter />

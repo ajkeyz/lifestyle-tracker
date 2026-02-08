@@ -3,10 +3,12 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ShareCard } from "@/components/share-card";
+import { SocialShareCard } from "@/components/social-share-card";
 import { FriendLeague } from "@/components/leaderboard-card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useConfetti } from "@/components/confetti";
 import { useSound } from "@/hooks/use-sound";
+import { QuickWinsPopup } from "@/components/quick-wins-popup";
 import { ArrowLeft, Home, Trophy, Calendar, Share2, BookOpen, Sparkles, Flame } from "lucide-react";
 import { AppLogo } from "@/components/app-logo";
 import { useQuery } from "@tanstack/react-query";
@@ -19,6 +21,7 @@ export default function Results() {
   const { firePerfectScore, fireStreakMilestone, fireAchievement } = useConfetti();
   const { play } = useSound();
   const confettiFired = useRef(false);
+  const [showQuickWins, setShowQuickWins] = useState(false);
 
   const { data: user, isLoading: userLoading } = useQuery<User>({
     queryKey: ["/api/user"],
@@ -44,6 +47,7 @@ export default function Results() {
       const isPerfectScore = user.todayResult.score === 500;
       const streakMilestones = [7, 14, 30, 60, 100];
       const isStreakMilestone = streakMilestones.includes(user.streak);
+      const isFirstGame = user.gamesPlayed === 1;
 
       if (isPerfectScore) {
         setTimeout(() => {
@@ -60,6 +64,13 @@ export default function Results() {
           fireAchievement();
           play("achievement");
         }, 500);
+      }
+
+      // Show Quick Wins popup after first game
+      if (isFirstGame) {
+        setTimeout(() => {
+          setShowQuickWins(true);
+        }, 1500); // Show after confetti/celebrations
       }
     }
   }, [user, firePerfectScore, fireStreakMilestone, fireAchievement, play]);
@@ -78,8 +89,17 @@ export default function Results() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
-      <header className="flex items-center justify-between gap-2 p-4 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+    <>
+      {showQuickWins && (
+        <QuickWinsPopup
+          score={result.score}
+          moneyHealth={result.moneyHealth}
+          isFirstGame={user.gamesPlayed === 1}
+          onClose={() => setShowQuickWins(false)}
+        />
+      )}
+      <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
+        <header className="flex items-center justify-between gap-2 p-4 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="flex items-center gap-2 flex-wrap">
           <Button
             variant="ghost"
@@ -130,6 +150,26 @@ export default function Results() {
               answers={correctAnswers}
               streak={user.streak}
             />
+            </motion.div>
+
+            {/* Social Share Button */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.3, ease: "easeOut" }}
+              className="flex justify-center"
+            >
+              <SocialShareCard
+                user={user}
+                score={result.score}
+                dropNumber={dailyDrop?.dropNumber}
+                trigger={
+                  <Button size="lg" className="gap-2">
+                    <Share2 className="w-5 h-5" />
+                    Share on Social Media
+                  </Button>
+                }
+              />
             </motion.div>
 
             <motion.div
@@ -192,5 +232,6 @@ export default function Results() {
         )}
       </main>
     </div>
+    </>
   );
 }

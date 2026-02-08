@@ -66,6 +66,9 @@ export const lifestyleUsers = pgTable("lifestyle_users", {
   referralCount: integer("referral_count").notNull().default(0),
   friendIds: jsonb("friend_ids").$type<string[]>().notNull().default([]),
 
+  // Membership
+  membershipTier: varchar("membership_tier", { length: 20 }).notNull().default("free"), // free, plus, pro
+
   // Timestamps
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -163,6 +166,9 @@ export const communityScenarios = pgTable("community_scenarios", {
   category: varchar("category", { length: 50 }).notNull(),
   weekNumber: integer("week_number").notNull(),
   isRealistOfWeek: boolean("is_realist_of_week").notNull().default(false),
+  upvotes: integer("upvotes").notNull().default(0),
+  downvotes: integer("downvotes").notNull().default(0),
+  commentCount: integer("comment_count").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => [
   index("idx_community_scenarios_author_id").on(table.authorId),
@@ -178,6 +184,8 @@ export const communityComments = pgTable("community_comments", {
   authorId: varchar("author_id", { length: 255 }).notNull().references(() => lifestyleUsers.id, { onDelete: "cascade" }),
   content: text("content").notNull(),
   isAdvice: boolean("is_advice").notNull().default(false),
+  upvotes: integer("upvotes").notNull().default(0),
+  downvotes: integer("downvotes").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => [
   index("idx_community_comments_scenario_id").on(table.scenarioId),
