@@ -450,6 +450,7 @@ export class MemStorage implements IStorage {
         referredBy: null,
         referralCount: 0,
         friendIds: [],
+        membershipTier: "free" as const,
       });
     });
   }
@@ -496,6 +497,7 @@ export class MemStorage implements IStorage {
         referredBy: null,
         referralCount: 0,
         friendIds: [],
+        membershipTier: "free" as const,
       };
       this.users.set(sessionId, user);
     }
