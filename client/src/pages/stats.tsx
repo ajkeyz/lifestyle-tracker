@@ -1,21 +1,29 @@
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  ArrowLeft, 
-  TrendingUp, 
-  Target, 
-  Flame, 
-  Trophy, 
+import {
+  ArrowLeft,
+  TrendingUp,
+  Target,
+  Flame,
+  Trophy,
   BarChart3,
   Calendar,
   Zap,
-  Award
+  Award,
+  ChevronDown,
+  ChevronUp,
+  Sparkles
 } from "lucide-react";
 import type { User } from "@shared/schema";
+import { PremiumGate } from "@/components/premium-gate";
+import { ScoreTrendChart, AccuracyTrendChart } from "@/components/trend-chart";
+import { CategoryInsights } from "@/components/category-insights";
+import { usePremium } from "@/hooks/use-premium";
 
 const categoryColors: Record<string, string> = {
   tech: "from-blue-500 to-cyan-500",
@@ -63,6 +71,8 @@ const categoryLabels: Record<string, string> = {
 
 export default function Stats() {
   const [, navigate] = useLocation();
+  const [showAllHistory, setShowAllHistory] = useState(false);
+  const { canAccess } = usePremium();
 
   const { data: user, isLoading } = useQuery<User>({
     queryKey: ["/api/user"],
@@ -86,28 +96,39 @@ export default function Stats() {
     return null;
   }
 
-  const averageScore = user.gamesPlayed > 0 
-    ? Math.round(user.totalScore / user.gamesPlayed) 
+  const averageScore = user.gamesPlayed > 0
+    ? Math.round(user.totalScore / user.gamesPlayed)
     : 0;
 
-  const accuracyRate = user.gamesPlayed > 0 && user.gameHistory.length > 0
-    ? Math.round(
-        user.gameHistory.reduce((sum, g) => sum + (g.correctAnswers / g.totalQuestions) * 100, 0) / 
-        user.gameHistory.length
-      )
-    : 0;
+  // Memoize heavy accuracy calculation to avoid re-computing on every render
+  const accuracyRate = useMemo(() => {
+    if (user.gamesPlayed === 0 || user.gameHistory.length === 0) return 0;
+    return Math.round(
+      user.gameHistory.reduce((sum, g) => sum + (g.correctAnswers / g.totalQuestions) * 100, 0) /
+      user.gameHistory.length
+    );
+  }, [user.gamesPlayed, user.gameHistory]);
 
-  const recentGames = user.gameHistory.slice(-7).reverse();
-  const bestScore = user.gameHistory.length > 0 
-    ? Math.max(...user.gameHistory.map(g => g.score)) 
-    : 0;
+  // Memoize best score calculation
+  const bestScore = useMemo(() => {
+    if (user.gameHistory.length === 0) return 0;
+    return Math.max(...user.gameHistory.map(g => g.score));
+  }, [user.gameHistory]);
+
+  // Show last 7 games for free, all games for premium
+  const hasExtendedAccess = canAccess("plus");
+  const displayedGames = useMemo(() => {
+    return hasExtendedAccess && showAllHistory
+      ? user.gameHistory.slice().reverse()
+      : user.gameHistory.slice(-7).reverse();
+  }, [hasExtendedAccess, showAllHistory, user.gameHistory]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
       <header className="flex items-center gap-3 p-4 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <Button 
-          variant="ghost" 
-          size="icon" 
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={() => navigate("/")}
           data-testid="button-back"
         >
@@ -117,12 +138,23 @@ export default function Stats() {
           <BarChart3 className="h-5 w-5 text-blue-500" />
           <h1 className="font-bold text-lg" data-testid="text-page-title">Your Statistics</h1>
         </div>
+        {canAccess("pro") && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate("/insights")}
+            className="ml-auto gap-2"
+          >
+            <Sparkles className="w-4 h-4" />
+            Insights
+          </Button>
+        )}
       </header>
 
       <main className="container max-w-2xl mx-auto p-4 space-y-4">
         <div className="grid grid-cols-2 gap-3">
           <Card data-testid="card-games-played">
-            <CardContent className="p-4">
+            <CardContent className="p-6">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
                   <Target className="w-5 h-5 text-white" />
@@ -136,7 +168,7 @@ export default function Stats() {
           </Card>
 
           <Card data-testid="card-current-streak">
-            <CardContent className="p-4">
+            <CardContent className="p-6">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center">
                   <Flame className="w-5 h-5 text-white" />
@@ -150,7 +182,7 @@ export default function Stats() {
           </Card>
 
           <Card data-testid="card-avg-score">
-            <CardContent className="p-4">
+            <CardContent className="p-6">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
                   <TrendingUp className="w-5 h-5 text-white" />
@@ -164,7 +196,7 @@ export default function Stats() {
           </Card>
 
           <Card data-testid="card-best-score">
-            <CardContent className="p-4">
+            <CardContent className="p-6">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-500 to-amber-500 flex items-center justify-center">
                   <Trophy className="w-5 h-5 text-white" />
@@ -197,6 +229,19 @@ export default function Stats() {
             </p>
           </CardContent>
         </Card>
+
+        {/* Premium: Trend Charts */}
+        <PremiumGate
+          tier="plus"
+          feature="Score Trends"
+          description="Visualize your performance over time with interactive charts"
+          showPreview={user.gameHistory.length >= 3}
+        >
+          <div className="space-y-4">
+            <ScoreTrendChart gameHistory={user.gameHistory} />
+            <AccuracyTrendChart gameHistory={user.gameHistory} />
+          </div>
+        </PremiumGate>
 
         {user.categoryStats.length > 0 && (
           <Card data-testid="card-category-breakdown">
@@ -231,18 +276,61 @@ export default function Stats() {
           </Card>
         )}
 
-        {recentGames.length > 0 && (
+        {/* Premium: Category Deep Dives */}
+        {user.categoryStats.length > 0 && (
+          <PremiumGate
+            tier="plus"
+            feature="Category Deep Dives"
+            description="Get personalized tips and track improvements in each category"
+            showPreview={user.gameHistory.length >= 10}
+          >
+            <CategoryInsights
+              categoryStats={user.categoryStats}
+              gameHistory={user.gameHistory}
+            />
+          </PremiumGate>
+        )}
+
+        {displayedGames.length > 0 && (
           <Card data-testid="card-recent-games">
             <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-green-500" />
-                Recent Games
-              </CardTitle>
-              <CardDescription>Your last 7 games</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-green-500" />
+                    {hasExtendedAccess && showAllHistory ? "All Games" : "Recent Games"}
+                  </CardTitle>
+                  <CardDescription>
+                    {hasExtendedAccess && showAllHistory
+                      ? `All ${user.gameHistory.length} games`
+                      : "Your last 7 games"}
+                  </CardDescription>
+                </div>
+                {hasExtendedAccess && user.gameHistory.length > 7 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowAllHistory(!showAllHistory)}
+                    className="gap-2"
+                  >
+                    {showAllHistory ? (
+                      <>
+                        Show Less
+                        <ChevronUp className="w-4 h-4" />
+                      </>
+                    ) : (
+                      <>
+                        Show All
+                        <ChevronDown className="w-4 h-4" />
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {recentGames.map((game, index) => (
+                {displayedGames.map((game, index) => (
                   <div 
                     key={`${game.date}-${index}`}
                     className="flex items-center justify-between p-3 rounded-lg bg-muted/50"

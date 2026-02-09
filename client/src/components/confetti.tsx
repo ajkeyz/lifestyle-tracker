@@ -1,5 +1,6 @@
 import { useCallback, useEffect } from "react";
 import confetti from "canvas-confetti";
+import { isFeatureEnabled } from "@/lib/feature-flags";
 
 interface ConfettiOptions {
   particleCount?: number;
@@ -24,24 +25,37 @@ export function useConfetti() {
   }, []);
 
   const firePerfectScore = useCallback(() => {
-    const duration = 3000;
+    const isExperimental = isFeatureEnabled("experimental_animations");
+    const duration = isExperimental ? 4000 : 3000;
     const end = Date.now() + duration;
 
     const frame = () => {
+      const particleCount = isExperimental ? 6 : 3;
       confetti({
-        particleCount: 3,
+        particleCount,
         angle: 60,
-        spread: 55,
+        spread: isExperimental ? 70 : 55,
         origin: { x: 0 },
         colors: ["#ffd700", "#ffb700", "#ff9500"],
       });
       confetti({
-        particleCount: 3,
+        particleCount,
         angle: 120,
-        spread: 55,
+        spread: isExperimental ? 70 : 55,
         origin: { x: 1 },
         colors: ["#ffd700", "#ffb700", "#ff9500"],
       });
+
+      // Extra center burst for experimental mode
+      if (isExperimental && Math.random() > 0.7) {
+        confetti({
+          particleCount: 5,
+          spread: 360,
+          origin: { x: 0.5, y: 0.5 },
+          colors: ["#ffd700", "#ffb700", "#ff9500", "#fff"],
+          shapes: ["star"],
+        });
+      }
 
       if (Date.now() < end) {
         requestAnimationFrame(frame);
@@ -52,6 +66,7 @@ export function useConfetti() {
   }, []);
 
   const fireStreakMilestone = useCallback((milestone: number) => {
+    const isExperimental = isFeatureEnabled("experimental_animations");
     const colors =
       milestone >= 100
         ? ["#ffd700", "#ff6b00", "#ff0000"]
@@ -61,29 +76,45 @@ export function useConfetti() {
             ? ["#22c55e", "#10b981", "#059669"]
             : ["#f59e0b", "#f97316", "#ef4444"];
 
+    const particleMultiplier = isExperimental ? 1.5 : 1;
+
     confetti({
-      particleCount: 150,
-      spread: 100,
+      particleCount: Math.floor(150 * particleMultiplier),
+      spread: isExperimental ? 120 : 100,
       origin: { x: 0.5, y: 0.5 },
       colors,
     });
 
     setTimeout(() => {
       confetti({
-        particleCount: 50,
+        particleCount: Math.floor(50 * particleMultiplier),
         angle: 60,
-        spread: 80,
+        spread: isExperimental ? 100 : 80,
         origin: { x: 0 },
         colors,
       });
       confetti({
-        particleCount: 50,
+        particleCount: Math.floor(50 * particleMultiplier),
         angle: 120,
-        spread: 80,
+        spread: isExperimental ? 100 : 80,
         origin: { x: 1 },
         colors,
       });
     }, 250);
+
+    // Extra firework burst for experimental mode
+    if (isExperimental) {
+      setTimeout(() => {
+        confetti({
+          particleCount: 100,
+          spread: 360,
+          origin: { x: 0.5, y: 0.6 },
+          colors,
+          shapes: ["circle", "square"],
+          startVelocity: 40,
+        });
+      }, 500);
+    }
   }, []);
 
   const fireAchievement = useCallback(() => {

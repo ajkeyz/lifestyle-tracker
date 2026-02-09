@@ -388,6 +388,12 @@ export class PostgresStorage implements IStorage {
    * Convert database user record to application User type
    */
   private dbUserToAppUser(dbUser: any): User {
+    const membershipTier = dbUser.membershipTier || "free";
+
+    // Sync streakInsurance.isPlus with membershipTier for backwards compatibility
+    const streakInsurance = dbUser.streakInsurance || defaultStreakInsurance;
+    const isPlus = membershipTier === "plus" || membershipTier === "pro";
+
     return {
       id: dbUser.id,
       username: dbUser.username,
@@ -416,14 +422,17 @@ export class PostgresStorage implements IStorage {
       lowPressureMode: dbUser.lowPressureMode,
       soundEnabled: dbUser.soundEnabled,
       notificationPrefs: dbUser.notificationPrefs || defaultNotificationPrefs,
-      streakInsurance: dbUser.streakInsurance || defaultStreakInsurance,
+      streakInsurance: {
+        ...streakInsurance,
+        isPlus, // Sync with membershipTier
+      },
       gameHistory: dbUser.gameHistory || [],
       categoryStats: dbUser.categoryStats || [],
       referralCode: dbUser.referralCode,
       referredBy: dbUser.referredBy,
       referralCount: dbUser.referralCount,
       friendIds: dbUser.friendIds || [],
-      membershipTier: dbUser.membershipTier || "free",
+      membershipTier,
     };
   }
 
@@ -1189,7 +1198,11 @@ export class PostgresStorage implements IStorage {
     const user = await this.getUser(userId);
     if (!user) return undefined;
 
+    // Sync membershipTier with isPlus for backwards compatibility
+    const membershipTier = isPlus ? "plus" : "free";
+
     await this.updateUser(userId, {
+      membershipTier,
       streakInsurance: {
         ...user.streakInsurance,
         isPlus,

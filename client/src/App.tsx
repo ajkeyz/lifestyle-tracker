@@ -6,6 +6,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { PageTransition } from "@/components/page-transition";
 import { useAuth } from "@/hooks/use-auth";
+import { analytics, trackAppOpened } from "@/lib/analytics";
+import { useEffect } from "react";
 import Home from "@/pages/home";
 import AuthPage from "@/pages/auth";
 import ProfileSetup from "@/pages/profile-setup";
@@ -23,6 +25,7 @@ import DeepDive from "@/pages/deep-dive";
 import WeeklyRecap from "@/pages/weekly-recap";
 import Settings from "@/pages/settings";
 import Stats from "@/pages/stats";
+import Insights from "@/pages/insights";
 import Help from "@/pages/help";
 import NotificationsPrefs from "@/pages/notifications-prefs";
 import StreakInsurance from "@/pages/streak-insurance";
@@ -64,6 +67,7 @@ function AuthenticatedRouter() {
         <Route path="/weekly-recap" component={WeeklyRecap} />
         <Route path="/settings" component={Settings} />
         <Route path="/stats" component={Stats} />
+        <Route path="/insights" component={Insights} />
         <Route path="/help" component={Help} />
         <Route path="/notifications-prefs" component={NotificationsPrefs} />
         <Route path="/streak-insurance" component={StreakInsurance} />
@@ -116,6 +120,17 @@ function AppContent() {
 }
 
 function App() {
+  const { user } = useAuth();
+
+  // Track app open and identify user
+  useEffect(() => {
+    trackAppOpened(user);
+
+    if (user) {
+      analytics.identify(user);
+    }
+  }, [user]);
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ import {
 import { AppLogo } from "@/components/app-logo";
 import type { User } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
+import { trackPaywallViewed, trackPurchaseInitiated } from "@/lib/analytics";
 
 type MembershipTier = "free" | "plus" | "pro";
 
@@ -83,6 +84,22 @@ export default function Membership() {
   const currentConfig = TIER_BENEFITS[currentTier];
   const Icon = currentConfig.icon;
 
+  // Track paywall view
+  useEffect(() => {
+    if (user) {
+      const hasSeenBefore = localStorage.getItem("paywall_seen") === "true";
+
+      trackPaywallViewed(
+        "membership",
+        "navigation",
+        user,
+        hasSeenBefore
+      );
+
+      localStorage.setItem("paywall_seen", "true");
+    }
+  }, [user]);
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
       <header className="flex items-center justify-between gap-2 p-4 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
@@ -135,7 +152,15 @@ export default function Membership() {
                   <Button
                     size="lg"
                     className="w-full gap-2"
-                    onClick={() => setShowUpgrade(true)}
+                    onClick={() => {
+                      trackPurchaseInitiated(
+                        "plus",
+                        499,
+                        "navigation",
+                        Date.now() - performance.timing.navigationStart
+                      );
+                      setShowUpgrade(true);
+                    }}
                   >
                     <Crown className="w-5 h-5" />
                     Upgrade to Plus
@@ -147,7 +172,15 @@ export default function Membership() {
                     <Button
                       size="lg"
                       className="flex-1 gap-2"
-                      onClick={() => setShowUpgrade(true)}
+                      onClick={() => {
+                        trackPurchaseInitiated(
+                          "pro",
+                          999,
+                          "navigation",
+                          Date.now() - performance.timing.navigationStart
+                        );
+                        setShowUpgrade(true);
+                      }}
                     >
                       <Crown className="w-5 h-5" />
                       Upgrade to Pro
@@ -216,7 +249,17 @@ export default function Membership() {
                 <Button
                   variant="outline"
                   className="w-full"
-                  onClick={() => setShowUpgrade(true)}
+                  onClick={() => {
+                    // Track as browsing, not yet committed to a specific tier
+                    const targetTier = currentTier === "free" ? "plus" : "pro";
+                    trackPurchaseInitiated(
+                      targetTier,
+                      targetTier === "plus" ? 499 : 999,
+                      "comparison",
+                      Date.now() - performance.timing.navigationStart
+                    );
+                    setShowUpgrade(true);
+                  }}
                 >
                   View Full Comparison
                 </Button>

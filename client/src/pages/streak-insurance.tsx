@@ -186,7 +186,7 @@ export default function StreakInsurance() {
 
         {isPlus && (
           <Card className="border-0 bg-gradient-to-r from-amber-500/20 via-orange-500/10 to-transparent" data-testid="card-plus-status">
-            <CardContent className="p-4">
+            <CardContent className="p-6">
               <div className="flex items-center gap-3 flex-wrap">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
                   <Crown className="w-5 h-5 text-white" />

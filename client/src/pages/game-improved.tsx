@@ -1,12 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { ScenarioCard } from "@/components/scenario-card";
+import { ScenarioCard } from "@/components/scenario-card-improved";
+import { ProgressPill } from "@/components/progress-pill";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { TimerProgress } from "@/components/animated-progress";
-import { ArrowRight, Send, Clock } from "lucide-react";
+import { ArrowRight, Clock } from "lucide-react";
 import { AppLogo } from "@/components/app-logo";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -17,13 +16,7 @@ import { useHaptic } from "@/hooks/use-haptic";
 import { useConfetti } from "@/components/confetti";
 import type { DailyDrop, User, SubmitGame } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  trackDailyDropViewed,
-  trackScenarioViewed,
-  trackChoiceSelected,
-  trackAnswerSubmitted,
-  trackGameCompleted,
-} from "@/lib/analytics";
+import { cn } from "@/lib/utils";
 
 const TIMER_DURATION = 20;
 
@@ -40,22 +33,16 @@ export default function Game() {
   const [timerRunning, setTimerRunning] = useState(true);
   const playedWarnings = useRef<Set<number>>(new Set());
 
-  // Analytics timing state
-  const [loadStart] = useState(Date.now());
-  const [scenarioStartTimes, setScenarioStartTimes] = useState<Record<string, number>>({});
-
   // Prevent back navigation during quiz
   useEffect(() => {
-    // Push a state to prevent immediate back
     window.history.pushState({ inGame: true }, "");
-    
+
     const handlePopState = (e: PopStateEvent) => {
-      // Push state again to prevent going back
       window.history.pushState({ inGame: true }, "");
     };
-    
+
     window.addEventListener("popstate", handlePopState);
-    
+
     return () => {
       window.removeEventListener("popstate", handlePopState);
     };
@@ -69,44 +56,12 @@ export default function Game() {
     queryKey: ["/api/user"],
   });
 
-  // Track daily drop viewed
-  useEffect(() => {
-    if (dailyDrop && user) {
-      const loadTime = Date.now() - loadStart;
-      trackDailyDropViewed(dailyDrop, user, loadTime);
-    }
-  }, [dailyDrop, user, loadStart]);
-
-  // Track scenario viewed when index changes
-  useEffect(() => {
-    if (currentScenario) {
-      trackScenarioViewed(currentScenario, currentIndex, timeRemaining);
-      setScenarioStartTimes(prev => ({
-        ...prev,
-        [currentScenario.id]: Date.now(),
-      }));
-    }
-  }, [currentScenario, currentIndex, timeRemaining]);
-
   const submitMutation = useMutation({
     mutationFn: async (data: SubmitGame) => {
       const res = await apiRequest("POST", "/api/submit-game", data);
       return res.json();
     },
-    onSuccess: async (result) => {
-      // Track game completion
-      const sessionTime = Date.now() - loadStart;
-      const streakBefore = user?.streak || 0;
-      const streakAfter = result.streak || streakBefore + 1;
-
-      trackGameCompleted(
-        dailyDrop!.id,
-        result,
-        streakBefore,
-        streakAfter,
-        sessionTime
-      );
-
+    onSuccess: async () => {
       await queryClient.refetchQueries({ queryKey: ["/api/user"] });
       queryClient.invalidateQueries({ queryKey: ["/api/leaderboard"] });
       navigate("/results");
@@ -128,20 +83,6 @@ export default function Game() {
   const handleSelectChoice = useCallback((label: string) => {
     if (!currentScenario || showResults[currentScenario.id]) return;
 
-    // Get timing info for analytics
-    const timeToSelect = Date.now() - (scenarioStartTimes[currentScenario.id] || 0);
-    const isFirstSelection = !answers[currentScenario.id];
-
-    // Track choice selection
-    trackChoiceSelected(
-      currentScenario.id,
-      currentIndex,
-      label,
-      timeToSelect,
-      timeRemaining,
-      isFirstSelection
-    );
-
     const choice = currentScenario.choices.find((c) => c.label === label);
     if (choice?.isCorrect) {
       play("correct");
@@ -155,20 +96,7 @@ export default function Game() {
     setAnswers((prev) => ({ ...prev, [currentScenario.id]: label }));
     setShowResults((prev) => ({ ...prev, [currentScenario.id]: true }));
     setTimerRunning(false);
-
-    // Track answer submission
-    const timeSpent = Date.now() - (scenarioStartTimes[currentScenario.id] || 0);
-    trackAnswerSubmitted(
-      currentScenario.id,
-      currentIndex,
-      label,
-      choice?.isCorrect || false,
-      choice?.points || 0,
-      timeSpent,
-      timeRemaining,
-      "click"
-    );
-  }, [currentScenario, showResults, answers, currentIndex, timeRemaining, scenarioStartTimes, play, vibrateSuccess, vibrateError, fireMiniCorrect]);
+  }, [currentScenario, showResults, play, vibrateSuccess, vibrateError, fireMiniCorrect]);
 
   const handleTimeUp = useCallback(() => {
     if (!currentScenario || showResults[currentScenario.id]) return;
@@ -211,9 +139,6 @@ export default function Game() {
     }
   }, [currentIndex, totalScenarios, play]);
 
-  // Previous button removed - users cannot go back during gameplay
-  // This ensures the timer is meaningful and prevents exploiting navigation
-
   const handleSubmit = useCallback(() => {
     if (!dailyDrop) return;
 
@@ -233,10 +158,8 @@ export default function Game() {
   // Keyboard shortcuts: 1-4 for answers, Enter to submit, Arrow keys for navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger if user is typing in an input
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      
-      // Number keys 1-4 to select answers
+
       if (currentScenario && !showResults[currentScenario.id]) {
         const choiceIndex = parseInt(e.key) - 1;
         if (choiceIndex >= 0 && choiceIndex < currentScenario.choices.length) {
@@ -246,18 +169,16 @@ export default function Game() {
           }
         }
       }
-      
-      // Arrow right for next question (no going back)
+
       if (e.key === "ArrowRight" && showResults[currentScenario?.id || ""] && currentIndex < totalScenarios - 1) {
         handleNext();
       }
-      
-      // Enter to submit when all answered
+
       if (e.key === "Enter" && allAnswered && !submitMutation.isPending) {
         handleSubmit();
       }
     };
-    
+
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [currentScenario, showResults, currentIndex, totalScenarios, allAnswered, handleSelectChoice, handleNext, handleSubmit, submitMutation.isPending]);
@@ -275,59 +196,105 @@ export default function Game() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
-      <header className="flex items-center justify-between gap-2 p-4 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="flex items-center gap-2 flex-wrap">
-          <AppLogo size="sm" />
-          <span className="font-bold" data-testid="text-drop-header">Drop #{dailyDrop?.dropNumber || "..."}</span>
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20">
+      {/* Header */}
+      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur-sm">
+        <div className="container max-w-3xl mx-auto px-4 py-3">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <AppLogo size="sm" />
+              <div className="hidden sm:flex flex-col">
+                <span className="text-xs text-muted-foreground">Daily Drop</span>
+                <span className="font-semibold">#{dailyDrop?.dropNumber || "..."}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {!isLoading && currentScenario && (
+                <ProgressPill
+                  current={currentIndex + 1}
+                  total={totalScenarios}
+                />
+              )}
+              <ThemeToggle />
+            </div>
+          </div>
         </div>
-        <ThemeToggle />
       </header>
 
-      <div className="sticky top-[65px] z-40 bg-background/95 backdrop-blur-sm border-b p-3">
-        <div className="container max-w-2xl mx-auto">
-          <div className="flex items-center gap-3 mb-2">
-            <Progress value={progress} className="flex-1 h-2" data-testid="progress-questions" />
-            <span className="text-sm font-medium text-muted-foreground" data-testid="text-question-progress">
-              {currentIndex + 1}/{totalScenarios}
-            </span>
-          </div>
+      {/* Progress Bar */}
+      <div className="sticky top-[65px] z-40 bg-background/95 backdrop-blur-sm border-b">
+        <div className="container max-w-3xl mx-auto px-4 py-3">
+          <Progress
+            value={progress}
+            className="h-2 bg-secondary"
+            aria-label={`Progress: ${currentIndex + 1} of ${totalScenarios} questions`}
+            data-testid="progress-bar"
+          />
+
+          {/* Timer */}
           {currentScenario && !showResults[currentScenario.id] && (
-            <div className="flex items-center gap-2 text-sm">
-              <Clock className="w-4 h-4 text-muted-foreground" />
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="flex items-center gap-2 mt-2"
+            >
+              <Clock className={cn(
+                "w-4 h-4",
+                timeRemaining <= 5 ? "text-destructive" : "text-muted-foreground"
+              )} />
               <Progress
                 value={(timeRemaining / TIMER_DURATION) * 100}
-                className={`flex-1 h-1.5 ${timeRemaining <= 5 ? "animate-pulse" : ""}`}
-                data-testid="progress-timer"
+                className={cn(
+                  "flex-1 h-1.5",
+                  timeRemaining <= 5 && "animate-pulse"
+                )}
+                aria-label={`Time remaining: ${timeRemaining} seconds`}
+                data-testid="timer-bar"
               />
-              <span
-                className={`font-mono text-sm ${
-                  timeRemaining <= 5 ? "text-destructive font-bold" : "text-muted-foreground"
-                }`}
-                data-testid="text-time-remaining"
+              <motion.span
+                key={timeRemaining}
+                initial={{ scale: 0.9 }}
+                animate={{ scale: timeRemaining <= 5 ? [1, 1.1, 1] : 1 }}
+                transition={{ duration: 0.2 }}
+                className={cn(
+                  "font-mono text-sm font-medium tabular-nums",
+                  timeRemaining <= 5 ? "text-destructive" : "text-muted-foreground"
+                )}
+                aria-live="polite"
+                data-testid="timer-text"
               >
                 {timeRemaining}s
-              </span>
-            </div>
+              </motion.span>
+            </motion.div>
           )}
         </div>
       </div>
 
-      <main className="container max-w-2xl mx-auto p-4">
+      {/* Main Content */}
+      <main className="container max-w-3xl mx-auto px-4 py-6 md:py-8">
         {isLoading ? (
-          <div className="space-y-4">
-            <Skeleton className="h-64 w-full" />
-            <Skeleton className="h-12 w-full" />
+          <div className="space-y-6">
+            <Skeleton className="h-32 w-full rounded-lg" />
+            <Skeleton className="h-16 w-full rounded-xl" />
+            <Skeleton className="h-16 w-full rounded-xl" />
+            <Skeleton className="h-16 w-full rounded-xl" />
+            <Skeleton className="h-16 w-full rounded-xl" />
           </div>
         ) : currentScenario ? (
-          <div className="space-y-4">
+          <div className="space-y-6">
+            {/* Question Card with AnimatePresence for smooth transitions */}
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentScenario.id}
-                initial={{ opacity: 0, x: 50 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -50 }}
-                transition={{ duration: 0.3, ease: "easeInOut" }}
+                initial={{ opacity: 0, x: 20, scale: 0.98 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
+                exit={{ opacity: 0, x: -20, scale: 0.98 }}
+                transition={{
+                  duration: 0.35,
+                  ease: [0.4, 0, 0.2, 1], // easeOutCubic
+                }}
               >
                 <ScenarioCard
                   scenario={currentScenario}
@@ -336,48 +303,71 @@ export default function Game() {
                   showResult={showResults[currentScenario.id] || false}
                   questionNumber={currentIndex + 1}
                   totalQuestions={totalScenarios}
-                  timeRemaining={!showResults[currentScenario.id] ? timeRemaining : undefined}
                 />
               </motion.div>
             </AnimatePresence>
 
-            <div className="flex gap-3">
+            {/* Navigation Button */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
               {currentIndex < totalScenarios - 1 ? (
                 <Button
                   onClick={handleNext}
                   disabled={!showResults[currentScenario.id]}
-                  className="flex-1"
-                  data-testid="button-next-question"
+                  size="lg"
+                  className="w-full h-14 text-base font-semibold"
+                  aria-label="Continue to next question"
+                  data-testid="button-next"
                 >
-                  Next
-                  <ArrowRight className="w-4 h-4 ml-2" />
+                  Continue
+                  <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
               ) : (
                 <Button
                   onClick={handleSubmit}
                   disabled={!allAnswered || submitMutation.isPending}
-                  className="flex-1"
-                  data-testid="button-submit-game"
+                  size="lg"
+                  className="w-full h-14 text-base font-semibold"
+                  aria-label="Submit your answers"
+                  data-testid="button-submit"
                 >
                   {submitMutation.isPending ? (
-                    "Submitting..."
+                    <motion.span
+                      animate={{ opacity: [1, 0.5, 1] }}
+                      transition={{ duration: 1.5, repeat: Infinity }}
+                    >
+                      Submitting...
+                    </motion.span>
                   ) : (
                     <>
-                      <Send className="w-4 h-4 mr-2" />
-                      Submit
+                      Submit Answers
+                      <ArrowRight className="w-5 h-5 ml-2" />
                     </>
                   )}
                 </Button>
               )}
-            </div>
+            </motion.div>
+
+            {/* Keyboard Hints */}
+            {!showResults[currentScenario.id] && (
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
+                className="text-center text-xs text-muted-foreground"
+              >
+                Press <kbd className="px-1.5 py-0.5 rounded bg-muted font-mono">1</kbd>-
+                <kbd className="px-1.5 py-0.5 rounded bg-muted font-mono">4</kbd> to answer
+              </motion.p>
+            )}
           </div>
         ) : (
-          <Card className="p-6 text-center" data-testid="card-no-scenarios">
-            <p className="text-muted-foreground">No scenarios available today.</p>
-            <Button className="mt-4" onClick={() => navigate("/")} data-testid="button-go-home-empty">
-              Go Home
-            </Button>
-          </Card>
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">No questions available</p>
+          </div>
         )}
       </main>
     </div>

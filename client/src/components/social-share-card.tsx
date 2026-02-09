@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { User } from "@shared/schema";
+import { trackShareClicked } from "@/lib/analytics";
 
 interface SocialShareCardProps {
   user: User;
@@ -47,7 +48,17 @@ export function SocialShareCard({ user, score, dropNumber, trigger }: SocialShar
     ? `I scored ${score}/500 on Lifestyle Creep! 🎯\n\nMoney Health: ${user.moneyHealth}/100\nStreak: ${user.streak} days 🔥\n\nBeat my score!\n\n#LifestyleCreep #MoneySmarts #FinancialLiteracy`
     : `${user.streak} day streak on Lifestyle Creep! 🔥\n\nMoney Health: ${user.moneyHealth}/100\n\nJoin the challenge!\n\n#LifestyleCreep #MoneyGoals #FinancialFreedom`;
 
-  const copyToClipboard = (text: string) => {
+  const copyToClipboard = (text: string, platform: "instagram" | "generic") => {
+    trackShareClicked(
+      score ? "results" : "streak",
+      "copy_link",
+      "text",
+      {
+        score_value: score,
+        streak_value: user.streak,
+        platform,
+      }
+    );
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -55,6 +66,15 @@ export function SocialShareCard({ user, score, dropNumber, trigger }: SocialShar
   };
 
   const shareToTwitter = () => {
+    trackShareClicked(
+      score ? "results" : "streak",
+      "twitter",
+      "text",
+      {
+        score_value: score,
+        streak_value: user.streak,
+      }
+    );
     const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(twitterText)}`;
     window.open(url, '_blank', 'width=550,height=420');
   };
@@ -171,7 +191,7 @@ export function SocialShareCard({ user, score, dropNumber, trigger }: SocialShar
               <Button
                 variant="outline"
                 className="w-full justify-start gap-2"
-                onClick={() => copyToClipboard(instagramText)}
+                onClick={() => copyToClipboard(instagramText, "instagram")}
               >
                 <Instagram className="w-4 h-4" />
                 Copy for Instagram
@@ -181,7 +201,7 @@ export function SocialShareCard({ user, score, dropNumber, trigger }: SocialShar
               <Button
                 variant="outline"
                 className="w-full justify-start gap-2"
-                onClick={() => copyToClipboard(twitterText)}
+                onClick={() => copyToClipboard(twitterText, "generic")}
               >
                 {copied ? (
                   <>

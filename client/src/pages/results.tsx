@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -15,6 +15,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import type { User, DailyDrop, LeaderboardEntry } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
+import { trackStreakUpdated, trackShareClicked } from "@/lib/analytics";
 
 export default function Results() {
   const [, navigate] = useLocation();
@@ -75,18 +76,42 @@ export default function Results() {
     }
   }, [user, firePerfectScore, fireStreakMilestone, fireAchievement, play]);
 
+  // Track streak update
+  useEffect(() => {
+    if (user?.todayResult && user.streak > 0) {
+      const oldStreak = user.streak - 1;
+      const newStreak = user.streak;
+
+      if (newStreak > oldStreak) {
+        trackStreakUpdated(
+          oldStreak,
+          newStreak,
+          "grew",
+          false, // No freeze used (they played)
+          user.freezeTokens,
+          newStreak > user.highestStreak,
+          user.highestStreak
+        );
+      }
+    }
+  }, [user]);
+
   if (!user?.todayResult) {
     return null;
   }
 
   const result = user.todayResult;
   const scenarios = dailyDrop?.scenarios || [];
-  const correctAnswers = result.answers.map((answer, index) => {
-    const scenario = scenarios[index];
-    if (!scenario) return false;
-    const choice = scenario.choices.find((c) => c.label === answer);
-    return choice?.isCorrect || false;
-  });
+
+  // Memoize correctAnswers to avoid re-computing nested array operations on every render
+  const correctAnswers = useMemo(() => {
+    return result.answers.map((answer, index) => {
+      const scenario = scenarios[index];
+      if (!scenario) return false;
+      const choice = scenario.choices.find((c) => c.label === answer);
+      return choice?.isCorrect || false;
+    });
+  }, [result.answers, scenarios]);
 
   return (
     <>
@@ -188,7 +213,18 @@ export default function Results() {
                 Deep Dive
               </Button>
               <Button
-                onClick={() => navigate("/share")}
+                onClick={() => {
+                  trackShareClicked(
+                    "results",
+                    "copy_link",
+                    "link",
+                    {
+                      score_value: result.score,
+                      streak_value: user.streak,
+                    }
+                  );
+                  navigate("/share");
+                }}
                 className="flex-1"
                 data-testid="button-customize-share"
               >

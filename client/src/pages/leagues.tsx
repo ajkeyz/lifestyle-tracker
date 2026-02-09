@@ -32,6 +32,7 @@ import {
   type LucideIcon
 } from "lucide-react";
 import { AppLogo } from "@/components/app-logo";
+import { EmptyState } from "@/components/empty-state";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -574,13 +575,11 @@ export default function Leagues() {
             })}
           </div>
         ) : (
-          <Card className="p-8 text-center" data-testid="card-no-leagues">
-            <Users className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="font-semibold mb-2">No leagues yet</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Create a league or join one with a friend's invite code
-            </p>
-          </Card>
+          <EmptyState
+            type="no-leagues"
+            actionLabel="Create League"
+            onAction={() => setViewMode("create")}
+          />
         )}
 
         <Button 

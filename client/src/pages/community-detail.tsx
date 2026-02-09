@@ -91,7 +91,7 @@ function CommentCard({
   return (
     <div className={isReply ? "ml-8 mt-2" : ""}>
       <Card className={comment.isAdvice ? "border-l-4 border-l-green-500" : ""} data-testid={`card-comment-${comment.id}`}>
-        <CardContent className="p-4">
+        <CardContent className="p-6">
           <div className="flex items-start gap-3">
             <Avatar className="h-8 w-8">
               <AvatarFallback className="text-xs bg-primary/10">
@@ -368,7 +368,7 @@ export default function CommunityDetail() {
             <p className="text-muted-foreground">{scenario.context}</p>
             
             <Card className="bg-primary/5 border-primary/20">
-              <CardContent className="p-4">
+              <CardContent className="p-6">
                 <p className="font-medium">{scenario.question}</p>
               </CardContent>
             </Card>

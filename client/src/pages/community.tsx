@@ -87,12 +87,12 @@ function ScenarioCard({
   const unlockedBadges = scenario.authorBadges.filter(b => b.unlocked);
   
   return (
-    <Card 
+    <Card
       className="cursor-pointer transition-colors"
       onClick={onClick}
       data-testid={`card-scenario-${scenario.id}`}
     >
-      <CardContent className="p-4 space-y-3">
+      <CardContent className="p-6 space-y-3">
         <div className="flex items-start gap-3 flex-wrap">
           <div className="flex flex-col items-center gap-1">
             <Button

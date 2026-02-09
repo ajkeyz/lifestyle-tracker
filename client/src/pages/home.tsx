@@ -14,6 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LiveActivityTicker, PlayerCounter } from "@/components/live-activity-ticker";
 import { TipCardCarousel } from "@/components/stories-tips";
 import { AnimatedCounter } from "@/components/animated-counter";
+import { DebugScreen, useDebugGesture } from "@/components/debug-screen";
 import { 
   Play, 
   Trophy, 
@@ -103,6 +104,8 @@ export default function Home() {
   const { user: authUser, logout } = useAuth();
   const [countdown, setCountdown] = useState(getTimeUntilMidnightUTC());
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showDebugScreen, setShowDebugScreen] = useState(false);
+  const { handleTap } = useDebugGesture(() => setShowDebugScreen(true));
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -167,7 +170,9 @@ export default function Home() {
       <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
       <header className="flex items-center justify-between gap-2 p-4 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="flex items-center gap-2">
-          <AppLogo size="sm" />
+          <div onClick={handleTap} className="cursor-pointer">
+            <AppLogo size="sm" />
+          </div>
           <span className="font-display font-bold text-lg tracking-tight" data-testid="text-app-title">Lifestyle Creep</span>
         </div>
         <div className="flex items-center gap-2">
@@ -645,6 +650,7 @@ export default function Home() {
         )}
       </main>
       </div>
+      <DebugScreen open={showDebugScreen} onOpenChange={setShowDebugScreen} />
     </>
   );
 }

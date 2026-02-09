@@ -27,6 +27,7 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { AppLogo } from "@/components/app-logo";
+import { EmptyState } from "@/components/empty-state";
 import type { User, Challenge, ChallengeType } from "@shared/schema";
 import { CHALLENGE_TYPES, TRASH_TALK_PRESETS, CHALLENGE_BADGES } from "@shared/schema";
 
@@ -599,13 +600,11 @@ export default function Challenges() {
         )}
 
         {challenges.length === 0 && !challengesLoading && (
-          <Card className="p-8 text-center" data-testid="card-no-challenges">
-            <Swords className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="font-semibold mb-2">No challenges yet</h3>
-            <p className="text-sm text-muted-foreground">
-              Challenge a friend to see who's got the better money moves!
-            </p>
-          </Card>
+          <EmptyState
+            type="no-challenges"
+            actionLabel="Challenge Friend"
+            onAction={() => setViewMode("create")}
+          />
         )}
 
         {challengesLoading && (

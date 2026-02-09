@@ -158,7 +158,7 @@ export default function WeeklyRecap() {
           <p className="text-sm uppercase tracking-wide opacity-80 mb-2">Best Decision</p>
           <h2 className="text-2xl font-display font-bold mb-4">{recapData.bestDecision.scenario}</h2>
           <Card className="bg-white/20 border-0 backdrop-blur-sm">
-            <CardContent className="p-4">
+            <CardContent className="p-6">
               <p className="text-white font-medium">{recapData.bestDecision.choice}</p>
               <p className="text-green-100 text-sm mt-2">{recapData.bestDecision.impact}</p>
             </CardContent>
@@ -175,7 +175,7 @@ export default function WeeklyRecap() {
           <p className="text-sm uppercase tracking-wide opacity-80 mb-2">Riskiest Move</p>
           <h2 className="text-2xl font-bold mb-4">{recapData.riskyDecision.scenario}</h2>
           <Card className="bg-white/20 border-0 backdrop-blur-sm">
-            <CardContent className="p-4">
+            <CardContent className="p-6">
               <p className="text-white font-medium">{recapData.riskyDecision.choice}</p>
               <p className="text-orange-100 text-sm mt-2">{recapData.riskyDecision.risk}</p>
             </CardContent>
@@ -192,7 +192,7 @@ export default function WeeklyRecap() {
           <p className="text-sm uppercase tracking-wide opacity-80 mb-2">Room to Grow</p>
           <h2 className="text-2xl font-bold mb-4">{recapData.improvementArea.category}</h2>
           <Card className="bg-white/20 border-0 backdrop-blur-sm">
-            <CardContent className="p-4">
+            <CardContent className="p-6">
               <div className="flex items-center justify-center gap-2 mb-2">
                 <span className="text-3xl font-bold">{recapData.improvementArea.score}%</span>
               </div>
@@ -244,19 +244,19 @@ export default function WeeklyRecap() {
           <p className="text-sm uppercase tracking-wide opacity-80 mb-4">Week Summary</p>
           <div className="grid grid-cols-2 gap-4 w-full max-w-xs">
             <Card className="bg-white/10 border-0">
-              <CardContent className="p-4 text-center">
+              <CardContent className="p-6 text-center">
                 <p className="text-3xl font-bold">{recapData.weekStats.questionsAnswered}</p>
                 <p className="text-xs opacity-80">Questions</p>
               </CardContent>
             </Card>
             <Card className="bg-white/10 border-0">
-              <CardContent className="p-4 text-center">
+              <CardContent className="p-6 text-center">
                 <p className="text-3xl font-bold">{Math.round((recapData.weekStats.correctAnswers / recapData.weekStats.questionsAnswered) * 100)}%</p>
                 <p className="text-xs opacity-80">Accuracy</p>
               </CardContent>
             </Card>
             <Card className="bg-white/10 border-0">
-              <CardContent className="p-4 text-center">
+              <CardContent className="p-6 text-center">
                 <div className="flex items-center justify-center gap-1">
                   <Flame className="h-5 w-5 text-orange-400" />
                   <p className="text-3xl font-bold">{recapData.weekStats.streakDays}</p>
@@ -265,7 +265,7 @@ export default function WeeklyRecap() {
               </CardContent>
             </Card>
             <Card className="bg-white/10 border-0">
-              <CardContent className="p-4 text-center">
+              <CardContent className="p-6 text-center">
                 <p className="text-3xl font-bold text-green-400">+{recapData.weekStats.moneyHealthChange}</p>
                 <p className="text-xs opacity-80">Money Health</p>
               </CardContent>
