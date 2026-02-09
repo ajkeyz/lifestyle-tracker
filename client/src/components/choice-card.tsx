@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toneColors, type ChoiceTone } from "@/lib/game-insights";
 
 interface ChoiceCardProps {
   label: string;
@@ -14,6 +15,7 @@ interface ChoiceCardProps {
   onSelect: () => void;
   index: number;
   disabled?: boolean;
+  tone?: ChoiceTone;
 }
 
 export function ChoiceCard({
@@ -28,6 +30,7 @@ export function ChoiceCard({
   onSelect,
   index,
   disabled = false,
+  tone,
 }: ChoiceCardProps) {
   const showCorrectness = showResult && (isSelected || isCorrect);
 
@@ -132,17 +135,29 @@ export function ChoiceCard({
 
       {/* Choice Text & Feedback */}
       <div className="flex-1 min-w-0">
-        <p
-          className={cn(
-            "font-medium leading-snug transition-colors",
-            !showResult && "group-hover:text-foreground",
-            showResult && isCorrect && "text-foreground",
-            showResult && isSelected && !isCorrect && "text-foreground"
+        <div className="flex items-start gap-2">
+          {tone && !showResult && (
+            <span
+              className={cn(
+                "flex-shrink-0 w-2 h-2 rounded-full mt-1.5 opacity-60",
+                toneColors[tone]
+              )}
+              aria-hidden="true"
+              data-testid={`tone-dot-${label.toLowerCase()}`}
+            />
           )}
-          data-testid={`choice-text-${label.toLowerCase()}`}
-        >
-          {text}
-        </p>
+          <p
+            className={cn(
+              "font-medium leading-snug transition-colors flex-1",
+              !showResult && "group-hover:text-foreground",
+              showResult && isCorrect && "text-foreground",
+              showResult && isSelected && !isCorrect && "text-foreground"
+            )}
+            data-testid={`choice-text-${label.toLowerCase()}`}
+          >
+            {text}
+          </p>
+        </div>
 
         {/* Points & Feedback reveal */}
         <AnimatePresence>

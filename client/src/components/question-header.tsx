@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { ScenarioCategory } from "@shared/schema";
+import { getContextBuffer } from "@/lib/game-insights";
 import {
   Laptop, Plane, ShoppingBag, ShieldAlert, TrendingUp, CreditCard,
   Briefcase, Heart, Home, Shield, Receipt, Wallet, AlertTriangle,
@@ -79,12 +80,23 @@ export function QuestionHeader({ category, context, question }: QuestionHeaderPr
         </Badge>
       </motion.div>
 
+      {/* Context Buffer - reflective framing line */}
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6, delay: 0.15 }}
+        className="text-sm italic text-muted-foreground/80"
+        data-testid="text-context-buffer"
+      >
+        {getContextBuffer(category)}
+      </motion.p>
+
       {/* Context Card */}
       {context && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.1 }}
+          transition={{ duration: 0.4, delay: 0.25 }}
           className={cn(
             "p-4 rounded-lg border bg-muted/50 backdrop-blur-sm",
             "text-sm text-muted-foreground leading-relaxed"
@@ -99,7 +111,7 @@ export function QuestionHeader({ category, context, question }: QuestionHeaderPr
       <motion.h2
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.2 }}
+        transition={{ duration: 0.4, delay: 0.35 }}
         className={cn(
           "text-2xl md:text-3xl font-display font-bold tracking-tight",
           "leading-tight text-foreground"

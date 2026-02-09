@@ -1,0 +1,132 @@
+UI UPGRADES (Make Each Question Feel Intentional)
+
+1. Stronger Question Framing (Reduce Cognitive Noise)
+
+Right now, the question appears almost immediately with options. It’s efficient—but a bit abrupt.
+
+Upgrade
+	•	Add a 1-line context buffer before the question:
+“This is a moment where money, ego, and fear overlap.”
+
+Then show the question.
+
+Why
+This primes reflection instead of impulse clicking.
+
+⸻
+
+2. Make the Timer Feel Supportive, Not Stressful
+
+The timer bar + seconds can feel like pressure.
+
+Upgrade
+	•	Replace numeric countdown with:
+	•	“Take your time” (first half)
+	•	“Trust your instinct” (last 25%)
+	•	Optional: fade animation instead of shrinking bar
+
+Why
+You’re training decision quality, not speed.
+
+⸻
+
+3. Answer Selection Feedback (Before Continue)
+
+Currently, selecting an option highlights it, then “Continue”.
+
+Upgrade
+	•	After selection, add micro-affirmation text above Continue:
+	•	“Interesting choice.”
+	•	“Many people hesitate here.”
+	•	“This is a common instinct.”
+
+Not “correct” or “wrong”.
+
+Why
+This keeps it judgment-free while validating engagement.
+
+⸻
+
+4. Visual Weight of Options
+
+All options look equally “valid,” which is good—but you can subtly guide reflection.
+
+Upgrade
+	•	Add micro-icons or tone cues:
+	•	🟢 Practical
+	•	🟡 Cautious
+	•	🔵 Strategic
+	•	🟠 Emotional
+
+Don’t label them explicitly—let users infer.
+
+⸻
+
+5. Reduce Header Noise During the Question
+
+The top bar (Q1 of 5, sun icon, etc.) competes slightly with the scenario.
+
+Upgrade
+	•	Fade header elements while answering
+	•	Bring them back on transition
+
+Why
+During the question, nothing should be louder than the dilemma.
+
+⸻
+
+FEATURE UPGRADES (Where the Real Value Compounds)
+
+1. Post-Question Reflection (The Gold Mine)
+
+This is the biggest opportunity.
+
+After each question (or at the end), show:
+	•	Why people choose this
+	•	What this choice optimizes for
+	•	What it quietly trades off
+
+Example for this scenario:
+
+“Many people accept counteroffers for security.
+Fewer consider how often the original reasons for leaving remain unchanged.”
+
+No verdict. Just clarity.
+
+⸻
+
+2. Pattern Recognition Across Questions
+
+Don’t score answers—connect them.
+
+At the end of the 5-question drop:
+
+“Today, you leaned toward short-term certainty over long-term change.”
+
+Or:
+
+“You consistently prioritized optionality.”
+
+This turns 5 questions into insight.
+
+⸻
+
+3. Make “Ask for More Time” a Teachable Moment
+
+Some answers (like B here) are pauses, not decisions.
+
+Upgrade
+	•	For “delay” answers, surface:
+“Pausing can be wisdom—or avoidance. Context matters.”
+
+This teaches nuance, which is rare and powerful.
+
+⸻
+
+4. Introduce Silent Counterfactuals
+
+After answering, briefly show:
+
+“Many people also considered: ‘What happens if nothing changes?’”
+
+No extra buttons. No branching. Just mental simulation.

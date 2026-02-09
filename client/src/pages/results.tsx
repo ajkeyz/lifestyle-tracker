@@ -9,13 +9,15 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { useConfetti } from "@/components/confetti";
 import { useSound } from "@/hooks/use-sound";
 import { QuickWinsPopup } from "@/components/quick-wins-popup";
-import { ArrowLeft, Home, Trophy, Calendar, Share2, BookOpen, Sparkles, Flame } from "lucide-react";
+import { ArrowLeft, Home, Trophy, Calendar, Share2, BookOpen, Sparkles, Flame, Brain } from "lucide-react";
 import { AppLogo } from "@/components/app-logo";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import type { User, DailyDrop, LeaderboardEntry } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { trackStreakUpdated, trackShareClicked } from "@/lib/analytics";
+import { analyzeAnswerPatterns, toneColors } from "@/lib/game-insights";
+import { cn } from "@/lib/utils";
 
 export default function Results() {
   const [, navigate] = useLocation();
@@ -103,7 +105,6 @@ export default function Results() {
   const result = user.todayResult;
   const scenarios = dailyDrop?.scenarios || [];
 
-  // Memoize correctAnswers to avoid re-computing nested array operations on every render
   const correctAnswers = useMemo(() => {
     return result.answers.map((answer, index) => {
       const scenario = scenarios[index];
@@ -112,6 +113,11 @@ export default function Results() {
       return choice?.isCorrect || false;
     });
   }, [result.answers, scenarios]);
+
+  const patternSummary = useMemo(() => {
+    if (scenarios.length === 0) return null;
+    return analyzeAnswerPatterns(scenarios, result.answers);
+  }, [scenarios, result.answers]);
 
   return (
     <>
@@ -232,6 +238,45 @@ export default function Results() {
                 Customize Share
               </Button>
             </motion.div>
+
+            {/* Pattern Recognition */}
+            {patternSummary && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.45, ease: "easeOut" }}
+              >
+                <Card className="p-5" data-testid="card-pattern-recognition">
+                  <div className="flex items-center gap-2 mb-3 flex-wrap">
+                    <Brain className="w-5 h-5 text-muted-foreground" />
+                    <h3 className="font-semibold" data-testid="text-pattern-headline">Your Pattern Today</h3>
+                  </div>
+                  <p className="font-medium mb-1" data-testid="text-pattern-summary">
+                    {patternSummary.headline}
+                  </p>
+                  <p className="text-sm text-muted-foreground mb-4" data-testid="text-pattern-detail">
+                    {patternSummary.detail}
+                  </p>
+                  <div className="flex items-center gap-3 flex-wrap" data-testid="tone-breakdown">
+                    {(Object.entries(patternSummary.toneBreakdown) as [string, number][])
+                      .filter(([, count]) => count > 0)
+                      .sort((a, b) => b[1] - a[1])
+                      .map(([tone, count]) => (
+                        <div key={tone} className="flex items-center gap-1.5">
+                          <span className={cn(
+                            "w-2.5 h-2.5 rounded-full",
+                            toneColors[tone as keyof typeof toneColors]
+                          )} />
+                          <span className="text-xs text-muted-foreground capitalize">
+                            {tone} ({count})
+                          </span>
+                        </div>
+                      ))
+                    }
+                  </div>
+                </Card>
+              </motion.div>
+            )}
 
             {leaderboard && leaderboard.length > 0 && (
               <motion.div

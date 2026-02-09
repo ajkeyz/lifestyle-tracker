@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { ChoiceCard } from "@/components/choice-card";
 import { QuestionHeader } from "@/components/question-header";
+import { classifyChoiceTone } from "@/lib/game-insights";
 import type { Scenario } from "@shared/schema";
 
 interface ScenarioCardProps {
@@ -38,6 +39,10 @@ export function ScenarioCard({
     }
   }, [showResult, revealStage]);
 
+  const choiceTones = useMemo(() => {
+    return scenario.choices.map(choice => classifyChoiceTone(choice));
+  }, [scenario.choices]);
+
   return (
     <div className="space-y-6">
       {/* Question Header */}
@@ -72,6 +77,7 @@ export function ScenarioCard({
               onSelect={() => onSelectChoice(choice.label)}
               index={index}
               disabled={showResult}
+              tone={choiceTones[index]}
             />
           );
         })}

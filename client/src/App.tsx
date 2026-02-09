@@ -14,7 +14,7 @@ import ProfileSetup from "@/pages/profile-setup";
 import NotificationsSetup from "@/pages/notifications-setup";
 import FriendsSetup from "@/pages/friends-setup";
 import Setup from "@/pages/setup";
-import Game from "@/pages/game";
+import Game from "@/pages/game-improved";
 import Results from "@/pages/results";
 import Leaderboard from "@/pages/leaderboard";
 import Leagues from "@/pages/leagues";

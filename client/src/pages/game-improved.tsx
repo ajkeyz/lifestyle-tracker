@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -14,6 +14,13 @@ import { useToast } from "@/hooks/use-toast";
 import { useSound } from "@/hooks/use-sound";
 import { useHaptic } from "@/hooks/use-haptic";
 import { useConfetti } from "@/components/confetti";
+import {
+  getTimerMessage,
+  getMicroAffirmation,
+  getPostAnswerReflection,
+  getCounterfactual,
+  getDelayTeachable,
+} from "@/lib/game-insights";
 import type { DailyDrop, User, SubmitGame } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -31,9 +38,9 @@ export default function Game() {
   const [showResults, setShowResults] = useState<Record<string, boolean>>({});
   const [timeRemaining, setTimeRemaining] = useState(TIMER_DURATION);
   const [timerRunning, setTimerRunning] = useState(true);
+  const [timedOut, setTimedOut] = useState<Record<string, boolean>>({});
   const playedWarnings = useRef<Set<number>>(new Set());
 
-  // Prevent back navigation during quiz
   useEffect(() => {
     window.history.pushState({ inGame: true }, "");
 
@@ -80,6 +87,31 @@ export default function Game() {
   const totalScenarios = scenarios.length;
   const progress = totalScenarios > 0 ? ((currentIndex + 1) / totalScenarios) * 100 : 0;
 
+  const isAnswering = currentScenario && !showResults[currentScenario.id];
+  const hasAnswered = currentScenario && showResults[currentScenario.id];
+  const selectedLabel = currentScenario ? answers[currentScenario.id] || null : null;
+  const didTimeOut = currentScenario ? timedOut[currentScenario.id] || false : false;
+
+  const timerMessage = useMemo(() => {
+    return getTimerMessage(timeRemaining, TIMER_DURATION);
+  }, [timeRemaining]);
+
+  const microAffirmation = useMemo(() => {
+    if (!hasAnswered || !selectedLabel || didTimeOut) return null;
+    return getMicroAffirmation(currentIndex, selectedLabel);
+  }, [hasAnswered, selectedLabel, currentIndex, didTimeOut]);
+
+  const postReflection = useMemo(() => {
+    if (!hasAnswered || !currentScenario) return null;
+    if (didTimeOut) return getDelayTeachable();
+    return getPostAnswerReflection(currentScenario, selectedLabel);
+  }, [hasAnswered, currentScenario, selectedLabel, didTimeOut]);
+
+  const counterfactual = useMemo(() => {
+    if (!hasAnswered) return null;
+    return getCounterfactual(currentIndex);
+  }, [hasAnswered, currentIndex]);
+
   const handleSelectChoice = useCallback((label: string) => {
     if (!currentScenario || showResults[currentScenario.id]) return;
 
@@ -101,6 +133,7 @@ export default function Game() {
   const handleTimeUp = useCallback(() => {
     if (!currentScenario || showResults[currentScenario.id]) return;
     play("timeUp");
+    setTimedOut((prev) => ({ ...prev, [currentScenario.id]: true }));
     setShowResults((prev) => ({ ...prev, [currentScenario.id]: true }));
     setTimerRunning(false);
   }, [currentScenario, showResults, play]);
@@ -155,7 +188,6 @@ export default function Game() {
 
   const allAnswered = scenarios.every((s) => showResults[s.id]);
 
-  // Keyboard shortcuts: 1-4 for answers, Enter to submit, Arrow keys for navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
@@ -197,8 +229,12 @@ export default function Game() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20">
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur-sm">
+      {/* Header - fades while answering */}
+      <motion.header
+        animate={{ opacity: isAnswering ? 0.4 : 1 }}
+        transition={{ duration: 0.4 }}
+        className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur-sm"
+      >
         <div className="container max-w-3xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -220,9 +256,9 @@ export default function Game() {
             </div>
           </div>
         </div>
-      </header>
+      </motion.header>
 
-      {/* Progress Bar */}
+      {/* Progress Bar + Timer */}
       <div className="sticky top-[65px] z-40 bg-background/95 backdrop-blur-sm border-b">
         <div className="container max-w-3xl mx-auto px-4 py-3">
           <Progress
@@ -232,7 +268,7 @@ export default function Game() {
             data-testid="progress-bar"
           />
 
-          {/* Timer */}
+          {/* Supportive Timer */}
           {currentScenario && !showResults[currentScenario.id] && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
@@ -247,26 +283,29 @@ export default function Game() {
               <Progress
                 value={(timeRemaining / TIMER_DURATION) * 100}
                 className={cn(
-                  "flex-1 h-1.5",
+                  "flex-1 h-1.5 transition-all",
                   timeRemaining <= 5 && "animate-pulse"
                 )}
                 aria-label={`Time remaining: ${timeRemaining} seconds`}
                 data-testid="timer-bar"
               />
-              <motion.span
-                key={timeRemaining}
-                initial={{ scale: 0.9 }}
-                animate={{ scale: timeRemaining <= 5 ? [1, 1.1, 1] : 1 }}
-                transition={{ duration: 0.2 }}
-                className={cn(
-                  "font-mono text-sm font-medium tabular-nums",
-                  timeRemaining <= 5 ? "text-destructive" : "text-muted-foreground"
-                )}
-                aria-live="polite"
-                data-testid="timer-text"
-              >
-                {timeRemaining}s
-              </motion.span>
+              <AnimatePresence mode="wait">
+                <motion.span
+                  key={timerMessage}
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 4 }}
+                  transition={{ duration: 0.25 }}
+                  className={cn(
+                    "text-xs font-medium whitespace-nowrap",
+                    timeRemaining <= 5 ? "text-destructive" : "text-muted-foreground"
+                  )}
+                  aria-live="polite"
+                  data-testid="timer-text"
+                >
+                  {timerMessage}
+                </motion.span>
+              </AnimatePresence>
             </motion.div>
           )}
         </div>
@@ -284,7 +323,7 @@ export default function Game() {
           </div>
         ) : currentScenario ? (
           <div className="space-y-6">
-            {/* Question Card with AnimatePresence for smooth transitions */}
+            {/* Question Card */}
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentScenario.id}
@@ -293,7 +332,7 @@ export default function Game() {
                 exit={{ opacity: 0, x: -20, scale: 0.98 }}
                 transition={{
                   duration: 0.35,
-                  ease: [0.4, 0, 0.2, 1], // easeOutCubic
+                  ease: [0.4, 0, 0.2, 1],
                 }}
               >
                 <ScenarioCard
@@ -307,12 +346,63 @@ export default function Game() {
               </motion.div>
             </AnimatePresence>
 
-            {/* Navigation Button */}
+            {/* Post-Answer Reflection Panel */}
+            <AnimatePresence>
+              {hasAnswered && (postReflection || counterfactual) && (
+                <motion.div
+                  initial={{ opacity: 0, y: 16, height: 0 }}
+                  animate={{ opacity: 1, y: 0, height: "auto" }}
+                  exit={{ opacity: 0, y: 8, height: 0 }}
+                  transition={{ duration: 0.5, delay: 1.5 }}
+                  className="space-y-3 overflow-hidden"
+                  data-testid="panel-post-reflection"
+                >
+                  {postReflection && (
+                    <div className="p-4 rounded-lg border bg-muted/30 backdrop-blur-sm">
+                      <p className="text-sm text-muted-foreground leading-relaxed" data-testid="text-reflection-insight">
+                        {postReflection}
+                      </p>
+                    </div>
+                  )}
+                  {counterfactual && (
+                    <motion.p
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 2.5 }}
+                      className="text-xs text-muted-foreground/70 italic text-center"
+                      data-testid="text-counterfactual"
+                    >
+                      Many people also considered: &ldquo;{counterfactual}&rdquo;
+                    </motion.p>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Micro-affirmation + Navigation */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
+              className="space-y-3"
             >
+              {/* Micro-affirmation above Continue */}
+              <AnimatePresence>
+                {microAffirmation && hasAnswered && (
+                  <motion.p
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.4, delay: 0.8 }}
+                    className="text-center text-sm text-muted-foreground italic"
+                    data-testid="text-micro-affirmation"
+                  >
+                    {microAffirmation}
+                  </motion.p>
+                )}
+              </AnimatePresence>
+
+
               {currentIndex < totalScenarios - 1 ? (
                 <Button
                   onClick={handleNext}

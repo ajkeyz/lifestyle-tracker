@@ -71,8 +71,8 @@ Key pages:
 - Weekly Recap (`/weekly-recap`) - Spotify Wrapped-style weekly summary with best/worst decisions, improvement areas, league rank, funny title
 - Settings (`/settings`) - Low Pressure Mode toggle and app settings
 - Help (`/help`) - FAQ cards with answers, contact support, and report scenario buttons
-- Game (`/play`) - Timed scenario questions
-- Results (`/results`) - Score breakdown, sharing
+- Game (`/play`) - Timed scenario questions with context buffers, supportive timer messages, tone cues, micro-affirmations, post-answer reflections, and counterfactuals
+- Results (`/results`) - Score breakdown, sharing, pattern recognition summary
 - Leaderboard (`/leaderboard`) - Friend rankings
 - Leagues (`/leagues`) - Friend leagues with weekly competitions, create/join/leave leagues
 - Challenges (`/challenges`) - Challenge friends to compare Money Health, streak, or accuracy; includes trash talk presets and badge rewards
