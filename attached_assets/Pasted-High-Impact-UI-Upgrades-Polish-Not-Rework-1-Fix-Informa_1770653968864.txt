@@ -1,0 +1,172 @@
+High-Impact UI Upgrades (Polish, Not Rework)
+
+1. Fix Information Hierarchy on Home
+
+Right now the home page feels like:
+
+“Many good cards competing for attention”
+
+Upgrade
+	•	Establish a clear primary focus per session:
+	•	If Daily Drop is available → everything else should feel secondary
+	•	If not available → streak + next drop becomes the hero
+
+Concrete changes
+	•	Make Daily Drop card visually dominant:
+	•	Slightly larger than other cards
+	•	Stronger glow / contrast
+	•	Push it above Friends/Community when available
+	•	De-emphasize secondary cards with:
+	•	Lower elevation
+	•	Softer borders
+	•	Less color saturation
+
+Mental model
+
+“There is exactly one thing I should do when I open this app.”
+
+⸻
+
+2. Reduce Repetition (Streak Appears Multiple Times)
+
+You currently show:
+	•	Streak card
+	•	Streak again lower
+	•	Health score + streak combo
+
+This causes subtle cognitive fatigue.
+
+Upgrade
+	•	Choose one canonical place for streak:
+	•	Preferably tied to Health Score
+	•	Everywhere else:
+	•	Replace streak with contextual meaning
+	•	“You’re 1 decision away from Day 2”
+	•	“Tomorrow locks your streak”
+
+Why
+Repetition feels like filler. Meaning feels intentional.
+
+⸻
+
+3. Calendar Heatmap: Add Meaning Without Adding UI
+
+The heatmap is clean but abstract.
+
+Upgrade
+	•	Add micro-legend inline:
+	•	“Darker = more intentional choices”
+	•	On tap:
+	•	Tiny tooltip:
+“You paused before spending here.”
+
+No new screen. Just depth.
+
+⸻
+
+4. Tip Carousel → Make It Feel Alive
+
+The “Tip 3 of 7” card is good, but passive.
+
+Upgrade
+	•	Add a light interaction:
+	•	Swipe = “Got it”
+	•	Long press = “Remind me later”
+	•	Tiny copy change:
+	•	From: “TIP 3 OF 7”
+	•	To: “Quiet reminder”
+
+This makes the app feel like it’s with you, not instructing you.
+
+⸻
+
+5. Empty Community State: Prime It Emotionally
+
+“No community posts yet” is honest—but cold.
+
+Upgrade copy
+Instead of:
+
+“Be the first to share a scenario”
+
+Try:
+
+“Someone will read this before their next purchase.”
+
+Or:
+
+“Your question might save someone money tonight.”
+
+Same function. More soul.
+
+⸻
+
+Feature Upgrades (Small, Powerful)
+
+1. “Why This Matters” (Micro-Context)
+
+Add a 1-line explainer under Daily Drop that changes daily.
+
+Example:
+
+“Today’s choices mirror how people overspend on tech upgrades.”
+
+This quietly teaches pattern recognition, which is your core value.
+
+⸻
+
+2. Health Score Breakdown (Progressive Disclosure)
+
+Health Score is strong but opaque.
+
+Upgrade
+	•	On tap:
+	•	Show 3 contributors:
+	•	Consistency
+	•	Risk awareness
+	•	Delay discipline
+	•	No numbers. Just arrows or dots.
+
+This avoids turning it into “finance math.”
+
+⸻
+
+3. Friend Leagues: Add Stakes Without Pressure
+
+Ranking alone can feel empty early.
+
+Upgrade
+	•	Add soft stakes:
+	•	“Winner chooses tomorrow’s theme”
+	•	“Winner gets a 🔥 badge for 24h”
+
+No money. No shame. Just play.
+
+⸻
+
+4. “Next Drop” Countdown → Anticipation Cue
+
+Countdown is good but neutral.
+
+Upgrade
+	•	Add emotional framing:
+	•	“Your next decision test unlocks in…”
+	•	Subtle pulse animation in final hour
+
+This turns time into anticipation, not waiting.
+
+⸻
+
+5. First-Week Narrative (Retention Gold)
+
+Right now Day 1 = Day 100 visually, which is risky.
+
+Upgrade
+	•	First 7 days have a narrative arc:
+	•	Day 1: Awareness
+	•	Day 3: Pattern spotting
+	•	Day 7: Identity shift
+	•	Tiny copy under streak:
+“You’re in the awareness phase.”
+
+People stay for stories.

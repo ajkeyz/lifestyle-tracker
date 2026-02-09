@@ -342,7 +342,7 @@ export default function Community() {
               <CardContent className="p-8 text-center">
                 <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground">No scenarios yet</p>
-                <p className="text-sm text-muted-foreground mb-4">Be the first to share your story!</p>
+                <p className="text-sm text-muted-foreground mb-4">Someone will read this before their next purchase.</p>
                 <Button onClick={() => navigate("/community/submit")}>
                   <Plus className="w-4 h-4 mr-2" />
                   Submit Scenario

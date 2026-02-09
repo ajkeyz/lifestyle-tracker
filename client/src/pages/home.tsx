@@ -39,7 +39,8 @@ import {
   MessageSquare,
   BarChart3,
   RefreshCw,
-  User
+  User,
+  Flame
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation, Link } from "wouter";
@@ -73,6 +74,67 @@ const COMEBACK_MESSAGES = [
   { title: "You've got this!", message: "Streaks come and go, but financial wisdom is forever." },
   { title: "Back in action!", message: "Today is a new opportunity to make smart money moves." },
 ];
+
+const WHY_THIS_MATTERS: Record<string, string[]> = {
+  tech: [
+    "Today's choices mirror how people overspend on tech upgrades.",
+    "Tech purchases feel urgent but rarely are — today tests that instinct.",
+    "Shiny new gadgets are the fastest path to lifestyle creep.",
+  ],
+  travel: [
+    "Travel decisions reveal how we justify emotional spending.",
+    "Vacation spending is where budgets quietly unravel.",
+    "Today tests whether you can enjoy experiences without overspending.",
+  ],
+  scam: [
+    "Fraud costs people billions yearly — pattern recognition is your shield.",
+    "Today's scenarios train you to spot the red flags before it's too late.",
+    "Scammers rely on urgency — today tests your ability to pause.",
+  ],
+  lifestyle: [
+    "Small daily upgrades are how lifestyle creep starts unnoticed.",
+    "Today's choices reflect the quiet trade-offs we make without thinking.",
+    "Convenience spending adds up faster than most people realize.",
+  ],
+  investing: [
+    "Investment decisions test patience more than knowledge.",
+    "Today's scenarios mirror real moments where people panic-sell or FOMO-buy.",
+    "The best investors know when not to act — today tests that.",
+  ],
+  debt: [
+    "Debt decisions shape your financial freedom for years to come.",
+    "Today tests whether you can resist the minimum-payment trap.",
+    "Credit feels like freedom until it becomes a cage.",
+  ],
+  career: [
+    "Career money decisions often get overshadowed by emotions.",
+    "Today tests whether you'd trade short-term comfort for long-term growth.",
+  ],
+  relationships: [
+    "Money and relationships are deeply intertwined — today explores that.",
+    "Splitting costs, lending to friends — these test your boundaries.",
+  ],
+};
+
+const FIRST_WEEK_NARRATIVE: Record<number, { phase: string; message: string }> = {
+  1: { phase: "Awareness", message: "You're learning to notice your spending patterns" },
+  2: { phase: "Awareness", message: "Building the habit of pausing before spending" },
+  3: { phase: "Pattern spotting", message: "You're starting to see the patterns others miss" },
+  4: { phase: "Pattern spotting", message: "Your instincts are sharpening with each decision" },
+  5: { phase: "Pattern spotting", message: "You're thinking before spending — that's rare" },
+  6: { phase: "Identity shift", message: "You're becoming someone who makes intentional choices" },
+  7: { phase: "Identity shift", message: "One week in — your relationship with money is changing" },
+};
+
+function getStreakContextMessage(streak: number, hasPlayedToday: boolean): string | null {
+  if (hasPlayedToday) return null;
+  if (streak === 0) return null;
+  if (streak === 1) return "You're 1 decision away from Day 2";
+  if (streak < 7) return `Tomorrow locks Day ${streak + 1} of your streak`;
+  if (streak < 14) return `${14 - streak} days until your next milestone`;
+  if (streak < 30) return `${30 - streak} days until Master status`;
+  return `Your consistency is building real financial intuition`;
+}
 
 function getComebackMessage(highestStreak: number) {
   const index = highestStreak % COMEBACK_MESSAGES.length;
@@ -144,10 +206,19 @@ export default function Home() {
   });
 
   const hasPlayedToday = user?.todayResult !== null;
+  const isInFirstWeek = user ? (user.gamesPlayed <= 7) : false;
+  const firstWeekDay = user ? Math.min(user.gamesPlayed + 1, 7) : 1;
+  const firstWeekNarrative = FIRST_WEEK_NARRATIVE[firstWeekDay];
 
   const todaysTheme = dailyDrop?.scenarios?.[0]?.category || "lifestyle";
   const themeConfig = THEME_CONFIG[todaysTheme] || THEME_CONFIG.lifestyle;
   const ThemeIcon = themeConfig.icon;
+
+  const whyMattersLines = WHY_THIS_MATTERS[todaysTheme] || WHY_THIS_MATTERS.lifestyle;
+  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
+  const whyThisMatters = whyMattersLines[dayOfYear % whyMattersLines.length];
+  const streakContext = user ? getStreakContextMessage(user.streak, hasPlayedToday) : null;
+  const isLastHour = countdown.hours === 0;
 
   const userRank = leaderboard?.findIndex((e) => e.id === user?.id);
   const displayRank = userRank !== undefined && userRank !== -1 ? userRank + 1 : null;
@@ -216,39 +287,48 @@ export default function Home() {
             {/* Streak Urgency Banner */}
             <StreakUrgencyBanner hasPlayedToday={hasPlayedToday} streak={user.streak} />
 
-            {/* Quick Stats Bar */}
+            {/* Quick Stats Bar - consolidated with streak context */}
             <QuickStatsBar user={user} rank={displayRank} className="mb-2" />
 
-            {/* Next Drop Countdown */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.05, ease: "easeOut" }}
-            >
-            <Card className="p-3" data-testid="card-countdown">
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-primary" />
-                  <span className="text-sm text-muted-foreground">Next Drop</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="text-lg font-bold font-mono" data-testid="text-countdown">
-                    {String(countdown.hours).padStart(2, '0')}:{String(countdown.minutes).padStart(2, '0')}:{String(countdown.seconds).padStart(2, '0')}
+            {/* First-Week Narrative */}
+            {isInFirstWeek && firstWeekNarrative && !hasPlayedToday && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/5 border border-primary/10" data-testid="card-first-week">
+                  <Sparkles className="w-4 h-4 text-primary flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-xs font-medium text-primary">Day {firstWeekDay} — {firstWeekNarrative.phase}</span>
+                    <p className="text-xs text-muted-foreground">{firstWeekNarrative.message}</p>
                   </div>
-                  <span className="text-xs text-muted-foreground">until midnight UTC</span>
                 </div>
-              </div>
-            </Card>
-            </motion.div>
+              </motion.div>
+            )}
 
-            {/* Daily Drop CTA Tile */}
+            {/* Streak Context - replaces redundant streak displays */}
+            {streakContext && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.02 }}
+              >
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-orange-500/5 border border-orange-500/10" data-testid="card-streak-context">
+                  <Flame className="w-4 h-4 text-orange-500 flex-shrink-0" />
+                  <span className="text-xs text-muted-foreground">{streakContext}</span>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ===== PRIMARY FOCUS: Daily Drop CTA ===== */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, ease: "easeOut" }}
             >
             <Card 
-              className="p-6 gradient-bg-subtle border-primary/20 overflow-hidden relative"
+              className="p-6 border-primary/30 bg-gradient-to-br from-primary/5 via-background to-accent/5 overflow-hidden relative shadow-sm"
               data-testid="card-daily-drop-cta"
             >
               <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -260,14 +340,17 @@ export default function Home() {
                       Daily Drop #{dailyDrop?.dropNumber || "..."}
                     </h1>
                   )}
-                  <p className="text-muted-foreground text-sm mb-2" data-testid="text-tagline">
-                    {new Date().getDay() === 5 ? (
-                      <span>
-                        <span className="text-yellow-500 font-semibold">🎉 Mystery Friday:</span> 6 scenarios + bonus points!
-                      </span>
-                    ) : (
-                      "5 real-life money decisions in 2-4 minutes"
-                    )}
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
+                    <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-muted/50 ${themeConfig.color}`}>
+                      <ThemeIcon className="w-3.5 h-3.5" />
+                      <span className="text-xs font-medium">{themeConfig.label}</span>
+                    </div>
+                  </div>
+                  <p className="text-muted-foreground text-sm mb-1" data-testid="text-tagline">
+                    5 real-life money decisions in 2-4 minutes
+                  </p>
+                  <p className="text-xs text-muted-foreground/80 italic mb-3" data-testid="text-why-matters">
+                    {whyThisMatters}
                   </p>
                   <div className="mb-2">
                     <SocialProofCounter />
@@ -356,110 +439,39 @@ export default function Home() {
               </motion.div>
             )}
 
-            {/* Today's Theme */}
+            {/* Next Drop Countdown - with emotional framing */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.05, ease: "easeOut" }}
+            >
+            <Card className={`p-3 ${isLastHour ? 'border-primary/30' : ''}`} data-testid="card-countdown">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <Clock className={`w-4 h-4 text-primary ${isLastHour ? 'animate-pulse' : ''}`} />
+                  <span className="text-sm text-muted-foreground">
+                    {hasPlayedToday ? "Next decision test unlocks in..." : "Today's drop expires in..."}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className={`text-lg font-bold font-mono ${isLastHour ? 'text-primary' : ''}`} data-testid="text-countdown">
+                    {String(countdown.hours).padStart(2, '0')}:{String(countdown.minutes).padStart(2, '0')}:{String(countdown.seconds).padStart(2, '0')}
+                  </div>
+                </div>
+              </div>
+            </Card>
+            </motion.div>
+
+            {/* ===== SECONDARY SECTION: Explore More ===== */}
+            <div className="pt-2">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3 px-1">Explore</p>
+            </div>
+
+            {/* Quick Tip - Enhanced Carousel */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
-            >
-            <Card className="p-4" data-testid="card-todays-theme">
-              <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-md bg-muted flex items-center justify-center ${themeConfig.color}`}>
-                  <ThemeIcon className="w-5 h-5" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Today's Theme</p>
-                  <p className="font-semibold" data-testid="text-theme-name">{themeConfig.label}</p>
-                </div>
-              </div>
-            </Card>
-            </motion.div>
-
-            {/* Friends */}
-            {!user.lowPressureMode && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.12, ease: "easeOut" }}
-              >
-              <Card 
-                className="p-4 cursor-pointer hover-elevate" 
-                onClick={() => navigate("/friends")}
-                data-testid="card-friends"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-                      <Users className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">Friends</h3>
-                      <p className="text-xs text-muted-foreground">Leagues, challenges & leaderboards</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                </div>
-              </Card>
-              </motion.div>
-            )}
-
-            {/* Play with Friend (Co-op Mode) */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.13, ease: "easeOut" }}
-            >
-            <Card 
-              className="p-4 cursor-pointer hover-elevate border-primary/20 bg-gradient-to-r from-primary/5 to-accent/5" 
-              onClick={() => navigate("/coop-lobby")}
-              data-testid="card-coop-play"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
-                    <Swords className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">Play with a Friend</h3>
-                    <p className="text-xs text-muted-foreground">Challenge a friend to today&apos;s drop in real-time</p>
-                  </div>
-                </div>
-                <ChevronRight className="w-5 h-5 text-muted-foreground" />
-              </div>
-            </Card>
-            </motion.div>
-
-            {/* Arcade Mode */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.14, ease: "easeOut" }}
-            >
-            <Card 
-              className="p-4 cursor-pointer hover-elevate border-purple-500/20 bg-gradient-to-r from-purple-500/5 to-pink-500/5" 
-              onClick={() => navigate("/arcade")}
-              data-testid="card-arcade"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                    <Gamepad2 className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">Arcade Mode</h3>
-                    <p className="text-xs text-muted-foreground">Play extra rounds with different scenarios</p>
-                  </div>
-                </div>
-                <ChevronRight className="w-5 h-5 text-muted-foreground" />
-              </div>
-            </Card>
-            </motion.div>
-
-            {/* Quick Tip of the Day - Enhanced Carousel */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.15, ease: "easeOut" }}
             >
             <TipCardCarousel
               tips={DAILY_TIPS.map((content, index) => ({
@@ -470,20 +482,88 @@ export default function Home() {
             />
             </motion.div>
 
+            {/* Game Modes Row */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.12, ease: "easeOut" }}
+            >
+            <div className="grid grid-cols-2 gap-3">
+              <Card 
+                className="p-4 cursor-pointer hover-elevate" 
+                onClick={() => navigate("/coop-lobby")}
+                data-testid="card-coop-play"
+              >
+                <div className="flex flex-col items-center gap-2 text-center">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
+                    <Swords className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-sm">Co-op Play</h3>
+                    <p className="text-[11px] text-muted-foreground">Play with a friend</p>
+                  </div>
+                </div>
+              </Card>
+              <Card 
+                className="p-4 cursor-pointer hover-elevate" 
+                onClick={() => navigate("/arcade")}
+                data-testid="card-arcade"
+              >
+                <div className="flex flex-col items-center gap-2 text-center">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                    <Gamepad2 className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-sm">Arcade</h3>
+                    <p className="text-[11px] text-muted-foreground">Extra rounds</p>
+                  </div>
+                </div>
+              </Card>
+            </div>
+            </motion.div>
+
+            {/* Friends - more subtle */}
+            {!user.lowPressureMode && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.14, ease: "easeOut" }}
+              >
+              <Card 
+                className="p-4 cursor-pointer hover-elevate" 
+                onClick={() => navigate("/friends")}
+                data-testid="card-friends"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
+                      <Users className="w-4 h-4 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-sm">Friends</h3>
+                      <p className="text-xs text-muted-foreground">Leagues, challenges & leaderboards</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                </div>
+              </Card>
+              </motion.div>
+            )}
+
             {/* Community - Hot Posts Preview */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.18, ease: "easeOut" }}
+              transition={{ duration: 0.4, delay: 0.16, ease: "easeOut" }}
             >
             <Card className="p-4" data-testid="card-community">
               <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center">
-                    <MessageSquare className="w-4 h-4 text-white" />
+                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                    <MessageSquare className="w-4 h-4 text-muted-foreground" />
                   </div>
                   <div>
-                    <h3 className="font-semibold">Community</h3>
+                    <h3 className="font-semibold text-sm">Community</h3>
                     <p className="text-xs text-muted-foreground">Real scenarios, real advice</p>
                   </div>
                 </div>
@@ -527,15 +607,16 @@ export default function Home() {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-4 text-sm text-muted-foreground">
-                  <p>No community posts yet</p>
+                <div className="text-center py-4 text-sm text-muted-foreground" data-testid="community-empty-state">
+                  <p className="mb-1">Your question might save someone money tonight.</p>
                   <Button 
                     variant="ghost" 
                     size="sm" 
                     className="mt-1"
                     onClick={() => navigate("/community/submit")}
+                    data-testid="button-submit-community"
                   >
-                    Be the first to share a scenario
+                    Share a real scenario
                   </Button>
                 </div>
               )}
@@ -546,7 +627,7 @@ export default function Home() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.2, ease: "easeOut" }}
+              transition={{ duration: 0.4, delay: 0.18, ease: "easeOut" }}
             >
             <StreakCalendar user={user} />
             </motion.div>
@@ -557,7 +638,7 @@ export default function Home() {
                 <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
                   <div className="flex items-center gap-2">
                     <Users className="w-5 h-5 text-accent" />
-                    <h3 className="font-semibold">Friend Leagues</h3>
+                    <h3 className="font-semibold text-sm">Friend Leagues</h3>
                   </div>
                   <Button 
                     variant="ghost" 
@@ -602,46 +683,39 @@ export default function Home() {
               </Card>
             )}
 
-            {/* Achievements */}
-            <Card 
-              className="p-4 cursor-pointer" 
-              onClick={() => navigate("/achievements")}
-              data-testid="card-achievements"
-            >
-              <div className="flex items-center justify-between gap-3 flex-wrap">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center">
-                    <Award className="w-5 h-5 text-white" />
+            {/* Secondary nav items */}
+            <div className="grid grid-cols-2 gap-3">
+              <Card 
+                className="p-4 cursor-pointer hover-elevate" 
+                onClick={() => navigate("/achievements")}
+                data-testid="card-achievements"
+              >
+                <div className="flex flex-col items-center gap-2 text-center">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center">
+                    <Award className="w-4 h-4 text-white" />
                   </div>
                   <div>
-                    <h3 className="font-semibold">Achievements</h3>
-                    <p className="text-xs text-muted-foreground">Collect badges and track progress</p>
+                    <h3 className="font-semibold text-sm">Achievements</h3>
+                    <p className="text-[11px] text-muted-foreground">Badges & progress</p>
                   </div>
                 </div>
-                <ChevronRight className="w-5 h-5 text-muted-foreground" />
-              </div>
-            </Card>
-
-
-            {/* Weekly Recap */}
-            <Card 
-              className="p-4 cursor-pointer" 
-              onClick={() => navigate("/weekly-recap")}
-              data-testid="card-weekly-recap"
-            >
-              <div className="flex items-center justify-between gap-3 flex-wrap">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center">
-                    <CalendarDays className="w-5 h-5 text-white" />
+              </Card>
+              <Card 
+                className="p-4 cursor-pointer hover-elevate" 
+                onClick={() => navigate("/weekly-recap")}
+                data-testid="card-weekly-recap"
+              >
+                <div className="flex flex-col items-center gap-2 text-center">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center">
+                    <CalendarDays className="w-4 h-4 text-white" />
                   </div>
                   <div>
-                    <h3 className="font-semibold">Weekly Recap</h3>
-                    <p className="text-xs text-muted-foreground">Your week in review</p>
+                    <h3 className="font-semibold text-sm">Weekly Recap</h3>
+                    <p className="text-[11px] text-muted-foreground">Your week in review</p>
                   </div>
                 </div>
-                <ChevronRight className="w-5 h-5 text-muted-foreground" />
-              </div>
-            </Card>
+              </Card>
+            </div>
 
             {/* Share Today's Results */}
             {hasPlayedToday && (

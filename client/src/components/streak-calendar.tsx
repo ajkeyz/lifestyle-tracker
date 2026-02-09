@@ -225,11 +225,14 @@ export function StreakCalendar({ user, showMilestoneAnimation = false }: StreakC
                       <div className="text-center">
                         <div className="font-semibold">{score}/500</div>
                         <div className="text-[10px] text-muted-foreground">{date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                        <div className="text-[10px] text-muted-foreground mt-0.5">
+                          {score >= 450 ? "Exceptional choices" : score >= 350 ? "Strong decisions" : score >= 250 ? "Solid awareness" : "Learning moment"}
+                        </div>
                       </div>
                     ) : day.frozen ? (
                       <div className="flex items-center gap-1">
                         <Snowflake className="h-3 w-3" />
-                        <span>Frozen</span>
+                        <span>Streak protected</span>
                       </div>
                     ) : isPast ? (
                       <div className="flex items-center gap-1">
@@ -237,7 +240,7 @@ export function StreakCalendar({ user, showMilestoneAnimation = false }: StreakC
                         <span>Missed</span>
                       </div>
                     ) : (
-                      <span>Not played</span>
+                      <span>Not played yet</span>
                     )}
                   </div>
                 </div>
@@ -247,15 +250,15 @@ export function StreakCalendar({ user, showMilestoneAnimation = false }: StreakC
 
           {/* Legend */}
           <div className="flex items-center justify-end gap-2 mt-3 text-xs text-muted-foreground">
-            <span>Less</span>
+            <span>Less intentional</span>
             <div className="flex gap-1">
               <div className="w-3 h-3 rounded-sm bg-muted/20 border border-border/30" title="No activity" />
-              <div className="w-3 h-3 rounded-sm bg-emerald-500/30 border border-emerald-500/50" title="1-249 pts" />
-              <div className="w-3 h-3 rounded-sm bg-emerald-500/50 border border-emerald-500/70" title="250-349 pts" />
-              <div className="w-3 h-3 rounded-sm bg-emerald-500/70 border border-emerald-600/80" title="350-449 pts" />
-              <div className="w-3 h-3 rounded-sm bg-emerald-600/90 border border-emerald-700" title="450-500 pts" />
+              <div className="w-3 h-3 rounded-sm bg-emerald-500/30 border border-emerald-500/50" title="Learning" />
+              <div className="w-3 h-3 rounded-sm bg-emerald-500/50 border border-emerald-500/70" title="Solid" />
+              <div className="w-3 h-3 rounded-sm bg-emerald-500/70 border border-emerald-600/80" title="Strong" />
+              <div className="w-3 h-3 rounded-sm bg-emerald-600/90 border border-emerald-700" title="Exceptional" />
             </div>
-            <span>More</span>
+            <span>More intentional</span>
           </div>
         </div>
 

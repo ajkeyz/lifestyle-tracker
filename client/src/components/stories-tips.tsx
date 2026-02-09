@@ -212,24 +212,56 @@ interface TipCardCarouselProps {
 
 export function TipCardCarousel({ tips, className }: TipCardCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [direction, setDirection] = useState(1);
 
   useEffect(() => {
     const interval = setInterval(() => {
+      setDirection(1);
       setCurrentIndex((prev) => (prev + 1) % tips.length);
     }, 8000);
     return () => clearInterval(interval);
   }, [tips.length]);
 
+  const goNext = useCallback(() => {
+    setDirection(1);
+    setCurrentIndex((prev) => (prev + 1) % tips.length);
+  }, [tips.length]);
+
+  const goPrev = useCallback(() => {
+    setDirection(-1);
+    setCurrentIndex((prev) => (prev - 1 + tips.length) % tips.length);
+  }, [tips.length]);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStart(e.touches[0].clientX);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStart === null) return;
+    const diff = touchStart - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) goNext();
+      else goPrev();
+    }
+    setTouchStart(null);
+  };
+
   return (
-    <div className={cn("relative overflow-hidden rounded-xl", className)}>
-      <AnimatePresence mode="wait">
+    <div
+      className={cn("relative overflow-hidden rounded-xl", className)}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      data-testid="tip-carousel"
+    >
+      <AnimatePresence mode="wait" initial={false}>
         <motion.div
           key={currentIndex}
           className="p-4 bg-gradient-to-r from-primary/10 to-accent/10 border rounded-xl"
-          initial={{ opacity: 0, x: 100 }}
+          initial={{ opacity: 0, x: direction > 0 ? 80 : -80 }}
           animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -100 }}
-          transition={{ duration: 0.3 }}
+          exit={{ opacity: 0, x: direction > 0 ? -80 : 80 }}
+          transition={{ duration: 0.25 }}
         >
           <div className="flex items-start gap-3">
             <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0">
@@ -237,7 +269,7 @@ export function TipCardCarousel({ tips, className }: TipCardCarouselProps) {
             </div>
             <div className="flex-1">
               <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
-                Tip {currentIndex + 1} of {tips.length}
+                Quiet reminder
               </p>
               <p className="text-sm">{tips[currentIndex].content}</p>
             </div>
@@ -249,11 +281,15 @@ export function TipCardCarousel({ tips, className }: TipCardCarouselProps) {
         {tips.map((_, index) => (
           <button
             key={index}
-            onClick={() => setCurrentIndex(index)}
+            onClick={() => {
+              setDirection(index > currentIndex ? 1 : -1);
+              setCurrentIndex(index);
+            }}
             className={cn(
               "w-2 h-2 rounded-full transition-colors",
               index === currentIndex ? "bg-primary" : "bg-muted"
             )}
+            data-testid={`tip-dot-${index}`}
           />
         ))}
       </div>
