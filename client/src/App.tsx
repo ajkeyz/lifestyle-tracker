@@ -41,6 +41,8 @@ import Friends from "@/pages/friends";
 import CoopLobby from "@/pages/coop-lobby";
 import CoopGame from "@/pages/coop-game";
 import CoopResults from "@/pages/coop-results";
+import Terms from "@/pages/terms";
+import Privacy from "@/pages/privacy";
 import NotFound from "@/pages/not-found";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAchievementToast } from "@/hooks/use-achievement-toast";
@@ -88,6 +90,8 @@ function AuthenticatedRouter() {
         <Route path="/coop-lobby" component={CoopLobby} />
         <Route path="/coop-game/:sessionId" component={CoopGame} />
         <Route path="/coop-results/:sessionId" component={CoopResults} />
+        <Route path="/terms" component={Terms} />
+        <Route path="/privacy" component={Privacy} />
         <Route component={NotFound} />
       </Switch>
     </PageTransition>
@@ -99,6 +103,8 @@ function UnauthenticatedRouter() {
     <PageTransition>
       <Switch>
         <Route path="/" component={AuthPage} />
+        <Route path="/terms" component={Terms} />
+        <Route path="/privacy" component={Privacy} />
         <Route component={AuthPage} />
       </Switch>
     </PageTransition>

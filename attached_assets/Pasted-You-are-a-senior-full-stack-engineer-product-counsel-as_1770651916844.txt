@@ -1,0 +1,55 @@
+You are a senior full-stack engineer + product counsel assistant.
+
+Context:
+- App: “Lifestyle Creep” (daily 2-minute money decisions game)
+- Current issue: Clicking “Terms” or “Privacy Policy” on the signup screen just reloads the signup page instead of showing the correct content.
+- Stack: Use the existing codebase conventions (routing system, Next.js/React/Remix/etc). Do NOT introduce a new framework.
+- Goal: Create working /terms and /privacy pages with real content and ensure the footer links navigate correctly.
+
+Tasks:
+1) Diagnose and fix navigation
+- Find where the “Terms & Privacy Policy” links are defined (signup footer component).
+- Ensure they navigate to actual routes (e.g. /terms, /privacy) using the correct link component (e.g. Next <Link>, react-router <Link>, etc).
+- If there’s middleware/redirect/auth guard that bounces unknown routes back to “/”, adjust it so /terms and /privacy are public routes.
+- Add a simple smoke test: visiting /terms and /privacy directly in the browser should render the pages.
+
+2) Create the pages
+- Add two public pages/routes:
+  - /terms
+  - /privacy
+- Keep styling consistent with the signup screen (dark mode, centered readable width, good typography).
+- Include a header, last-updated date, and section anchors.
+
+3) Generate the content (keep it simple and realistic)
+- Provide Terms of Service that covers:
+  - Service description (educational game, not financial advice)
+  - Eligibility (age requirement)
+  - Account, acceptable use, user content
+  - Subscriptions (if none, say free; if future, say “may introduce optional paid features”)
+  - Disclaimers/limitation of liability
+  - Termination
+  - Governing law placeholder
+  - Contact email placeholder (support@yourdomain.com)
+- Provide Privacy Policy that matches these product truths:
+  - “Private by default”
+  - “No bank access needed”
+  - Data collected: email, auth provider ID, basic usage analytics (streaks, answers, scores), device info
+  - What you do NOT collect: bank credentials, card numbers
+  - How data is used: operate app, personalize, improve, fraud prevention
+  - Sharing: only service providers (hosting, auth), no selling of personal data
+  - Retention & deletion: user can request deletion, outline process
+  - Cookies/local storage: for session/auth
+  - Children: not for under 13/16 (use a sensible default)
+  - Security: reasonable measures, not perfect
+  - Updates: how policy changes are communicated
+  - Contact info
+
+Constraints:
+- Do not write overly legal, bloated text. Keep it startup-appropriate, clear, and trustworthy.
+- Do not claim compliance with specific laws (GDPR/CCPA) unless the app actually implements requirements—use neutral language.
+- Output should include:
+  - The code changes (files edited/created, exact diffs if possible)
+  - The full page content as JSX/MD/HTML (whatever the project uses)
+  - A short checklist to verify it works (manual steps)
+
+Start by searching the repo for the footer links and any redirect/middleware that could be forcing unknown routes back to signup, then implement the fixes and create the pages.

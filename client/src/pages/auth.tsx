@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { AppLogo } from "@/components/app-logo";
 import { Lock, TrendingUp, Clock, Mail } from "lucide-react";
 import { SiApple, SiGoogle } from "react-icons/si";
+import { Link } from "wouter";
 
 export default function AuthPage() {
   const [playersToday, setPlayersToday] = useState(0);
@@ -144,13 +145,13 @@ export default function AuthPage() {
 
             <p className="text-[11px] text-muted-foreground/40" data-testid="footer-auth">
               By continuing, you agree to our{" "}
-              <a href="/terms" className="underline" data-testid="link-terms">
+              <Link href="/terms" className="underline" data-testid="link-terms">
                 Terms
-              </a>{" "}
+              </Link>{" "}
               &{" "}
-              <a href="/privacy" className="underline" data-testid="link-privacy">
+              <Link href="/privacy" className="underline" data-testid="link-privacy">
                 Privacy Policy
-              </a>
+              </Link>
             </p>
           </motion.div>
         </motion.div>
