@@ -7,12 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AppLogo } from "@/components/app-logo";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { ArrowLeft, Users, Copy, Check, Loader2, UserPlus } from "lucide-react";
+import { ArrowLeft, Users, Copy, Check, Loader2, UserPlus, Calendar, Gamepad2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { CoopSession, User } from "@shared/schema";
+import type { CoopSession, CoopMode, ArcadeStatus, User } from "@shared/schema";
 
 export default function CoopLobby() {
   const [, navigate] = useLocation();
@@ -21,9 +21,14 @@ export default function CoopLobby() {
   const [copiedCode, setCopiedCode] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isHost, setIsHost] = useState(false);
+  const [selectedMode, setSelectedMode] = useState<CoopMode>("daily");
 
   const { data: user } = useQuery<User>({
     queryKey: ["/api/user"],
+  });
+
+  const { data: arcadeStatus } = useQuery<ArcadeStatus>({
+    queryKey: ["/api/arcade-status"],
   });
 
   const { data: session, refetch: refetchSession } = useQuery<CoopSession>({
@@ -39,7 +44,10 @@ export default function CoopLobby() {
 
   const createSessionMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/coop/create");
+      const res = await apiRequest("POST", "/api/coop/create", {
+        mode: selectedMode,
+        arcadeGameIndex: selectedMode === "arcade" ? 0 : undefined,
+      });
       return res.json() as Promise<CoopSession>;
     },
     onSuccess: (data) => {
@@ -155,10 +163,52 @@ export default function CoopLobby() {
                   Challenge a Friend
                 </CardTitle>
                 <CardDescription>
-                  Play today&apos;s scenarios together and see who makes smarter money moves!
+                  Play scenarios together and see who makes smarter money moves!
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Select Mode</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      className={`p-3 rounded-md border cursor-pointer transition-colors toggle-elevate ${selectedMode === "daily" ? "toggle-elevated border-primary" : ""}`}
+                      onClick={() => setSelectedMode("daily")}
+                      onKeyDown={(e) => e.key === "Enter" && setSelectedMode("daily")}
+                      data-testid="mode-daily"
+                    >
+                      <div className="flex flex-col items-center gap-2 text-center">
+                        <Calendar className="h-6 w-6 text-primary" />
+                        <div>
+                          <p className="text-sm font-medium">Daily Drop</p>
+                          <p className="text-xs text-muted-foreground">Today&apos;s daily scenarios</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      className={`p-3 rounded-md border cursor-pointer transition-colors toggle-elevate ${selectedMode === "arcade" ? "toggle-elevated border-primary" : ""}`}
+                      onClick={() => setSelectedMode("arcade")}
+                      onKeyDown={(e) => e.key === "Enter" && setSelectedMode("arcade")}
+                      data-testid="mode-arcade"
+                    >
+                      <div className="flex flex-col items-center gap-2 text-center">
+                        <Gamepad2 className="h-6 w-6 text-primary" />
+                        <div>
+                          <p className="text-sm font-medium">Arcade</p>
+                          <p className="text-xs text-muted-foreground">
+                            {arcadeStatus
+                              ? `${arcadeStatus.membershipTier === "free" ? "1 game/day" : arcadeStatus.membershipTier === "plus" ? "3 games/day" : "Unlimited"}`
+                              : "Arcade scenarios"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <Button
                   className="w-full h-12"
                   onClick={() => createSessionMutation.mutate()}

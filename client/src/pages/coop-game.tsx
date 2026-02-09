@@ -40,10 +40,6 @@ export default function CoopGame() {
     queryKey: ["/api/user"],
   });
 
-  const { data: dailyDrop } = useQuery<DailyDrop>({
-    queryKey: ["/api/daily-drop"],
-  });
-
   const { data: session, refetch: refetchSession } = useQuery<CoopSession>({
     queryKey: ["/api/coop/session", sessionId],
     queryFn: async () => {
@@ -54,7 +50,16 @@ export default function CoopGame() {
     refetchInterval: 3000,
   });
 
-  const scenarios = dailyDrop?.scenarios || [];
+  const scenarioEndpoint = session?.mode === "arcade"
+    ? `/api/arcade-drop?gameIndex=${session.arcadeGameIndex || 0}`
+    : "/api/daily-drop";
+
+  const { data: scenarioDrop } = useQuery<DailyDrop>({
+    queryKey: [scenarioEndpoint],
+    enabled: session?.status === "playing",
+  });
+
+  const scenarios = scenarioDrop?.scenarios || [];
   const currentIndex = session?.currentQuestionIndex || 0;
   const currentScenario = scenarios[currentIndex];
   const totalScenarios = scenarios.length;
@@ -63,11 +68,9 @@ export default function CoopGame() {
   const currentPlayer = session?.players.find(p => p.id === user?.id);
   const partnerPlayer = session?.players.find(p => p.id !== user?.id);
 
-  // Check if partner has answered based on session data (fallback for WebSocket)
   const partnerHasAnsweredFromSession = currentScenario && partnerPlayer?.answers[currentScenario.id];
   const currentPlayerHasAnsweredFromSession = currentScenario && currentPlayer?.answers[currentScenario.id];
 
-  // Use session data as source of truth for both answered status
   const effectivePartnerAnswered = partnerAnswered || !!partnerHasAnsweredFromSession;
   const effectiveLocalAnswered = localAnswered || !!currentPlayerHasAnsweredFromSession;
 
@@ -130,6 +133,11 @@ export default function CoopGame() {
             if ((message.payload as { playerId: string }).playerId !== user.id) {
               setPartnerAnswered(true);
             }
+            break;
+          case 'game_start':
+            refetchSession();
+            setTimerRunning(true);
+            setTimeRemaining(TIMER_DURATION);
             break;
           case 'next_question':
             setLocalAnswered(false);
@@ -233,7 +241,19 @@ export default function CoopGame() {
 
   const bothAnswered = effectiveLocalAnswered && effectivePartnerAnswered;
 
-  if (!session || !dailyDrop) {
+  if (session && session.status === "waiting") {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="p-8 text-center space-y-4 max-w-sm">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+          <p className="font-medium" data-testid="text-waiting-host">Waiting for host to start the game...</p>
+          <p className="text-sm text-muted-foreground">The host will start the game once ready.</p>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!session || !scenarioDrop) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

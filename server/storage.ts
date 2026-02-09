@@ -34,6 +34,7 @@ import type {
   CoopSession,
   CoopPlayer,
   CoopGameResult,
+  CoopMode,
 } from "@shared/schema";
 import { BADGE_DEFINITIONS, ARCADE_LIMITS, defaultNotificationPrefs, defaultStreakInsurance } from "@shared/schema";
 import { randomUUID } from "crypto";
@@ -132,7 +133,7 @@ export interface IStorage {
   removePushSubscription(userId: string, endpoint: string): Promise<void>;
   getAllPushSubscriptions(): Promise<{ userId: string; subscription: PushSubscriptionJSON }[]>;
   // Co-op game session methods
-  createCoopSession(hostId: string): Promise<CoopSession>;
+  createCoopSession(hostId: string, mode?: CoopMode, arcadeGameIndex?: number | null): Promise<CoopSession>;
   getCoopSession(sessionId: string): Promise<CoopSession | undefined>;
   getCoopSessionByCode(code: string): Promise<CoopSession | undefined>;
   joinCoopSession(guestId: string, code: string): Promise<CoopSession | undefined>;
@@ -140,7 +141,7 @@ export interface IStorage {
   submitCoopAnswer(sessionId: string, playerId: string, scenarioId: string, choiceLabel: string): Promise<CoopSession | undefined>;
   getCoopGameResult(sessionId: string): Promise<CoopGameResult | undefined>;
   // Arcade mode methods
-  getArcadeDrop(userId: string): Promise<DailyDrop>;
+  getArcadeDrop(userId: string, gameIndex?: number): Promise<DailyDrop>;
   submitArcadeGame(userId: string, submission: SubmitArcadeGame): Promise<ArcadeGameResult>;
   getArcadeStatus(userId: string): Promise<ArcadeStatus>;
 }
@@ -1739,14 +1740,21 @@ export class MemStorage implements IStorage {
     return code;
   }
 
-  async createCoopSession(hostId: string): Promise<CoopSession> {
+  async createCoopSession(hostId: string, mode: CoopMode = "daily", arcadeGameIndex: number | null = null): Promise<CoopSession> {
     const host = await this.getUser(hostId);
     if (!host) throw new Error("Host user not found");
 
-    // Generate unique code
     let code = this.generateCoopCode();
     while (await this.getCoopSessionByCode(code)) {
       code = this.generateCoopCode();
+    }
+
+    const today = getTodayDateString();
+    let dropId: string;
+    if (mode === "arcade") {
+      dropId = `arcade-${today}-${arcadeGameIndex}`;
+    } else {
+      dropId = this.dailyDrop.id;
     }
 
     const session: CoopSession = {
@@ -1755,7 +1763,9 @@ export class MemStorage implements IStorage {
       hostId,
       guestId: null,
       status: "waiting",
-      dropId: this.dailyDrop.id,
+      mode,
+      dropId,
+      arcadeGameIndex,
       currentQuestionIndex: 0,
       questionStartTime: 0,
       players: [
@@ -1890,19 +1900,18 @@ export class MemStorage implements IStorage {
   }
 
   // Arcade mode methods
-  async getArcadeDrop(userId: string): Promise<DailyDrop> {
+  async getArcadeDrop(userId: string, gameIndex?: number): Promise<DailyDrop> {
     const user = await this.getOrCreateUser(userId);
     const today = getTodayDateString();
     const dayNumber = getDayNumber();
 
-    // Reset arcade plays if it's a new day
     if (user.arcadeLastPlayedDate !== today) {
       user.arcadePlaysToday = 0;
       user.arcadeLastPlayedDate = today;
       this.users.set(userId, user);
     }
 
-    const arcadeGameIndex = user.arcadePlaysToday;
+    const arcadeGameIndex = gameIndex !== undefined ? gameIndex : user.arcadePlaysToday;
     const scenarios = getArcadeScenarios(dayNumber, arcadeGameIndex);
     const shuffledScenarios = scenarios.map(scenario =>
       shuffleScenarioChoices(scenario, today + "-arcade-" + arcadeGameIndex)
@@ -1927,13 +1936,17 @@ export class MemStorage implements IStorage {
     }
 
     const maxPlays = ARCADE_LIMITS[user.membershipTier] || 1;
-    if (user.arcadePlaysToday >= maxPlays) {
+
+    const parts = submission.arcadeDropId.split("-");
+    const arcadeGameIndex = parseInt(parts[parts.length - 1]) || 0;
+
+    const isReplay = arcadeGameIndex < user.arcadePlaysToday;
+    const isNewGameUnlock = arcadeGameIndex === user.arcadePlaysToday;
+
+    if (isNewGameUnlock && user.arcadePlaysToday >= maxPlays) {
       throw new Error("Arcade play limit reached for today");
     }
 
-    // Parse the arcade drop ID to get the game index
-    const parts = submission.arcadeDropId.split("-");
-    const arcadeGameIndex = parseInt(parts[parts.length - 1]) || 0;
     const dayNumber = getDayNumber();
     const scenarios = getArcadeScenarios(dayNumber, arcadeGameIndex);
 
@@ -1949,9 +1962,11 @@ export class MemStorage implements IStorage {
       }
     }
 
-    user.arcadePlaysToday += 1;
-    user.arcadeLastPlayedDate = today;
-    this.users.set(userId, user);
+    if (isNewGameUnlock) {
+      user.arcadePlaysToday += 1;
+      user.arcadeLastPlayedDate = today;
+      this.users.set(userId, user);
+    }
 
     const playsRemaining = Math.max(0, maxPlays - user.arcadePlaysToday);
 
@@ -1981,6 +1996,9 @@ export class MemStorage implements IStorage {
       maxPlaysToday: maxPlays,
       playsRemaining,
       canPlay: playsRemaining > 0,
+      canReplay: playsToday > 0,
+      gamesUnlocked: playsToday,
+      currentGameIndex: playsToday,
       membershipTier: user.membershipTier,
     };
   }

@@ -5,8 +5,9 @@ import { Progress } from "@/components/ui/progress";
 import { ScenarioCard } from "@/components/scenario-card-improved";
 import { ProgressPill } from "@/components/progress-pill";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { ArrowRight, Clock, Gamepad2, ArrowLeft } from "lucide-react";
+import { ArrowRight, Clock, Gamepad2, ArrowLeft, RotateCcw } from "lucide-react";
 import { AppLogo } from "@/components/app-logo";
+import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -32,6 +33,7 @@ export default function Arcade() {
   const [timeRemaining, setTimeRemaining] = useState(TIMER_DURATION);
   const [timerRunning, setTimerRunning] = useState(true);
   const [gameStarted, setGameStarted] = useState(false);
+  const [replayGameIndex, setReplayGameIndex] = useState<number | null>(null);
   const playedWarnings = useRef<Set<number>>(new Set());
 
   useEffect(() => {
@@ -51,10 +53,16 @@ export default function Arcade() {
     queryKey: ["/api/arcade-status"],
   });
 
+  const arcadeDropEndpoint = replayGameIndex !== null
+    ? `/api/arcade-drop?gameIndex=${replayGameIndex}`
+    : "/api/arcade-drop";
+
   const { data: arcadeDrop, isLoading: dropLoading, refetch: refetchDrop } = useQuery<DailyDrop>({
-    queryKey: ["/api/arcade-drop"],
+    queryKey: [arcadeDropEndpoint],
     enabled: false,
   });
+
+  const isReplaying = replayGameIndex !== null;
 
   const submitMutation = useMutation({
     mutationFn: async (data: SubmitArcadeGame) => {
@@ -93,6 +101,16 @@ export default function Arcade() {
     setTimerRunning(true);
     playedWarnings.current.clear();
   }, [refetchDrop, toast]);
+
+  const startReplay = useCallback(async (gameIndex: number) => {
+    setReplayGameIndex(gameIndex);
+  }, []);
+
+  useEffect(() => {
+    if (replayGameIndex !== null && !gameStarted) {
+      startGame();
+    }
+  }, [replayGameIndex, gameStarted, startGame]);
 
   const scenarios = arcadeDrop?.scenarios || [];
   const currentScenario = scenarios[currentIndex];
@@ -275,10 +293,37 @@ export default function Arcade() {
                     ) : (
                       <>
                         <Gamepad2 className="w-5 h-5 mr-2" />
-                        Start Arcade Game
+                        {arcadeStatus.gamesUnlocked > 0
+                          ? `Start Game ${arcadeStatus.currentGameIndex + 1} of ${arcadeStatus.gamesUnlocked + 1}`
+                          : "Start Arcade Game"}
                       </>
                     )}
                   </Button>
+                ) : arcadeStatus.canReplay ? (
+                  <div className="space-y-3">
+                    <p className="text-muted-foreground font-medium" data-testid="text-all-played">
+                      All games played for today!
+                    </p>
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="h-14 px-8 text-base font-semibold"
+                      onClick={() => startReplay(0)}
+                      disabled={dropLoading}
+                      data-testid="button-replay-arcade"
+                    >
+                      {dropLoading ? (
+                        <motion.span animate={{ opacity: [1, 0.5, 1] }} transition={{ duration: 1.5, repeat: Infinity }}>
+                          Loading...
+                        </motion.span>
+                      ) : (
+                        <>
+                          <RotateCcw className="w-5 h-5 mr-2" />
+                          Play Again
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 ) : (
                   <div className="space-y-3">
                     <p className="text-muted-foreground font-medium" data-testid="text-limit-reached">
@@ -316,7 +361,16 @@ export default function Arcade() {
                 <span className="text-xs text-muted-foreground flex items-center gap-1">
                   <Gamepad2 className="w-3 h-3" /> Arcade Mode
                 </span>
-                <span className="font-semibold">Game #{(arcadeStatus?.playsUsedToday || 0) + 1}</span>
+                <span className="font-semibold flex items-center gap-2">
+                  {isReplaying ? (
+                    <>
+                      Replaying Game {replayGameIndex + 1}
+                      <Badge variant="secondary" className="text-xs">Replay</Badge>
+                    </>
+                  ) : (
+                    `Game #${(arcadeStatus?.playsUsedToday || 0) + 1}`
+                  )}
+                </span>
               </div>
             </div>
 

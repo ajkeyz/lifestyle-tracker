@@ -3,7 +3,8 @@ import { createServer, type Server } from "http";
 import webpush from "web-push";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
-import { submitGameSchema, setModeSchema, updateProfileSchema, createLeagueSchema, joinLeagueSchema, createChallengeSchema, addFreezeTokenSchema, adminScenarioSchema, banUserSchema, addModeratorSchema, joinCoopSessionSchema, submitArcadeGameSchema, type CoopMessage } from "@shared/schema";
+import { submitGameSchema, setModeSchema, updateProfileSchema, createLeagueSchema, joinLeagueSchema, createChallengeSchema, addFreezeTokenSchema, adminScenarioSchema, banUserSchema, addModeratorSchema, createCoopSessionSchema, joinCoopSessionSchema, submitArcadeGameSchema, type CoopMessage } from "@shared/schema";
+import { getDailyScenarios, getArcadeScenarios } from "./static-scenarios";
 
 // VAPID keys for push notifications (must be set via environment variables)
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
@@ -1164,11 +1165,20 @@ export async function registerRoutes(
   app.get("/api/arcade-drop", async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
+      const gameIndexParam = req.query.gameIndex as string | undefined;
+      const gameIndex = gameIndexParam !== undefined ? parseInt(gameIndexParam, 10) : undefined;
+
       const status = await storage.getArcadeStatus(sessionId);
-      if (!status.canPlay) {
+      const isReplay = gameIndex !== undefined && gameIndex < status.gamesUnlocked;
+
+      if (gameIndex !== undefined && !isReplay && gameIndex !== status.currentGameIndex) {
+        return res.status(403).json({ error: "Game index not unlocked", status });
+      }
+
+      if (!isReplay && !status.canPlay) {
         return res.status(403).json({ error: "Arcade play limit reached", status });
       }
-      const drop = await storage.getArcadeDrop(sessionId);
+      const drop = await storage.getArcadeDrop(sessionId, gameIndex);
       res.json(drop);
     } catch (error) {
       console.error("Error getting arcade drop:", error);
@@ -1213,11 +1223,15 @@ export async function registerRoutes(
     });
   }
 
-  // Create co-op session
   app.post("/api/coop/create", async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
-      const session = await storage.createCoopSession(sessionId);
+      const parsed = createCoopSessionSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+      }
+      const { mode, arcadeGameIndex } = parsed.data;
+      const session = await storage.createCoopSession(sessionId, mode, arcadeGameIndex ?? null);
       res.json(session);
     } catch (error) {
       console.error("Error creating co-op session:", error);
@@ -1345,8 +1359,7 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Session not found" });
       }
 
-      const dailyDrop = await storage.getDailyDrop();
-      const totalQuestions = dailyDrop.scenarios.length;
+      const totalQuestions = 5;
       const nextIndex = session.currentQuestionIndex + 1;
 
       if (nextIndex >= totalQuestions) {

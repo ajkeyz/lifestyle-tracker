@@ -274,7 +274,9 @@ export const coopSessions = pgTable("coop_sessions", {
   hostId: varchar("host_id", { length: 255 }).notNull().references(() => lifestyleUsers.id),
   guestId: varchar("guest_id", { length: 255 }).references(() => lifestyleUsers.id),
   status: varchar("status", { length: 50 }).notNull().default("waiting"), // waiting, playing, completed
+  mode: varchar("mode", { length: 20 }).notNull().default("daily"), // daily, arcade
   dropId: varchar("drop_id", { length: 255 }).notNull(),
+  arcadeGameIndex: integer("arcade_game_index"),
   currentQuestionIndex: integer("current_question_index").notNull().default(0),
   questionStartTime: integer("question_start_time").notNull().default(0),
   players: jsonb("players").notNull(), // CoopPlayer[]

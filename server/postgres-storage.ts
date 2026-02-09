@@ -30,6 +30,8 @@ import type {
   BanUser,
   CoopSession,
   CoopGameResult,
+  CoopPlayer,
+  CoopMode,
   Scenario,
   GameHistoryEntry,
   CategoryStats,
@@ -2190,13 +2192,21 @@ export class PostgresStorage implements IStorage {
     }));
   }
 
-  async createCoopSession(hostId: string): Promise<CoopSession> {
+  async createCoopSession(hostId: string, mode: CoopMode = "daily", arcadeGameIndex: number | null = null): Promise<CoopSession> {
     const host = await this.getUser(hostId);
     if (!host) throw new Error("Host user not found");
 
     const sessionId = crypto.randomUUID();
     const code = generateInviteCode();
-    const drop = await this.getDailyDrop();
+    const today = getTodayDateString();
+
+    let dropId: string;
+    if (mode === "arcade") {
+      dropId = `arcade-${today}-${arcadeGameIndex}`;
+    } else {
+      const drop = await this.getDailyDrop();
+      dropId = drop.id;
+    }
 
     const hostPlayer: CoopPlayer = {
       id: hostId,
@@ -2214,9 +2224,11 @@ export class PostgresStorage implements IStorage {
       hostId,
       guestId: null,
       status: "waiting",
-      dropId: drop.id,
+      dropId,
+      mode,
+      arcadeGameIndex,
       currentQuestionIndex: 0,
-      questionStartTime: 0, // Will be set when game starts
+      questionStartTime: 0,
       players: [hostPlayer],
     });
 
@@ -2240,7 +2252,9 @@ export class PostgresStorage implements IStorage {
       hostId: session.hostId,
       guestId: session.guestId,
       status: session.status,
+      mode: session.mode as CoopMode || "daily",
       dropId: session.dropId,
+      arcadeGameIndex: session.arcadeGameIndex ?? null,
       currentQuestionIndex: session.currentQuestionIndex,
       questionStartTime: session.questionStartTime,
       players: session.players,
@@ -2293,9 +2307,8 @@ export class PostgresStorage implements IStorage {
       .update(appSchema.coopSessions)
       .set({
         guestId,
-        status: "playing",
+        status: "waiting",
         players: updatedPlayers,
-        startedAt: new Date(),
       })
       .where(eq(appSchema.coopSessions.id, session.id));
 
@@ -2314,12 +2327,30 @@ export class PostgresStorage implements IStorage {
     return this.getCoopSession(sessionId);
   }
 
+  private getCoopScenarios(session: CoopSession): Scenario[] {
+    const dayNumber = getDayNumber();
+    const today = getTodayDateString();
+    let scenarios: Scenario[];
+
+    if (session.mode === "arcade") {
+      scenarios = getArcadeScenarios(dayNumber, session.arcadeGameIndex || 0);
+    } else {
+      scenarios = getDailyScenarios(dayNumber);
+    }
+
+    return scenarios.map(scenario =>
+      shuffleScenarioChoices(scenario, session.mode === "arcade"
+        ? today + "-arcade-" + (session.arcadeGameIndex || 0)
+        : today)
+    );
+  }
+
   async submitCoopAnswer(sessionId: string, playerId: string, scenarioId: string, choiceLabel: string): Promise<CoopSession | undefined> {
     const session = await this.getCoopSession(sessionId);
     if (!session) return undefined;
 
-    const drop = await this.getDailyDrop();
-    const scenario = drop.scenarios.find(s => s.id === scenarioId);
+    const scenarios = this.getCoopScenarios(session);
+    const scenario = scenarios.find(s => s.id === scenarioId);
     if (!scenario) return undefined;
 
     const choice = scenario.choices.find(c => c.label === choiceLabel);
@@ -2342,11 +2373,10 @@ export class PostgresStorage implements IStorage {
 
     let updates: any = { players: updatedPlayers };
 
-    if (allAnswered && session.currentQuestionIndex < drop.scenarios.length - 1) {
-      // Move to next question
+    if (allAnswered && session.currentQuestionIndex < scenarios.length - 1) {
       updates.currentQuestionIndex = session.currentQuestionIndex + 1;
-      updates.questionStartTime = Math.floor(Date.now() / 1000); // Store as seconds (Unix timestamp)
-    } else if (allAnswered && session.currentQuestionIndex === drop.scenarios.length - 1) {
+      updates.questionStartTime = Math.floor(Date.now() / 1000);
+    } else if (allAnswered && session.currentQuestionIndex === scenarios.length - 1) {
       // Game complete
       updates.status = "completed";
       updates.completedAt = new Date();
@@ -2364,11 +2394,11 @@ export class PostgresStorage implements IStorage {
     const session = await this.getCoopSession(sessionId);
     if (!session || session.status !== "completed") return undefined;
 
-    const drop = await this.getDailyDrop();
+    const scenarios = this.getCoopScenarios(session);
 
     const playerResults = session.players.map(p => {
       const answers = Object.entries(p.answers).map(([scenarioId, choiceLabel]) => {
-        const scenario = drop.scenarios.find(s => s.id === scenarioId);
+        const scenario = scenarios.find(s => s.id === scenarioId);
         const choice = scenario?.choices.find(c => c.label === choiceLabel);
         return {
           scenarioId,
@@ -2397,7 +2427,7 @@ export class PostgresStorage implements IStorage {
     return {
       sessionId,
       players: playerResults,
-      totalQuestions: drop.scenarios.length,
+      totalQuestions: scenarios.length,
       winner,
     };
   }
@@ -2406,12 +2436,11 @@ export class PostgresStorage implements IStorage {
   // ARCADE MODE OPERATIONS
   // ============================================
 
-  async getArcadeDrop(userId: string): Promise<DailyDrop> {
+  async getArcadeDrop(userId: string, gameIndex?: number): Promise<DailyDrop> {
     const user = await this.getOrCreateUser(userId);
     const today = getTodayDateString();
     const dayNumber = getDayNumber();
 
-    // Reset arcade plays if it's a new day
     let arcadePlaysToday = user.arcadePlaysToday || 0;
     if (user.arcadeLastPlayedDate !== today) {
       arcadePlaysToday = 0;
@@ -2421,7 +2450,7 @@ export class PostgresStorage implements IStorage {
         .where(eq(appSchema.lifestyleUsers.id, userId));
     }
 
-    const arcadeGameIndex = arcadePlaysToday;
+    const arcadeGameIndex = gameIndex !== undefined ? gameIndex : arcadePlaysToday;
     const scenarios = getArcadeScenarios(dayNumber, arcadeGameIndex);
     const shuffledScenarios = scenarios.map(scenario =>
       shuffleScenarioChoices(scenario, today + "-arcade-" + arcadeGameIndex)
@@ -2447,13 +2476,17 @@ export class PostgresStorage implements IStorage {
 
     const membershipTier = user.membershipTier || "free";
     const maxPlays = ARCADE_LIMITS[membershipTier] || 1;
-    if (arcadePlaysToday >= maxPlays) {
+
+    const parts = submission.arcadeDropId.split("-");
+    const arcadeGameIndex = parseInt(parts[parts.length - 1]) || 0;
+
+    const isReplay = arcadeGameIndex < arcadePlaysToday;
+    const isNewGameUnlock = arcadeGameIndex === arcadePlaysToday;
+
+    if (isNewGameUnlock && arcadePlaysToday >= maxPlays) {
       throw new Error("Arcade play limit reached for today");
     }
 
-    // Parse the arcade drop ID to get the game index
-    const parts = submission.arcadeDropId.split("-");
-    const arcadeGameIndex = parseInt(parts[parts.length - 1]) || 0;
     const dayNumber = getDayNumber();
     const scenarios = getArcadeScenarios(dayNumber, arcadeGameIndex);
 
@@ -2469,15 +2502,18 @@ export class PostgresStorage implements IStorage {
       }
     }
 
-    const newPlaysToday = arcadePlaysToday + 1;
-    await db
-      .update(appSchema.lifestyleUsers)
-      .set({
-        arcadePlaysToday: newPlaysToday,
-        arcadeLastPlayedDate: today,
-        updatedAt: new Date(),
-      })
-      .where(eq(appSchema.lifestyleUsers.id, userId));
+    let newPlaysToday = arcadePlaysToday;
+    if (isNewGameUnlock) {
+      newPlaysToday = arcadePlaysToday + 1;
+      await db
+        .update(appSchema.lifestyleUsers)
+        .set({
+          arcadePlaysToday: newPlaysToday,
+          arcadeLastPlayedDate: today,
+          updatedAt: new Date(),
+        })
+        .where(eq(appSchema.lifestyleUsers.id, userId));
+    }
 
     const playsRemaining = Math.max(0, maxPlays - newPlaysToday);
 
@@ -2508,6 +2544,9 @@ export class PostgresStorage implements IStorage {
       maxPlaysToday: maxPlays,
       playsRemaining,
       canPlay: playsRemaining > 0,
+      canReplay: playsToday > 0,
+      gamesUnlocked: playsToday,
+      currentGameIndex: playsToday,
       membershipTier,
     };
   }
