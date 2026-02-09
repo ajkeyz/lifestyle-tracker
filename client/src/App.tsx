@@ -119,10 +119,9 @@ function AppContent() {
   return isAuthenticated ? <AuthenticatedRouter /> : <UnauthenticatedRouter />;
 }
 
-function App() {
+function AnalyticsTracker() {
   const { user } = useAuth();
 
-  // Track app open and identify user
   useEffect(() => {
     trackAppOpened(user);
 
@@ -131,11 +130,16 @@ function App() {
     }
   }, [user]);
 
+  return null;
+}
+
+function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <TooltipProvider>
           <Toaster />
+          <AnalyticsTracker />
           <AppContent />
         </TooltipProvider>
       </ThemeProvider>
