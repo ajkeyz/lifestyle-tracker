@@ -33,23 +33,18 @@ export function ChoiceCard({
 
   return (
     <motion.button
-      // Staggered entrance animation
       initial={{ opacity: 0, y: 10 }}
       animate={{
         opacity: showResult && !isSelected && !isCorrect ? 0.4 : 1,
         y: 0,
+        x: showResult && isSelected && !isCorrect ? [-3, 3, -3, 3, -2, 2, 0] : 0,
       }}
       transition={{
         opacity: { duration: 0.3 },
         y: { duration: 0.4, delay: index * 0.06, type: "spring", stiffness: 300 },
       }}
-      // Micro-interactions
       whileHover={!showResult && !disabled ? { y: -2, transition: { duration: 0.15 } } : {}}
       whileTap={!showResult && !disabled ? { scale: 0.98, transition: { duration: 0.1 } } : {}}
-      // Shake on incorrect
-      animate={{
-        x: showResult && isSelected && !isCorrect ? [-3, 3, -3, 3, -2, 2, 0] : 0,
-      }}
       onClick={!disabled ? onSelect : undefined}
       disabled={disabled}
       className={cn(

@@ -1,6 +1,8 @@
 import { useLocation, Link } from "wouter";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { 
   Home, 
   Users, 
@@ -8,6 +10,7 @@ import {
   User,
   Trophy
 } from "lucide-react";
+import type { User as UserType } from "@shared/schema";
 
 interface NavItem {
   path: string;
@@ -25,6 +28,7 @@ const navItems: NavItem[] = [
 
 export function BottomNav() {
   const [location] = useLocation();
+  const { data: user } = useQuery<UserType>({ queryKey: ["/api/user"] });
 
   const isActive = (path: string) => {
     if (path === "/") return location === "/";
@@ -40,6 +44,7 @@ export function BottomNav() {
         {navItems.map((item) => {
           const active = isActive(item.path);
           const Icon = item.icon;
+          const isProfile = item.label === "Profile";
           
           return (
             <Link
@@ -62,7 +67,16 @@ export function BottomNav() {
                     transition={{ type: "spring", stiffness: 500, damping: 30 }}
                   />
                 )}
-                <Icon className={cn("w-5 h-5", active && "animate-bounce-subtle")} />
+                {isProfile && user?.avatar ? (
+                  <Avatar className={cn("w-5 h-5", active && "ring-2 ring-primary ring-offset-1 ring-offset-background")}>
+                    <AvatarImage src={user.avatar} alt={user.username || "Profile"} />
+                    <AvatarFallback className="text-[8px]">
+                      {(user.username || "U").charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                ) : (
+                  <Icon className={cn("w-5 h-5", active && "animate-bounce-subtle")} />
+                )}
                 <span className="text-[10px] font-medium">{item.label}</span>
               </motion.div>
             </Link>
