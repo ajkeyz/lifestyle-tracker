@@ -216,6 +216,9 @@ export interface ArcadeStatus {
   maxPlaysToday: number;
   playsRemaining: number;
   canPlay: boolean;
+  canReplay: boolean;
+  gamesUnlocked: number;
+  currentGameIndex: number;
   membershipTier: "free" | "plus" | "pro";
 }
 
@@ -544,6 +547,7 @@ export type AddModerator = z.infer<typeof addModeratorSchema>;
 
 // Co-op Game Session types
 export type CoopSessionStatus = "waiting" | "playing" | "completed";
+export type CoopMode = "daily" | "arcade";
 
 export interface CoopPlayer {
   id: string;
@@ -561,7 +565,9 @@ export interface CoopSession {
   hostId: string;
   guestId: string | null;
   status: CoopSessionStatus;
+  mode: CoopMode;
   dropId: string;
+  arcadeGameIndex: number | null;
   currentQuestionIndex: number;
   questionStartTime: number; // timestamp when current question started
   players: CoopPlayer[];
@@ -584,7 +590,10 @@ export interface CoopGameResult {
   winner: string | null; // null if tie
 }
 
-export const createCoopSessionSchema = z.object({});
+export const createCoopSessionSchema = z.object({
+  mode: z.enum(["daily", "arcade"]).default("daily"),
+  arcadeGameIndex: z.number().int().min(0).optional(),
+});
 
 export const joinCoopSessionSchema = z.object({
   code: z.string().length(6).toUpperCase(),
