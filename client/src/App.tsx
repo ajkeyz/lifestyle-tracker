@@ -44,6 +44,9 @@ import CoopResults from "@/pages/coop-results";
 import NotFound from "@/pages/not-found";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAchievementToast } from "@/hooks/use-achievement-toast";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { AppLogo } from "@/components/app-logo";
 
 function AuthenticatedRouter() {
   // Monitor for badge unlocks and show celebratory toasts
@@ -102,17 +105,101 @@ function UnauthenticatedRouter() {
   );
 }
 
+function SplashScreen({ onComplete }: { onComplete: () => void }) {
+  useEffect(() => {
+    const timer = setTimeout(onComplete, 2000);
+    return () => clearTimeout(timer);
+  }, [onComplete]);
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background"
+      exit={{ opacity: 0, scale: 1.05 }}
+      transition={{ duration: 0.4, ease: "easeInOut" }}
+      data-testid="splash-screen"
+    >
+      <div className="absolute inset-0 overflow-hidden">
+        <motion.div
+          className="absolute top-1/4 left-1/4 w-64 h-64 rounded-full bg-emerald-500/10 blur-3xl"
+          animate={{ scale: [1, 1.3, 1], x: [0, 30, 0], y: [0, -20, 0] }}
+          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div
+          className="absolute bottom-1/3 right-1/4 w-48 h-48 rounded-full bg-amber-500/10 blur-3xl"
+          animate={{ scale: [1, 1.2, 1], x: [0, -20, 0], y: [0, 30, 0] }}
+          transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+        />
+      </div>
+
+      <motion.div
+        className="relative flex flex-col items-center gap-6"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+      >
+        <motion.div
+          initial={{ scale: 0, rotate: -180 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.1 }}
+        >
+          <AppLogo size="lg" glow />
+        </motion.div>
+
+        <motion.div
+          className="text-center"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4, duration: 0.5 }}
+        >
+          <h1 className="text-2xl font-bold tracking-tight" data-testid="text-splash-title">
+            Lifestyle Creep
+          </h1>
+          <motion.p
+            className="text-sm text-muted-foreground mt-1"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.7, duration: 0.5 }}
+            data-testid="text-splash-subtitle"
+          >
+            Master your money, one decision at a time
+          </motion.p>
+        </motion.div>
+
+        <motion.div
+          className="flex gap-1.5 mt-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.9, duration: 0.4 }}
+        >
+          {[0, 1, 2].map((i) => (
+            <motion.div
+              key={i}
+              className="w-2 h-2 rounded-full bg-emerald-500"
+              animate={{ scale: [1, 1.4, 1], opacity: [0.4, 1, 0.4] }}
+              transition={{
+                duration: 0.8,
+                repeat: Infinity,
+                delay: i * 0.2,
+                ease: "easeInOut",
+              }}
+            />
+          ))}
+        </motion.div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 function AppContent() {
   const { isLoading, isAuthenticated } = useAuth();
+  const [showSplash, setShowSplash] = useState(true);
+  const splashDone = !showSplash;
 
-  if (isLoading) {
+  if (isLoading || !splashDone) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-muted/30">
-        <div className="space-y-4 text-center">
-          <Skeleton className="h-16 w-16 rounded-full mx-auto" />
-          <Skeleton className="h-4 w-32 mx-auto" />
-        </div>
-      </div>
+      <AnimatePresence mode="wait" onExitComplete={() => {}}>
+        <SplashScreen key="splash" onComplete={() => setShowSplash(false)} />
+      </AnimatePresence>
     );
   }
 
