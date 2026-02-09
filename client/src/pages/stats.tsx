@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AmbientBackground } from "@/components/ambient-background";
 import {
   ArrowLeft,
   TrendingUp,
@@ -80,7 +81,8 @@ export default function Stats() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 p-4">
+      <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 p-4 relative">
+        <AmbientBackground variant="minimal" />
         <Skeleton className="h-12 w-full mb-4" />
         <div className="space-y-4">
           <Skeleton className="h-32 w-full" />
@@ -124,8 +126,9 @@ export default function Stats() {
   }, [hasExtendedAccess, showAllHistory, user.gameHistory]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
-      <header className="flex items-center gap-3 p-4 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 relative">
+      <AmbientBackground variant="default" />
+      <header className="flex items-center gap-3 p-4 border-b bg-card/80 backdrop-blur-xl sticky top-0 z-50 border-white/10">
         <Button
           variant="ghost"
           size="icon"
@@ -153,10 +156,10 @@ export default function Stats() {
 
       <main className="container max-w-2xl mx-auto p-4 space-y-4">
         <div className="grid grid-cols-2 gap-3">
-          <Card data-testid="card-games-played">
+          <Card data-testid="card-games-played" className="hover-lift glass-card">
             <CardContent className="p-6">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/30">
                   <Target className="w-5 h-5 text-white" />
                 </div>
                 <div>
@@ -167,10 +170,10 @@ export default function Stats() {
             </CardContent>
           </Card>
 
-          <Card data-testid="card-current-streak">
+          <Card data-testid="card-current-streak" className="hover-lift glass-card">
             <CardContent className="p-6">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center shadow-lg shadow-orange-500/30">
                   <Flame className="w-5 h-5 text-white" />
                 </div>
                 <div>
@@ -181,10 +184,10 @@ export default function Stats() {
             </CardContent>
           </Card>
 
-          <Card data-testid="card-avg-score">
+          <Card data-testid="card-avg-score" className="hover-lift glass-card">
             <CardContent className="p-6">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-green-500/30">
                   <TrendingUp className="w-5 h-5 text-white" />
                 </div>
                 <div>
@@ -195,10 +198,10 @@ export default function Stats() {
             </CardContent>
           </Card>
 
-          <Card data-testid="card-best-score">
+          <Card data-testid="card-best-score" className="hover-lift glass-card">
             <CardContent className="p-6">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-500 to-amber-500 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-500 to-amber-500 flex items-center justify-center shadow-lg shadow-yellow-500/30">
                   <Trophy className="w-5 h-5 text-white" />
                 </div>
                 <div>
@@ -220,9 +223,9 @@ export default function Stats() {
           <CardContent>
             <div className="flex items-center gap-4">
               <div className="flex-1">
-                <Progress value={accuracyRate} className="h-3" data-testid="progress-accuracy" />
+                <Progress value={accuracyRate} gradient shimmer className="h-3" data-testid="progress-accuracy" />
               </div>
-              <span className="text-2xl font-bold" data-testid="text-accuracy-rate">{accuracyRate}%</span>
+              <span className="text-2xl font-bold gradient-text-animated" data-testid="text-accuracy-rate">{accuracyRate}%</span>
             </div>
             <p className="text-sm text-muted-foreground mt-2">
               {user.perfectGames > 0 && `${user.perfectGames} perfect game${user.perfectGames > 1 ? 's' : ''} achieved`}
@@ -266,7 +269,7 @@ export default function Stats() {
                       </div>
                       <span className="text-sm font-bold">{cat.accuracy}%</span>
                     </div>
-                    <Progress value={cat.accuracy} className="h-2" />
+                    <Progress value={cat.accuracy} gradient className="h-2" />
                     <p className="text-xs text-muted-foreground">
                       {cat.correctAnswers} / {cat.totalQuestions} correct
                     </p>

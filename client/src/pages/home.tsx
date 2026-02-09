@@ -15,6 +15,7 @@ import { LiveActivityTicker, PlayerCounter } from "@/components/live-activity-ti
 import { TipCardCarousel } from "@/components/stories-tips";
 import { AnimatedCounter } from "@/components/animated-counter";
 import { DebugScreen, useDebugGesture } from "@/components/debug-screen";
+import { AmbientBackground } from "@/components/ambient-background";
 import { 
   Play, 
   Trophy, 
@@ -167,8 +168,9 @@ export default function Home() {
       {showOnboarding && (
         <Onboarding onComplete={() => setShowOnboarding(false)} />
       )}
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
-      <header className="flex items-center justify-between gap-2 p-4 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+      <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 relative">
+      <AmbientBackground variant="default" />
+      <header className="flex items-center justify-between gap-2 p-4 border-b bg-card/80 backdrop-blur-xl sticky top-0 z-50 border-white/10">
         <div className="flex items-center gap-2">
           <div onClick={handleTap} className="cursor-pointer">
             <AppLogo size="sm" />

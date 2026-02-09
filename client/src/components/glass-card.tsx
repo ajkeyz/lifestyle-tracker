@@ -4,34 +4,45 @@ import { cn } from "@/lib/utils";
 interface GlassCardProps {
   children: React.ReactNode;
   className?: string;
-  blur?: "sm" | "md" | "lg";
+  blur?: "sm" | "md" | "lg" | "xl";
   gradient?: boolean;
   glow?: boolean;
   animate?: boolean;
+  hover?: "lift" | "glow" | "scale" | "none";
 }
 
-export function GlassCard({ 
-  children, 
-  className, 
+export function GlassCard({
+  children,
+  className,
   blur = "md",
   gradient = false,
   glow = false,
-  animate = false
+  animate = false,
+  hover = "lift"
 }: GlassCardProps) {
   const blurClasses = {
     sm: "backdrop-blur-sm",
     md: "backdrop-blur-md",
-    lg: "backdrop-blur-lg"
+    lg: "backdrop-blur-lg",
+    xl: "backdrop-blur-xl"
+  };
+
+  const hoverClasses = {
+    lift: "transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary/10 hover:border-primary/30",
+    glow: "transition-all duration-300 hover:shadow-2xl hover:shadow-primary/20 hover:border-primary/40",
+    scale: "transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]",
+    none: ""
   };
 
   const content = (
-    <div 
+    <div
       className={cn(
         "relative rounded-xl border border-white/10 dark:border-white/5",
         "bg-white/70 dark:bg-black/40",
         blurClasses[blur],
         glow && "shadow-lg shadow-primary/10",
         gradient && "bg-gradient-to-br from-white/80 to-white/60 dark:from-white/10 dark:to-white/5",
+        hoverClasses[hover],
         className
       )}
     >
