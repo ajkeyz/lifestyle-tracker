@@ -77,17 +77,6 @@ export default function Game() {
     }
   }, [dailyDrop, user, loadStart]);
 
-  // Track scenario viewed when index changes
-  useEffect(() => {
-    if (currentScenario) {
-      trackScenarioViewed(currentScenario, currentIndex, timeRemaining);
-      setScenarioStartTimes(prev => ({
-        ...prev,
-        [currentScenario.id]: Date.now(),
-      }));
-    }
-  }, [currentScenario, currentIndex, timeRemaining]);
-
   const submitMutation = useMutation({
     mutationFn: async (data: SubmitGame) => {
       const res = await apiRequest("POST", "/api/submit-game", data);
@@ -124,6 +113,17 @@ export default function Game() {
   const currentScenario = scenarios[currentIndex];
   const totalScenarios = scenarios.length;
   const progress = totalScenarios > 0 ? ((currentIndex + 1) / totalScenarios) * 100 : 0;
+
+  // Track scenario viewed when index changes
+  useEffect(() => {
+    if (currentScenario) {
+      trackScenarioViewed(currentScenario, currentIndex, timeRemaining);
+      setScenarioStartTimes(prev => ({
+        ...prev,
+        [currentScenario.id]: Date.now(),
+      }));
+    }
+  }, [currentScenario, currentIndex]);
 
   const handleSelectChoice = useCallback((label: string) => {
     if (!currentScenario || showResults[currentScenario.id]) return;
