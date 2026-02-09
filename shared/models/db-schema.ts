@@ -73,6 +73,11 @@ export const lifestyleUsers = pgTable("lifestyle_users", {
   arcadePlaysToday: integer("arcade_plays_today").notNull().default(0),
   arcadeLastPlayedDate: varchar("arcade_last_played_date", { length: 50 }),
 
+  // Profile Enhancement Fields
+  moneyPhilosophy: varchar("money_philosophy", { length: 100 }).default(""),
+  whyImHere: varchar("why_im_here", { length: 250 }).default(""),
+  friendVisibility: varchar("friend_visibility", { length: 20 }).default("trend"),
+
   // Timestamps
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

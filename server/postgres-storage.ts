@@ -203,6 +203,9 @@ export class PostgresStorage implements IStorage {
       membershipTier: "free" as const,
       arcadePlaysToday: 0,
       arcadeLastPlayedDate: null,
+      moneyPhilosophy: "",
+      whyImHere: "",
+      friendVisibility: "trend" as const,
     };
 
     await db.insert(appSchema.lifestyleUsers).values(newUser);

@@ -513,6 +513,9 @@ export class MemStorage implements IStorage {
         membershipTier: "free" as const,
         arcadePlaysToday: 0,
         arcadeLastPlayedDate: null,
+        moneyPhilosophy: "",
+        whyImHere: "",
+        friendVisibility: "trend" as const,
       };
       this.users.set(sessionId, user);
     }

@@ -296,6 +296,9 @@ export async function registerRoutes(
         bio: parsed.data.bio || "",
         allowFriendsToFind: parsed.data.allowFriendsToFind,
         isProfilePrivate: parsed.data.isProfilePrivate,
+        moneyPhilosophy: parsed.data.moneyPhilosophy || "",
+        whyImHere: parsed.data.whyImHere || "",
+        friendVisibility: parsed.data.friendVisibility || "trend",
         profileSetupComplete: true,
       });
       

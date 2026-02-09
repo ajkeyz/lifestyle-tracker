@@ -1,0 +1,164 @@
+UI Enhancements (Low Effort, High Polish)
+
+1. Turn the Avatar into an Identity Anchor
+
+Right now the avatar is decorative.
+
+Upgrade
+	•	Add subtle motion or state:
+	•	Soft pulse/glow tied to streak
+	•	Color shift based on Money Health trend (↑ / → / ↓)
+	•	Optional tap → “Change style” (not upload a photo yet)
+
+Why
+People emotionally bond with symbols, not stats.
+
+⸻
+
+2. Make “Money Health” Explain Itself (Without Numbers)
+
+“100 Money Health” looks great but feels opaque.
+
+UI tweak
+Under the score, add a whisper line:
+
+“Based on consistency, restraint, and reflection”
+
+Tap → lightweight modal with 3 icons + arrows (no charts).
+
+Result
+Curiosity without pressure.
+
+⸻
+
+3. Reframe the Username Section as a Social Tool
+
+Current copy is functional, not inspiring.
+
+Replace
+
+“Share your username to add friends”
+
+With
+
+“Play better with people who know you”
+
+Add microcopy below:
+
+“You control what others see.”
+
+This aligns with your safe, judgment-free brand.
+
+⸻
+
+4. Visual Hierarchy Cleanup
+
+Right now everything is vertically “equal.”
+
+Adjust
+	•	Avatar + name + health = hero
+	•	Username share = secondary
+	•	Edit Profile = tertiary (less contrast)
+
+Rule
+Editing yourself should feel optional, not required.
+
+⸻
+
+5. Add One Empty Space (Yes, Seriously)
+
+The bottom of the page feels a little “done.”
+
+Add
+	•	A calm empty section or divider with:
+“This profile grows as you play.”
+
+This signals progression without adding features.
+
+⸻
+
+Feature Upgrades (Identity > Control)
+
+1. Personal Money Philosophy (Tiny, Powerful)
+
+Add a 1-line optional field:
+
+“I’m trying to be more mindful about ______.”
+
+Examples:
+	•	“impulse upgrades”
+	•	“subscription creep”
+	•	“status spending”
+
+Why
+This creates self-narrative, not comparison.
+
+⸻
+
+2. Private Milestones (Not Public Stats)
+
+Add a “Milestones” section only visible to the user:
+	•	First streak
+	•	First pause-before-spend
+	•	First week completed
+
+No dates. No numbers. Just quiet wins.
+
+⸻
+
+3. Profile as a Reflection, Not a Resume
+
+Add a rotating line (changes weekly):
+
+“Lately, you’ve been choosing patience over impulse.”
+
+This can be algorithmic or even templated early.
+
+Feels alive, not static.
+
+⸻
+
+4. Friend Visibility Controls (Simple, Human)
+
+Instead of toggles and settings pages:
+
+Add one line:
+
+“Friends can see: [ Health trend ▾ ]”
+
+Options:
+	•	Nothing
+	•	Trend only
+	•	Streak only
+
+That’s it. No complexity.
+
+⸻
+
+5. “Why I’m Here” (Private)
+
+Optional, private note:
+
+“I use Lifestyle Creep because…”
+
+Shown only to the user. Editable anytime.
+
+This increases long-term retention more than any badge.
+
+⸻
+
+One Bold but Clean Idea
+
+Seasonal Identity Badges (Non-Competitive)
+
+Not achievements. Modes of being.
+
+Examples:
+	•	“Observer”
+	•	“Stabilizing”
+	•	“Rebuilding”
+	•	“Intentional”
+
+Assigned quietly. No unlocking. No ranking.
+
+This avoids gamification traps while reinforcing identity.

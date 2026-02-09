@@ -134,6 +134,9 @@ export interface User {
   membershipTier: "free" | "plus" | "pro";
   arcadePlaysToday: number;
   arcadeLastPlayedDate: string | null;
+  moneyPhilosophy: string;
+  whyImHere: string;
+  friendVisibility: "nothing" | "trend" | "streak";
 }
 
 export interface NotificationPrefs {
@@ -178,6 +181,9 @@ export const updateProfileSchema = z.object({
   bio: z.string().max(100).optional().default(""),
   allowFriendsToFind: z.boolean(),
   isProfilePrivate: z.boolean(),
+  moneyPhilosophy: z.string().max(80).optional().default(""),
+  whyImHere: z.string().max(200).optional().default(""),
+  friendVisibility: z.enum(["nothing", "trend", "streak"]).optional().default("trend"),
 });
 
 export type UpdateProfile = z.infer<typeof updateProfileSchema>;

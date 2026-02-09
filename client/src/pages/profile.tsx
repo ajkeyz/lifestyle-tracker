@@ -1,42 +1,166 @@
-import { useState } from "react";
-import { motion } from "framer-motion";
+import { useState, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { AppLogo } from "@/components/app-logo";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { AppLogo } from "@/components/app-logo";
 import { useToast } from "@/hooks/use-toast";
 import { AnimatedAvatar } from "@/components/animated-avatar";
-import { Floating3DAvatar, FloatingCard } from "@/components/ui/tilt-card";
-import { 
+import { Floating3DAvatar } from "@/components/ui/tilt-card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   ChevronLeft,
   Copy,
   Check,
   Settings,
   Flame,
   TrendingUp,
+  TrendingDown,
+  Minus,
   Users,
   Share2,
   Eye,
   EyeOff,
   Swords,
   UserPlus,
-  Loader2
+  Loader2,
+  Heart,
+  Brain,
+  Shield,
+  Sparkles,
+  Target,
+  Zap,
+  Award,
+  Star,
+  Info,
+  Pencil,
+  Save,
+  X,
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation, Link, useParams } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { User } from "@shared/schema";
 
-function getMoneyHealthLabel(score: number): { label: string; color: string } {
-  if (score >= 90) return { label: "Excellent", color: "text-emerald-500" };
-  if (score >= 75) return { label: "Great", color: "text-green-500" };
-  if (score >= 60) return { label: "Good", color: "text-lime-500" };
-  if (score >= 45) return { label: "Fair", color: "text-yellow-500" };
-  if (score >= 30) return { label: "Needs Work", color: "text-orange-500" };
-  return { label: "Starting Out", color: "text-red-500" };
+function getMoneyHealthLabel(score: number): { label: string; color: string; trend: "up" | "stable" | "down" } {
+  if (score >= 90) return { label: "Excellent", color: "text-emerald-500", trend: "up" };
+  if (score >= 75) return { label: "Great", color: "text-green-500", trend: "up" };
+  if (score >= 60) return { label: "Good", color: "text-lime-500", trend: "stable" };
+  if (score >= 45) return { label: "Fair", color: "text-yellow-500", trend: "stable" };
+  if (score >= 30) return { label: "Needs Work", color: "text-orange-500", trend: "down" };
+  return { label: "Starting Out", color: "text-red-500", trend: "down" };
+}
+
+function getAvatarGlowColor(moneyHealth: number): string {
+  if (moneyHealth >= 75) return "from-emerald-500/30 to-green-500/30";
+  if (moneyHealth >= 50) return "from-yellow-500/30 to-amber-500/30";
+  return "from-orange-500/30 to-red-500/30";
+}
+
+function getStreakIntensity(streak: number): { ring: boolean; pulseSpeed: number } {
+  if (streak >= 30) return { ring: true, pulseSpeed: 1 };
+  if (streak >= 14) return { ring: true, pulseSpeed: 1.5 };
+  if (streak >= 7) return { ring: true, pulseSpeed: 2 };
+  return { ring: false, pulseSpeed: 3 };
+}
+
+function getMilestones(user: User): { id: string; label: string; unlocked: boolean; icon: typeof Star }[] {
+  const milestones = [];
+
+  milestones.push({
+    id: "first-game",
+    label: "Played your first game",
+    unlocked: user.gamesPlayed >= 1,
+    icon: Zap,
+  });
+
+  milestones.push({
+    id: "first-streak",
+    label: "Built your first streak",
+    unlocked: user.highestStreak >= 2,
+    icon: Flame,
+  });
+
+  milestones.push({
+    id: "week-complete",
+    label: "Completed a full week",
+    unlocked: user.highestStreak >= 7,
+    icon: Star,
+  });
+
+  milestones.push({
+    id: "perfect-game",
+    label: "Scored a perfect game",
+    unlocked: user.perfectGames >= 1,
+    icon: Award,
+  });
+
+  milestones.push({
+    id: "ten-games",
+    label: "Played 10 games",
+    unlocked: user.gamesPlayed >= 10,
+    icon: Target,
+  });
+
+  milestones.push({
+    id: "money-wise",
+    label: "Reached 75+ Money Health",
+    unlocked: user.moneyHealth >= 75,
+    icon: TrendingUp,
+  });
+
+  return milestones;
+}
+
+function getReflectionLine(user: User): string {
+  const weekNumber = Math.floor(Date.now() / (7 * 24 * 60 * 60 * 1000));
+  const reflections = [
+    user.moneyHealth >= 70
+      ? "Lately, you've been choosing patience over impulse."
+      : "You're building awareness about your financial habits.",
+    user.streak >= 7
+      ? "Your consistency is becoming a superpower."
+      : "Every day you play is a step toward clarity.",
+    user.gamesPlayed >= 10
+      ? "You've seen enough scenarios to start spotting patterns."
+      : "Each decision teaches you something new about yourself.",
+    user.perfectGames >= 1
+      ? "Your financial instincts are getting sharper."
+      : "Growth happens in the space between knowing and choosing.",
+    user.highestStreak >= 14
+      ? "You've built a real habit around financial mindfulness."
+      : "Small, daily reflections compound into big change.",
+    "The way you think about money is quietly evolving.",
+    "You're learning to pause before you spend.",
+    "Financial clarity comes from practice, not perfection.",
+  ];
+
+  return reflections[weekNumber % reflections.length];
+}
+
+function getSeasonalBadge(): { label: string; description: string } {
+  const month = new Date().getMonth();
+  if (month >= 2 && month <= 4) return { label: "Rebuilding", description: "Spring energy, fresh starts" };
+  if (month >= 5 && month <= 7) return { label: "Intentional", description: "Summer clarity, purposeful choices" };
+  if (month >= 8 && month <= 10) return { label: "Observer", description: "Autumn reflection, seeing patterns" };
+  return { label: "Stabilizing", description: "Winter grounding, steady habits" };
 }
 
 export default function Profile() {
@@ -44,7 +168,11 @@ export default function Profile() {
   const params = useParams<{ userId?: string }>();
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
-  
+  const [editingPhilosophy, setEditingPhilosophy] = useState(false);
+  const [editingWhyHere, setEditingWhyHere] = useState(false);
+  const [philosophyDraft, setPhilosophyDraft] = useState("");
+  const [whyHereDraft, setWhyHereDraft] = useState("");
+
   const isOwnProfile = !params.userId;
 
   const { data: user, isLoading } = useQuery<User>({
@@ -83,9 +211,33 @@ export default function Profile() {
     },
   });
 
+  const updateFieldMutation = useMutation({
+    mutationFn: async (updates: { moneyPhilosophy?: string; whyImHere?: string; friendVisibility?: string }) => {
+      const res = await apiRequest("POST", "/api/profile", {
+        username: user?.username,
+        avatar: user?.avatar,
+        bio: user?.bio || "",
+        allowFriendsToFind: user?.allowFriendsToFind ?? true,
+        isProfilePrivate: user?.isProfilePrivate ?? false,
+        ...updates,
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Couldn't save",
+        description: error.message || "Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleCopyUsername = async () => {
     if (!user?.username) return;
-    
+
     try {
       await navigator.clipboard.writeText(user.username);
       setCopied(true);
@@ -94,7 +246,7 @@ export default function Profile() {
         description: "Share it with friends so they can find you.",
       });
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
+    } catch {
       toast({
         title: "Couldn't copy",
         description: "Please copy the username manually.",
@@ -105,9 +257,9 @@ export default function Profile() {
 
   const handleShare = async () => {
     if (!user?.username) return;
-    
+
     const shareText = `Add me on Lifestyle Creep! My username is: ${user.username}`;
-    
+
     if (navigator.share) {
       try {
         await navigator.share({
@@ -123,6 +275,20 @@ export default function Profile() {
       handleCopyUsername();
     }
   };
+
+  const handleSavePhilosophy = () => {
+    updateFieldMutation.mutate({ moneyPhilosophy: philosophyDraft });
+    setEditingPhilosophy(false);
+  };
+
+  const handleSaveWhyHere = () => {
+    updateFieldMutation.mutate({ whyImHere: whyHereDraft });
+    setEditingWhyHere(false);
+  };
+
+  const milestones = useMemo(() => (user ? getMilestones(user) : []), [user]);
+  const reflectionLine = useMemo(() => (user ? getReflectionLine(user) : ""), [user]);
+  const seasonalBadge = useMemo(() => getSeasonalBadge(), []);
 
   if (isLoading) {
     return (
@@ -157,13 +323,16 @@ export default function Profile() {
   }
 
   const healthInfo = getMoneyHealthLabel(user.moneyHealth);
+  const glowColor = getAvatarGlowColor(user.moneyHealth);
+  const streakInfo = getStreakIntensity(user.streak);
+  const TrendIcon = healthInfo.trend === "up" ? TrendingUp : healthInfo.trend === "down" ? TrendingDown : Minus;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-sm border-b px-4 py-3">
-        <div className="max-w-md mx-auto flex items-center justify-between">
-          <Button 
-            variant="ghost" 
+        <div className="max-w-md mx-auto flex items-center justify-between gap-2">
+          <Button
+            variant="ghost"
             size="icon"
             onClick={() => window.history.length > 1 ? window.history.back() : navigate("/")}
             data-testid="button-back"
@@ -181,48 +350,138 @@ export default function Profile() {
       </header>
 
       <main className="max-w-md mx-auto p-4 pb-24 space-y-6">
+        {/* === HERO SECTION: Avatar + Name + Health === */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col items-center gap-4"
+          className="flex flex-col items-center gap-3 pt-2"
         >
-          <Floating3DAvatar data-testid="avatar-user">
-            <div className="relative">
-              <AnimatedAvatar 
-                avatarId={user.avatar || "cosmic-cat"} 
-                size="lg" 
-                showRing={user.streak >= 7}
-                isAnimated={true}
-              />
-              {user.streak >= 7 && (
-                <motion.div 
-                  className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg"
-                  data-testid="badge-streak-fire"
-                  animate={{ scale: [1, 1.1, 1] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                >
-                  <Flame className="w-4 h-4" />
-                </motion.div>
-              )}
-            </div>
-          </Floating3DAvatar>
+          <div className="relative">
+            <Floating3DAvatar data-testid="avatar-user">
+              <div className="relative">
+                <motion.div
+                  className={`absolute -inset-3 rounded-full bg-gradient-to-r ${glowColor} blur-lg -z-10`}
+                  animate={{
+                    opacity: [0.4, 0.7, 0.4],
+                    scale: [1, 1.05, 1],
+                  }}
+                  transition={{
+                    duration: streakInfo.pulseSpeed,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                />
+                <AnimatedAvatar
+                  avatarId={user.avatar || "cosmic-cat"}
+                  size="lg"
+                  showRing={streakInfo.ring}
+                  isAnimated={true}
+                />
+                {user.streak >= 7 && (
+                  <motion.div
+                    className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg"
+                    data-testid="badge-streak-fire"
+                    animate={{ scale: [1, 1.1, 1] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                  >
+                    <Flame className="w-4 h-4" />
+                  </motion.div>
+                )}
+              </div>
+            </Floating3DAvatar>
+
+            {/* Seasonal Identity Badge */}
+            <motion.div
+              className="absolute -top-1 -left-2"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.3, type: "spring" }}
+            >
+              <Badge variant="outline" className="gap-1 text-[10px] bg-background/80 backdrop-blur-sm" data-testid="badge-seasonal">
+                <Sparkles className="w-3 h-3 text-primary" />
+                {seasonalBadge.label}
+              </Badge>
+            </motion.div>
+          </div>
 
           <div className="text-center space-y-1">
             <h1 className="text-2xl font-display font-bold tracking-tight" data-testid="text-username">
               {user.username}
             </h1>
             {user.bio && (
-              <p className="text-muted-foreground max-w-xs" data-testid="text-bio">
+              <p className="text-muted-foreground text-sm max-w-xs" data-testid="text-bio">
                 {user.bio}
               </p>
             )}
           </div>
 
+          {/* Money Health with explanation */}
           <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="gap-1" data-testid="badge-money-health">
-              <TrendingUp className="w-3 h-3" />
-              <span className={healthInfo.color}>{user.moneyHealth}</span> Money Health
-            </Badge>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1.5 rounded-full"
+                  data-testid="button-money-health"
+                >
+                  <TrendIcon className={`w-3.5 h-3.5 ${healthInfo.color}`} />
+                  <span className={`font-semibold ${healthInfo.color}`}>{user.moneyHealth}</span>
+                  <span className="text-muted-foreground">Money Health</span>
+                  <Info className="w-3 h-3 text-muted-foreground/60" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-sm">
+                <DialogHeader>
+                  <DialogTitle className="text-center">What is Money Health?</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-2">
+                  <p className="text-sm text-muted-foreground text-center">
+                    Your Money Health reflects how you approach financial decisions. It's not about income or net worth.
+                  </p>
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3">
+                      <div className="rounded-full bg-emerald-500/10 p-2 shrink-0">
+                        <Shield className="w-4 h-4 text-emerald-500" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Consistency</p>
+                        <p className="text-xs text-muted-foreground">Playing regularly builds financial awareness</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="rounded-full bg-blue-500/10 p-2 shrink-0">
+                        <Brain className="w-4 h-4 text-blue-500" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Restraint</p>
+                        <p className="text-xs text-muted-foreground">Making thoughtful choices under pressure</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="rounded-full bg-purple-500/10 p-2 shrink-0">
+                        <Heart className="w-4 h-4 text-purple-500" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Reflection</p>
+                        <p className="text-xs text-muted-foreground">Learning from past decisions over time</p>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground text-center italic">
+                    Based on consistency, restraint, and reflection
+                  </p>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {user.streak > 0 && (
+              <Badge variant="outline" className="gap-1" data-testid="badge-streak">
+                <Flame className="w-3 h-3 text-orange-500" />
+                {user.streak} day{user.streak !== 1 ? "s" : ""}
+              </Badge>
+            )}
+
             {user.isProfilePrivate && (
               <Badge variant="outline" className="gap-1" data-testid="badge-private">
                 <EyeOff className="w-3 h-3" />
@@ -230,22 +489,42 @@ export default function Profile() {
               </Badge>
             )}
           </div>
+
+          {/* Whisper line under health */}
+          <p className="text-xs text-muted-foreground/60 italic" data-testid="text-health-whisper">
+            Based on consistency, restraint, and reflection
+          </p>
         </motion.div>
 
+        {/* === REFLECTION LINE === */}
+        {isOwnProfile && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="text-center"
+          >
+            <p className="text-sm text-muted-foreground italic" data-testid="text-reflection">
+              "{reflectionLine}"
+            </p>
+          </motion.div>
+        )}
+
+        {/* === SOCIAL SECTION (own profile) === */}
         {isOwnProfile ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
+            transition={{ delay: 0.15 }}
           >
-            <FloatingCard className="p-4 space-y-3" depth="lg" data-testid="card-share-username">
+            <Card className="p-4 space-y-3" data-testid="card-share-username">
               <div className="flex items-center gap-2 text-sm font-medium">
                 <Users className="w-4 h-4 text-primary" />
-                <span>Share your username to add friends</span>
+                <span>Play better with people who know you</span>
               </div>
-              
+
               <div className="flex gap-2">
-                <Input 
+                <Input
                   value={user.username}
                   readOnly
                   className="font-mono"
@@ -273,20 +552,10 @@ export default function Profile() {
                 </Button>
               </div>
 
-              <p className="text-xs text-muted-foreground" data-testid="text-privacy-status">
-                {user.allowFriendsToFind ? (
-                  <span className="flex items-center gap-1">
-                    <Eye className="w-3 h-3" />
-                    Friends can find you by searching your username
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-1">
-                    <EyeOff className="w-3 h-3" />
-                    Username search is disabled in your privacy settings
-                  </span>
-                )}
+              <p className="text-xs text-muted-foreground" data-testid="text-privacy-hint">
+                You control what others see.
               </p>
-            </FloatingCard>
+            </Card>
           </motion.div>
         ) : (
           <motion.div
@@ -295,7 +564,7 @@ export default function Profile() {
             transition={{ delay: 0.1 }}
             className="flex gap-3"
           >
-            <Button 
+            <Button
               className="flex-1 gap-2"
               onClick={() => navigate("/challenges")}
               data-testid="button-challenge-user"
@@ -303,7 +572,7 @@ export default function Profile() {
               <Swords className="w-4 h-4" />
               Challenge
             </Button>
-            <Button 
+            <Button
               variant="outline"
               className="flex-1 gap-2"
               onClick={() => params.userId && addFriendMutation.mutate(params.userId)}
@@ -320,20 +589,283 @@ export default function Profile() {
           </motion.div>
         )}
 
+        {/* === MONEY PHILOSOPHY (own profile only) === */}
+        {isOwnProfile && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <Card className="p-4 space-y-2" data-testid="card-money-philosophy">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">
+                  Money Philosophy
+                </p>
+                {!editingPhilosophy && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      setPhilosophyDraft(user.moneyPhilosophy || "");
+                      setEditingPhilosophy(true);
+                    }}
+                    data-testid="button-edit-philosophy"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </Button>
+                )}
+              </div>
 
+              <AnimatePresence mode="wait">
+                {editingPhilosophy ? (
+                  <motion.div
+                    key="editing"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="space-y-2"
+                  >
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                      <span>I'm trying to be more mindful about</span>
+                    </div>
+                    <Input
+                      value={philosophyDraft}
+                      onChange={(e) => setPhilosophyDraft(e.target.value.slice(0, 80))}
+                      placeholder="impulse upgrades, subscription creep..."
+                      className="text-sm"
+                      data-testid="input-philosophy"
+                    />
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[10px] text-muted-foreground/50">{philosophyDraft.length}/80</span>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditingPhilosophy(false)}
+                          data-testid="button-cancel-philosophy"
+                        >
+                          <X className="w-3 h-3 mr-1" />
+                          Cancel
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={handleSavePhilosophy}
+                          disabled={updateFieldMutation.isPending}
+                          data-testid="button-save-philosophy"
+                        >
+                          <Save className="w-3 h-3 mr-1" />
+                          Save
+                        </Button>
+                      </div>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <motion.div key="display" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                    {user.moneyPhilosophy ? (
+                      <p className="text-sm italic" data-testid="text-philosophy">
+                        "I'm trying to be more mindful about {user.moneyPhilosophy}"
+                      </p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground/50" data-testid="text-philosophy-empty">
+                        Tap the pencil to set your money philosophy
+                      </p>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* === FRIEND VISIBILITY (own profile only) === */}
+        {isOwnProfile && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+          >
+            <div className="flex items-center justify-between gap-2 px-1" data-testid="control-friend-visibility">
+              <span className="text-sm text-muted-foreground">Friends can see:</span>
+              <Select
+                value={user.friendVisibility || "trend"}
+                onValueChange={(value) => {
+                  updateFieldMutation.mutate({ friendVisibility: value });
+                }}
+              >
+                <SelectTrigger className="w-[140px]" data-testid="select-friend-visibility">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="nothing" data-testid="option-visibility-nothing">Nothing</SelectItem>
+                  <SelectItem value="trend" data-testid="option-visibility-trend">Health trend</SelectItem>
+                  <SelectItem value="streak" data-testid="option-visibility-streak">Streak only</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </motion.div>
+        )}
+
+        {/* === PRIVATE MILESTONES (own profile only) === */}
+        {isOwnProfile && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <Card className="p-4 space-y-3" data-testid="card-milestones">
+              <div className="flex items-center gap-2">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">
+                  Quiet Wins
+                </p>
+                <Badge variant="outline" className="text-[10px]">
+                  <EyeOff className="w-2.5 h-2.5 mr-1" />
+                  Only you
+                </Badge>
+              </div>
+
+              <div className="space-y-2">
+                {milestones.map((m) => {
+                  const MIcon = m.icon;
+                  return (
+                    <motion.div
+                      key={m.id}
+                      className={`flex items-center gap-3 py-1.5 ${m.unlocked ? "" : "opacity-30"}`}
+                      data-testid={`milestone-${m.id}`}
+                    >
+                      <div className={`rounded-full p-1.5 ${m.unlocked ? "bg-primary/10" : "bg-muted"}`}>
+                        <MIcon className={`w-3.5 h-3.5 ${m.unlocked ? "text-primary" : "text-muted-foreground"}`} />
+                      </div>
+                      <span className="text-sm">{m.label}</span>
+                      {m.unlocked && (
+                        <Check className="w-3.5 h-3.5 text-primary ml-auto" />
+                      )}
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* === WHY I'M HERE (own profile only, private) === */}
+        {isOwnProfile && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 }}
+          >
+            <Card className="p-4 space-y-2" data-testid="card-why-here">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">
+                    Why I'm Here
+                  </p>
+                  <Badge variant="outline" className="text-[10px]">
+                    <EyeOff className="w-2.5 h-2.5 mr-1" />
+                    Private
+                  </Badge>
+                </div>
+                {!editingWhyHere && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      setWhyHereDraft(user.whyImHere || "");
+                      setEditingWhyHere(true);
+                    }}
+                    data-testid="button-edit-why-here"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </Button>
+                )}
+              </div>
+
+              <AnimatePresence mode="wait">
+                {editingWhyHere ? (
+                  <motion.div
+                    key="editing"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="space-y-2"
+                  >
+                    <Textarea
+                      value={whyHereDraft}
+                      onChange={(e) => setWhyHereDraft(e.target.value.slice(0, 200))}
+                      placeholder="I use Lifestyle Creep because..."
+                      rows={3}
+                      className="text-sm resize-none"
+                      data-testid="input-why-here"
+                    />
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[10px] text-muted-foreground/50">{whyHereDraft.length}/200</span>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditingWhyHere(false)}
+                          data-testid="button-cancel-why-here"
+                        >
+                          <X className="w-3 h-3 mr-1" />
+                          Cancel
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={handleSaveWhyHere}
+                          disabled={updateFieldMutation.isPending}
+                          data-testid="button-save-why-here"
+                        >
+                          <Save className="w-3 h-3 mr-1" />
+                          Save
+                        </Button>
+                      </div>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <motion.div key="display" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                    {user.whyImHere ? (
+                      <p className="text-sm italic" data-testid="text-why-here">
+                        "{user.whyImHere}"
+                      </p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground/50" data-testid="text-why-here-empty">
+                        Add a private note about why you play
+                      </p>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* === EDIT PROFILE (tertiary) === */}
+        {isOwnProfile && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+          >
+            <Link href="/profile-setup?edit=true" replace>
+              <Button variant="ghost" className="w-full gap-2 text-muted-foreground" data-testid="button-edit-profile">
+                <Settings className="w-4 h-4" />
+                Edit Profile
+              </Button>
+            </Link>
+          </motion.div>
+        )}
+
+        {/* === BOTTOM EMPTY SPACE === */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="space-y-3"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="text-center py-8"
         >
-          <Link href="/profile-setup?edit=true" replace>
-            <Button variant="outline" className="w-full gap-2" data-testid="button-edit-profile">
-              <Settings className="w-4 h-4" />
-              Edit Profile
-            </Button>
-          </Link>
-
+          <div className="w-12 h-px bg-border mx-auto mb-4" />
+          <p className="text-xs text-muted-foreground/40" data-testid="text-profile-grows">
+            This profile grows as you play.
+          </p>
         </motion.div>
       </main>
     </div>
