@@ -221,16 +221,18 @@ export class PostgresStorage implements IStorage {
   async checkUsernameAvailable(username: string, excludeUserId?: string): Promise<boolean> {
     const lowerUsername = username.toLowerCase();
 
-    let query = db
-      .select({ id: appSchema.lifestyleUsers.id })
-      .from(appSchema.lifestyleUsers)
-      .where(sql`LOWER(${appSchema.lifestyleUsers.username}) = ${lowerUsername}`);
+    const conditions = [sql`LOWER(${appSchema.lifestyleUsers.username}) = ${lowerUsername}`];
 
     if (excludeUserId) {
-      query = query.where(sql`${appSchema.lifestyleUsers.id} != ${excludeUserId}`);
+      conditions.push(sql`${appSchema.lifestyleUsers.id} != ${excludeUserId}`);
     }
 
-    const result = await query.limit(1);
+    const result = await db
+      .select({ id: appSchema.lifestyleUsers.id })
+      .from(appSchema.lifestyleUsers)
+      .where(and(...conditions))
+      .limit(1);
+
     return result.length === 0;
   }
 
