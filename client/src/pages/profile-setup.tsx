@@ -42,7 +42,7 @@ export default function ProfileSetup() {
   const { toast } = useToast();
   
   // Check if we're in edit mode (coming from profile page)
-  const isEditMode = location.includes("edit=true");
+  const isEditMode = typeof window !== 'undefined' && window.location.search.includes("edit=true");
   const [debouncedUsername, setDebouncedUsername] = useState("");
 
   const form = useForm<FormData>({
@@ -85,6 +85,19 @@ export default function ProfileSetup() {
     enabled: debouncedUsername.length >= 3,
     staleTime: 5000,
   });
+
+  useEffect(() => {
+    // Populate form with existing user data in edit mode
+    if (user && isEditMode) {
+      form.reset({
+        username: user.username || "",
+        avatar: user.avatar || "cosmic-cat",
+        bio: user.bio || "",
+        allowFriendsToFind: user.allowFriendsToFind ?? true,
+        isProfilePrivate: user.isProfilePrivate ?? false,
+      });
+    }
+  }, [user, isEditMode]);
 
   useEffect(() => {
     // Only redirect if profile is complete AND we're not in edit mode
