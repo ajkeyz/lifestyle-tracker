@@ -1,0 +1,78 @@
+You are a senior product designer + growth-focused frontend engineer working on a consumer fintech app called Lifestyle Creep.
+
+The signup screen already works functionally (Apple, Google, Email auth).
+Your task is to polish, elevate, and optimize this screen for clarity, trust, and conversion without changing core auth logic.
+
+Context
+	•	App theme: minimal, dark, premium, calm, judgment-free
+	•	Core promise: “2 minutes a day to master your money decisions”
+	•	Audience: smart professionals who overspend subtly (subscriptions, lifestyle inflation, impulse upgrades)
+	•	Emotional tone: supportive, non-shaming, quietly confident
+
+Your goals
+	1.	Improve first-impression clarity (what is this? why should I care?)
+	2.	Increase signup conversion
+	3.	Reduce decision anxiety
+	4.	Make the app feel safe, private, and intelligent
+
+⸻
+
+Tasks
+
+1. Headline & Subheadline
+	•	Propose 3 improved headline + subheadline pairs
+	•	Each option should target a different angle:
+	•	Behavioral psychology
+	•	Gamification / streaks
+	•	Long-term wealth identity
+
+2. Microcopy Improvements
+Rewrite or enhance:
+	•	Button labels (Apple / Google / Email)
+	•	“No spam. No judgment.” line
+	•	Privacy / social proof language
+
+Make microcopy:
+	•	Short
+	•	Human
+	•	Reassuring
+	•	Slightly clever, not try-hard
+
+3. Trust & Social Proof
+Add lightweight trust signals that don’t feel salesy, such as:
+	•	Subtle social proof
+	•	Privacy reassurance
+	•	“Used by people like you” framing
+
+Provide exact copy suggestions.
+
+4. Visual / Layout Tweaks (No New Screens)
+Suggest specific UI refinements, such as:
+	•	Spacing, hierarchy, contrast
+	•	Where to place reassurance text
+	•	How to visually reduce friction
+	•	What should be more prominent vs quieter
+
+Do NOT add new flows or screens.
+
+5. Optional Delight (If Appropriate)
+Suggest one small moment of delight (copy, animation, or interaction) that reinforces the brand without hurting seriousness.
+
+⸻
+
+Constraints
+	•	Keep it minimalist
+	•	Do NOT add paywalls or pricing
+	•	Do NOT add long explanations
+	•	Assume mobile-first
+	•	Assume dark mode is default
+
+⸻
+
+Output Format
+	•	Clear sections
+	•	Bullet points
+	•	Exact copy where applicable
+	•	Actionable UI suggestions (not vague advice)
+
+Think like someone trying to make this app feel like “Calm meets Duolingo for money decisions.”
