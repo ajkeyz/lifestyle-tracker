@@ -118,7 +118,7 @@ export default function ProfileSetup() {
           title: "Profile updated",
           description: "Your changes have been saved.",
         });
-        navigate("/profile");
+        navigate("/profile", { replace: true });
       } else {
         navigate("/notifications-setup");
       }
