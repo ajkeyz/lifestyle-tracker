@@ -634,7 +634,7 @@ export class PostgresStorage implements IStorage {
     return result;
   }
 
-  async getLeaderboard(): Promise<LeaderboardEntry[]> {
+  async getLeaderboard(limit: number = 10): Promise<LeaderboardEntry[]> {
     const users = await db
       .select({
         id: appSchema.lifestyleUsers.id,
@@ -644,7 +644,7 @@ export class PostgresStorage implements IStorage {
       })
       .from(appSchema.lifestyleUsers)
       .orderBy(desc(appSchema.lifestyleUsers.moneyHealth))
-      .limit(10);
+      .limit(limit);
 
     return users.map((user, index) => ({
       ...user,

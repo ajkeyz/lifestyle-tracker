@@ -63,7 +63,7 @@ export interface IStorage {
   searchUserByUsername(username: string, excludeUserId?: string): Promise<{ found: boolean; username: string | null; userId: string | null }>;
   getDailyDrop(): Promise<DailyDrop>;
   submitGame(sessionId: string, submission: SubmitGame): Promise<UserGameResult>;
-  getLeaderboard(): Promise<LeaderboardEntry[]>;
+  getLeaderboard(limit?: number): Promise<LeaderboardEntry[]>;
   // League methods
   createLeague(userId: string, data: CreateLeague): Promise<League>;
   getLeague(leagueId: string): Promise<League | undefined>;
@@ -98,6 +98,9 @@ export interface IStorage {
   addComment(userId: string, data: CreateCommunityComment): Promise<CommunityComment>;
   voteComment(userId: string, commentId: string, voteType: "up" | "down"): Promise<CommunityComment | undefined>;
   getRealistOfWeek(userId: string): Promise<CommunityScenario[]>;
+  getTopCreators(limit: number): Promise<any[]>;
+  // Membership methods
+  updateMembershipTier(userId: string, tier: "free" | "plus" | "pro"): Promise<User>;
   // Admin methods
   isAdmin(userId: string): Promise<boolean>;
   isModerator(userId: string): Promise<boolean>;
@@ -702,11 +705,11 @@ export class MemStorage implements IStorage {
     return result;
   }
 
-  async getLeaderboard(): Promise<LeaderboardEntry[]> {
+  async getLeaderboard(limit: number = 10): Promise<LeaderboardEntry[]> {
     const users = Array.from(this.users.values());
     return users
       .sort((a, b) => b.moneyHealth - a.moneyHealth)
-      .slice(0, 10)
+      .slice(0, limit)
       .map((user, index) => ({
         id: user.id,
         username: user.username,
@@ -1442,6 +1445,57 @@ export class MemStorage implements IStorage {
     }
 
     return scenarios.slice(0, 3); // Return top 3
+  }
+
+  async getTopCreators(limit: number = 10): Promise<any[]> {
+    // Calculate scenario counts and total upvotes per creator
+    const creatorStats = new Map<string, { user: User; scenarioCount: number; totalUpvotes: number }>();
+
+    const scenarios = Array.from(this.communityScenarios.values());
+    for (const scenario of scenarios) {
+      const user = this.users.get(scenario.authorId);
+      if (!user) continue;
+
+      // Calculate upvotes for this scenario
+      const votes = Array.from(this.communityVotes.values()).filter(v => v.scenarioId === scenario.id);
+      const upvotes = votes.filter(v => v.type === "up").length;
+
+      const existing = creatorStats.get(scenario.authorId);
+      if (existing) {
+        existing.scenarioCount++;
+        existing.totalUpvotes += upvotes;
+      } else {
+        creatorStats.set(scenario.authorId, {
+          user,
+          scenarioCount: 1,
+          totalUpvotes: upvotes,
+        });
+      }
+    }
+
+    // Convert to array and sort by total upvotes
+    const creators = Array.from(creatorStats.values())
+      .sort((a, b) => b.totalUpvotes - a.totalUpvotes)
+      .slice(0, limit)
+      .map((stats, index) => ({
+        id: stats.user.id,
+        username: stats.user.username,
+        avatar: stats.user.avatar,
+        scenarioCount: stats.scenarioCount,
+        totalUpvotes: stats.totalUpvotes,
+        rank: index + 1,
+      }));
+
+    return creators;
+  }
+
+  async updateMembershipTier(userId: string, tier: "free" | "plus" | "pro"): Promise<User> {
+    const user = this.users.get(userId);
+    if (!user) throw new Error("User not found");
+
+    user.membershipTier = tier;
+    this.users.set(userId, user);
+    return user;
   }
 
   // Admin methods implementation
