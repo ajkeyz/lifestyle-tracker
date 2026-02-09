@@ -132,6 +132,8 @@ export interface User {
   referralCount: number;
   friendIds: string[];
   membershipTier: "free" | "plus" | "pro";
+  arcadePlaysToday: number;
+  arcadeLastPlayedDate: string | null;
 }
 
 export interface NotificationPrefs {
@@ -193,9 +195,40 @@ export const submitGameSchema = z.object({
   })),
 });
 
+export const submitArcadeGameSchema = z.object({
+  arcadeDropId: z.string(),
+  answers: z.array(z.object({
+    scenarioId: z.string(),
+    choiceLabel: z.string(),
+  })),
+});
+
+export interface ArcadeGameResult {
+  score: number;
+  correctAnswers: number;
+  totalQuestions: number;
+  playsUsedToday: number;
+  playsRemaining: number;
+}
+
+export interface ArcadeStatus {
+  playsUsedToday: number;
+  maxPlaysToday: number;
+  playsRemaining: number;
+  canPlay: boolean;
+  membershipTier: "free" | "plus" | "pro";
+}
+
+export const ARCADE_LIMITS: Record<"free" | "plus" | "pro", number> = {
+  free: 1,
+  plus: 3,
+  pro: 999,
+};
+
 export type CreateUser = z.infer<typeof createUserSchema>;
 export type SubmitAnswer = z.infer<typeof submitAnswerSchema>;
 export type SubmitGame = z.infer<typeof submitGameSchema>;
+export type SubmitArcadeGame = z.infer<typeof submitArcadeGameSchema>;
 
 // League types
 export interface LeagueMember {

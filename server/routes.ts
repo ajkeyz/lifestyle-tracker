@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import webpush from "web-push";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
-import { submitGameSchema, setModeSchema, updateProfileSchema, createLeagueSchema, joinLeagueSchema, createChallengeSchema, addFreezeTokenSchema, adminScenarioSchema, banUserSchema, addModeratorSchema, joinCoopSessionSchema, type CoopMessage } from "@shared/schema";
+import { submitGameSchema, setModeSchema, updateProfileSchema, createLeagueSchema, joinLeagueSchema, createChallengeSchema, addFreezeTokenSchema, adminScenarioSchema, banUserSchema, addModeratorSchema, joinCoopSessionSchema, submitArcadeGameSchema, type CoopMessage } from "@shared/schema";
 
 // VAPID keys for push notifications (must be set via environment variables)
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
@@ -1145,6 +1145,52 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error sending reminders:", error);
       res.status(500).json({ error: "Failed to send reminders" });
+    }
+  });
+
+  // ==================== ARCADE MODE ROUTES ====================
+
+  app.get("/api/arcade-status", async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const status = await storage.getArcadeStatus(sessionId);
+      res.json(status);
+    } catch (error) {
+      console.error("Error getting arcade status:", error);
+      res.status(500).json({ error: "Failed to get arcade status" });
+    }
+  });
+
+  app.get("/api/arcade-drop", async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const status = await storage.getArcadeStatus(sessionId);
+      if (!status.canPlay) {
+        return res.status(403).json({ error: "Arcade play limit reached", status });
+      }
+      const drop = await storage.getArcadeDrop(sessionId);
+      res.json(drop);
+    } catch (error) {
+      console.error("Error getting arcade drop:", error);
+      res.status(500).json({ error: "Failed to get arcade drop" });
+    }
+  });
+
+  app.post("/api/submit-arcade", async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const parsed = submitArcadeGameSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid submission", details: parsed.error.errors });
+      }
+      const result = await storage.submitArcadeGame(sessionId, parsed.data);
+      res.json(result);
+    } catch (error: any) {
+      if (error.message === "Arcade play limit reached for today") {
+        return res.status(403).json({ error: error.message });
+      }
+      console.error("Error submitting arcade game:", error);
+      res.status(500).json({ error: "Failed to submit arcade game" });
     }
   });
 

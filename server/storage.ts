@@ -6,6 +6,9 @@ import type {
   Scenario,
   LeaderboardEntry,
   SubmitGame,
+  SubmitArcadeGame,
+  ArcadeGameResult,
+  ArcadeStatus,
   GameMode,
   League,
   LeagueMember,
@@ -32,9 +35,9 @@ import type {
   CoopPlayer,
   CoopGameResult,
 } from "@shared/schema";
-import { BADGE_DEFINITIONS, defaultNotificationPrefs, defaultStreakInsurance } from "@shared/schema";
+import { BADGE_DEFINITIONS, ARCADE_LIMITS, defaultNotificationPrefs, defaultStreakInsurance } from "@shared/schema";
 import { randomUUID } from "crypto";
-import { getDailyScenarios } from "./static-scenarios";
+import { getDailyScenarios, getArcadeScenarios } from "./static-scenarios";
 
 function getTodayDateString(): string {
   return new Date().toISOString().split("T")[0];
@@ -136,6 +139,10 @@ export interface IStorage {
   updateCoopSession(sessionId: string, updates: Partial<CoopSession>): Promise<CoopSession | undefined>;
   submitCoopAnswer(sessionId: string, playerId: string, scenarioId: string, choiceLabel: string): Promise<CoopSession | undefined>;
   getCoopGameResult(sessionId: string): Promise<CoopGameResult | undefined>;
+  // Arcade mode methods
+  getArcadeDrop(userId: string): Promise<DailyDrop>;
+  submitArcadeGame(userId: string, submission: SubmitArcadeGame): Promise<ArcadeGameResult>;
+  getArcadeStatus(userId: string): Promise<ArcadeStatus>;
 }
 
 interface PushSubscriptionJSON {
@@ -454,6 +461,8 @@ export class MemStorage implements IStorage {
         referralCount: 0,
         friendIds: [],
         membershipTier: "free" as const,
+        arcadePlaysToday: 0,
+        arcadeLastPlayedDate: null,
       });
     });
   }
@@ -501,6 +510,8 @@ export class MemStorage implements IStorage {
         referralCount: 0,
         friendIds: [],
         membershipTier: "free" as const,
+        arcadePlaysToday: 0,
+        arcadeLastPlayedDate: null,
       };
       this.users.set(sessionId, user);
     }
@@ -1875,6 +1886,102 @@ export class MemStorage implements IStorage {
       players: playerResults,
       totalQuestions: scenarios.length,
       winner,
+    };
+  }
+
+  // Arcade mode methods
+  async getArcadeDrop(userId: string): Promise<DailyDrop> {
+    const user = await this.getOrCreateUser(userId);
+    const today = getTodayDateString();
+    const dayNumber = getDayNumber();
+
+    // Reset arcade plays if it's a new day
+    if (user.arcadeLastPlayedDate !== today) {
+      user.arcadePlaysToday = 0;
+      user.arcadeLastPlayedDate = today;
+      this.users.set(userId, user);
+    }
+
+    const arcadeGameIndex = user.arcadePlaysToday;
+    const scenarios = getArcadeScenarios(dayNumber, arcadeGameIndex);
+    const shuffledScenarios = scenarios.map(scenario =>
+      shuffleScenarioChoices(scenario, today + "-arcade-" + arcadeGameIndex)
+    );
+
+    return {
+      id: `arcade-${today}-${arcadeGameIndex}`,
+      dropNumber: dayNumber,
+      date: today,
+      scenarios: shuffledScenarios,
+    };
+  }
+
+  async submitArcadeGame(userId: string, submission: SubmitArcadeGame): Promise<ArcadeGameResult> {
+    const user = await this.getOrCreateUser(userId);
+    const today = getTodayDateString();
+
+    // Reset arcade plays if it's a new day
+    if (user.arcadeLastPlayedDate !== today) {
+      user.arcadePlaysToday = 0;
+      user.arcadeLastPlayedDate = today;
+    }
+
+    const maxPlays = ARCADE_LIMITS[user.membershipTier] || 1;
+    if (user.arcadePlaysToday >= maxPlays) {
+      throw new Error("Arcade play limit reached for today");
+    }
+
+    // Parse the arcade drop ID to get the game index
+    const parts = submission.arcadeDropId.split("-");
+    const arcadeGameIndex = parseInt(parts[parts.length - 1]) || 0;
+    const dayNumber = getDayNumber();
+    const scenarios = getArcadeScenarios(dayNumber, arcadeGameIndex);
+
+    let totalScore = 0;
+    let correctAnswers = 0;
+    for (const answer of submission.answers) {
+      const scenario = scenarios.find(s => s.id === answer.scenarioId);
+      if (!scenario) continue;
+      const choice = scenario.choices.find(c => c.label === answer.choiceLabel);
+      if (choice) {
+        totalScore += choice.points;
+        if (choice.isCorrect) correctAnswers++;
+      }
+    }
+
+    user.arcadePlaysToday += 1;
+    user.arcadeLastPlayedDate = today;
+    this.users.set(userId, user);
+
+    const playsRemaining = Math.max(0, maxPlays - user.arcadePlaysToday);
+
+    return {
+      score: totalScore,
+      correctAnswers,
+      totalQuestions: scenarios.length,
+      playsUsedToday: user.arcadePlaysToday,
+      playsRemaining,
+    };
+  }
+
+  async getArcadeStatus(userId: string): Promise<ArcadeStatus> {
+    const user = await this.getOrCreateUser(userId);
+    const today = getTodayDateString();
+
+    let playsToday = user.arcadePlaysToday;
+    if (user.arcadeLastPlayedDate !== today) {
+      playsToday = 0;
+    }
+
+    const maxPlays = ARCADE_LIMITS[user.membershipTier] || 1;
+    const playsRemaining = Math.max(0, maxPlays - playsToday);
+
+    return {
+      playsUsedToday: playsToday,
+      maxPlaysToday: maxPlays,
+      playsRemaining,
+      canPlay: playsRemaining > 0,
+      membershipTier: user.membershipTier,
     };
   }
 }

@@ -32,6 +32,7 @@ import {
   ChevronRight,
   Users,
   Swords,
+  Gamepad2,
   Award,
   CalendarDays,
   Settings,
@@ -421,6 +422,32 @@ export default function Home() {
                   <div>
                     <h3 className="font-semibold">Play with a Friend</h3>
                     <p className="text-xs text-muted-foreground">Challenge a friend to today&apos;s drop in real-time</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-5 h-5 text-muted-foreground" />
+              </div>
+            </Card>
+            </motion.div>
+
+            {/* Arcade Mode */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.14, ease: "easeOut" }}
+            >
+            <Card 
+              className="p-4 cursor-pointer hover-elevate border-purple-500/20 bg-gradient-to-r from-purple-500/5 to-pink-500/5" 
+              onClick={() => navigate("/arcade")}
+              data-testid="card-arcade"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                    <Gamepad2 className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">Arcade Mode</h3>
+                    <p className="text-xs text-muted-foreground">Play extra rounds with different scenarios</p>
                   </div>
                 </div>
                 <ChevronRight className="w-5 h-5 text-muted-foreground" />

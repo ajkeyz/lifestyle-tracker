@@ -69,6 +69,10 @@ export const lifestyleUsers = pgTable("lifestyle_users", {
   // Membership
   membershipTier: varchar("membership_tier", { length: 20 }).notNull().default("free"), // free, plus, pro
 
+  // Arcade Mode
+  arcadePlaysToday: integer("arcade_plays_today").notNull().default(0),
+  arcadeLastPlayedDate: varchar("arcade_last_played_date", { length: 50 }),
+
   // Timestamps
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

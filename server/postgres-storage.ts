@@ -9,6 +9,9 @@ import type {
   UserGameResult,
   LeaderboardEntry,
   SubmitGame,
+  SubmitArcadeGame,
+  ArcadeGameResult,
+  ArcadeStatus,
   League,
   CreateLeague,
   Challenge,
@@ -31,8 +34,8 @@ import type {
   GameHistoryEntry,
   CategoryStats,
 } from "@shared/schema";
-import { defaultNotificationPrefs, defaultStreakInsurance, BADGE_DEFINITIONS } from "@shared/schema";
-import { getDailyScenarios } from "./static-scenarios";
+import { defaultNotificationPrefs, defaultStreakInsurance, BADGE_DEFINITIONS, ARCADE_LIMITS } from "@shared/schema";
+import { getDailyScenarios, getArcadeScenarios } from "./static-scenarios";
 
 // Helper functions
 function getTodayDateString(): string {
@@ -196,6 +199,8 @@ export class PostgresStorage implements IStorage {
       referralCount: 0,
       friendIds: [],
       membershipTier: "free" as const,
+      arcadePlaysToday: 0,
+      arcadeLastPlayedDate: null,
     };
 
     await db.insert(appSchema.lifestyleUsers).values(newUser);
@@ -435,6 +440,8 @@ export class PostgresStorage implements IStorage {
       referralCount: dbUser.referralCount,
       friendIds: dbUser.friendIds || [],
       membershipTier,
+      arcadePlaysToday: dbUser.arcadePlaysToday || 0,
+      arcadeLastPlayedDate: dbUser.arcadeLastPlayedDate || null,
     };
   }
 
@@ -2392,6 +2399,116 @@ export class PostgresStorage implements IStorage {
       players: playerResults,
       totalQuestions: drop.scenarios.length,
       winner,
+    };
+  }
+
+  // ============================================
+  // ARCADE MODE OPERATIONS
+  // ============================================
+
+  async getArcadeDrop(userId: string): Promise<DailyDrop> {
+    const user = await this.getOrCreateUser(userId);
+    const today = getTodayDateString();
+    const dayNumber = getDayNumber();
+
+    // Reset arcade plays if it's a new day
+    let arcadePlaysToday = user.arcadePlaysToday || 0;
+    if (user.arcadeLastPlayedDate !== today) {
+      arcadePlaysToday = 0;
+      await db
+        .update(appSchema.lifestyleUsers)
+        .set({ arcadePlaysToday: 0, arcadeLastPlayedDate: today })
+        .where(eq(appSchema.lifestyleUsers.id, userId));
+    }
+
+    const arcadeGameIndex = arcadePlaysToday;
+    const scenarios = getArcadeScenarios(dayNumber, arcadeGameIndex);
+    const shuffledScenarios = scenarios.map(scenario =>
+      shuffleScenarioChoices(scenario, today + "-arcade-" + arcadeGameIndex)
+    );
+
+    return {
+      id: `arcade-${today}-${arcadeGameIndex}`,
+      dropNumber: dayNumber,
+      date: today,
+      scenarios: shuffledScenarios,
+    };
+  }
+
+  async submitArcadeGame(userId: string, submission: SubmitArcadeGame): Promise<ArcadeGameResult> {
+    const user = await this.getOrCreateUser(userId);
+    const today = getTodayDateString();
+
+    // Reset arcade plays if it's a new day
+    let arcadePlaysToday = user.arcadePlaysToday || 0;
+    if (user.arcadeLastPlayedDate !== today) {
+      arcadePlaysToday = 0;
+    }
+
+    const membershipTier = user.membershipTier || "free";
+    const maxPlays = ARCADE_LIMITS[membershipTier] || 1;
+    if (arcadePlaysToday >= maxPlays) {
+      throw new Error("Arcade play limit reached for today");
+    }
+
+    // Parse the arcade drop ID to get the game index
+    const parts = submission.arcadeDropId.split("-");
+    const arcadeGameIndex = parseInt(parts[parts.length - 1]) || 0;
+    const dayNumber = getDayNumber();
+    const scenarios = getArcadeScenarios(dayNumber, arcadeGameIndex);
+
+    let totalScore = 0;
+    let correctAnswers = 0;
+    for (const answer of submission.answers) {
+      const scenario = scenarios.find(s => s.id === answer.scenarioId);
+      if (!scenario) continue;
+      const choice = scenario.choices.find(c => c.label === answer.choiceLabel);
+      if (choice) {
+        totalScore += choice.points;
+        if (choice.isCorrect) correctAnswers++;
+      }
+    }
+
+    const newPlaysToday = arcadePlaysToday + 1;
+    await db
+      .update(appSchema.lifestyleUsers)
+      .set({
+        arcadePlaysToday: newPlaysToday,
+        arcadeLastPlayedDate: today,
+        updatedAt: new Date(),
+      })
+      .where(eq(appSchema.lifestyleUsers.id, userId));
+
+    const playsRemaining = Math.max(0, maxPlays - newPlaysToday);
+
+    return {
+      score: totalScore,
+      correctAnswers,
+      totalQuestions: scenarios.length,
+      playsUsedToday: newPlaysToday,
+      playsRemaining,
+    };
+  }
+
+  async getArcadeStatus(userId: string): Promise<ArcadeStatus> {
+    const user = await this.getOrCreateUser(userId);
+    const today = getTodayDateString();
+
+    let playsToday = user.arcadePlaysToday || 0;
+    if (user.arcadeLastPlayedDate !== today) {
+      playsToday = 0;
+    }
+
+    const membershipTier = user.membershipTier || "free";
+    const maxPlays = ARCADE_LIMITS[membershipTier] || 1;
+    const playsRemaining = Math.max(0, maxPlays - playsToday);
+
+    return {
+      playsUsedToday: playsToday,
+      maxPlaysToday: maxPlays,
+      playsRemaining,
+      canPlay: playsRemaining > 0,
+      membershipTier,
     };
   }
 }

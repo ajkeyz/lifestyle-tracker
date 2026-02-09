@@ -41,6 +41,8 @@ import Friends from "@/pages/friends";
 import CoopLobby from "@/pages/coop-lobby";
 import CoopGame from "@/pages/coop-game";
 import CoopResults from "@/pages/coop-results";
+import ArcadePage from "@/pages/arcade";
+import ArcadeResults from "@/pages/arcade-results";
 import Terms from "@/pages/terms";
 import Privacy from "@/pages/privacy";
 import NotFound from "@/pages/not-found";
@@ -90,6 +92,8 @@ function AuthenticatedRouter() {
         <Route path="/coop-lobby" component={CoopLobby} />
         <Route path="/coop-game/:sessionId" component={CoopGame} />
         <Route path="/coop-results/:sessionId" component={CoopResults} />
+        <Route path="/arcade" component={ArcadePage} />
+        <Route path="/arcade-results" component={ArcadeResults} />
         <Route path="/terms" component={Terms} />
         <Route path="/privacy" component={Privacy} />
         <Route component={NotFound} />

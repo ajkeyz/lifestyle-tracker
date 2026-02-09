@@ -84,6 +84,8 @@ Key pages:
 - Co-op Lobby (`/coop-lobby`) - Create or join a co-op game session with 6-character code
 - Co-op Game (`/coop-game/:sessionId`) - Play with a friend in real-time with synchronized timer and WebSocket updates
 - Co-op Results (`/coop-results/:sessionId`) - View shared results showing both players' scores and winner
+- Arcade (`/arcade`) - Replayable game mode with different scenarios, tier-based daily play limits (free=1, plus=3, pro=unlimited)
+- Arcade Results (`/arcade-results`) - Score breakdown after arcade game with play-again option
 
 ### Backend Architecture
 - **Framework**: Express 5 on Node.js
@@ -132,6 +134,9 @@ Key endpoints:
 - `POST /api/coop/session/:sessionId/next` - Move to next question (both must answer)
 - `GET /api/coop/session/:sessionId/result` - Get co-op game results
 - WebSocket `/ws` - Real-time co-op game synchronization
+- `GET /api/arcade-status` - Get arcade play limits and remaining plays
+- `GET /api/arcade-drop` - Fetch arcade scenarios (different from daily drop)
+- `POST /api/submit-arcade` - Submit arcade game answers
 
 ### Data Storage
 - **ORM**: Drizzle ORM with PostgreSQL dialect

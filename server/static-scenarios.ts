@@ -1195,6 +1195,14 @@ export function getDailyScenarios(dayNumber: number): Scenario[] {
   return staticScenarioSets[dayIndex] || staticScenarioSets[0];
 }
 
+export function getArcadeScenarios(dayNumber: number, arcadeGameIndex: number): Scenario[] {
+  const totalSets = staticScenarioSets.length;
+  const dailyIndex = (dayNumber - 1) % totalSets;
+  // Pick a different set from today's daily drop using the arcade game index as offset
+  const arcadeIndex = (dailyIndex + arcadeGameIndex + 1) % totalSets;
+  return staticScenarioSets[arcadeIndex] || staticScenarioSets[0];
+}
+
 export function getDropNumber(): number {
   // Calculate days since a reference date (Jan 1, 2024)
   const referenceDate = new Date('2024-01-01');
