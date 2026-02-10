@@ -487,18 +487,12 @@ export class PostgresStorage implements IStorage {
       const mysteryScenarios = getDailyScenarios(mysteryDayIndex + 1);
       const mysteryScenario = mysteryScenarios[Math.floor(Math.random() * mysteryScenarios.length)];
 
-      // Make it worth 150 points (50% bonus)
       const enhancedMystery = {
         ...mysteryScenario,
-        id: crypto.randomUUID(), // New ID to avoid conflicts
-        choices: mysteryScenario.choices.map(choice => ({
-          ...choice,
-          points: Math.round(choice.points * 1.5), // 150pts max instead of 100
-        })),
+        id: crypto.randomUUID(),
       };
 
       shuffledScenarios.push(shuffleScenarioChoices(enhancedMystery, today));
-      console.log(`🎉 Mystery Friday! Added bonus scenario worth 150pts`);
     }
 
     const newDrop: DailyDrop = {
@@ -543,7 +537,6 @@ export class PostgresStorage implements IStorage {
         const isCorrect = choice?.isCorrect || false;
 
         if (choice) {
-          totalScore += choice.points;
           if (isCorrect) correctCount++;
         }
         answerLabels.push(answer.choiceLabel);
@@ -555,10 +548,10 @@ export class PostgresStorage implements IStorage {
       }
     });
 
-    const maxScore = drop.scenarios.length * 100;
-    const iq = Math.max(0, Math.min(500, Math.round((totalScore / maxScore) * 500 + 250)));
+    totalScore = correctCount * 100;
     const accuracy = correctCount / drop.scenarios.length;
-    const moneyHealth = Math.max(0, Math.min(100, Math.round(50 + accuracy * 50)));
+    const iq = totalScore;
+    const moneyHealth = Math.max(0, Math.min(100, Math.round(accuracy * 100)));
 
     const newStats: UserStats = {
       cash: Math.max(0, user.stats.cash + totalScore * 2),
@@ -2368,7 +2361,7 @@ export class PostgresStorage implements IStorage {
         return {
           ...p,
           answers: { ...p.answers, [scenarioId]: choiceLabel },
-          score: p.score + choice.points,
+          score: p.score + (choice.isCorrect ? 100 : 0),
         };
       }
       return p;
@@ -2496,17 +2489,14 @@ export class PostgresStorage implements IStorage {
     const dayNumber = getDayNumber();
     const scenarios = getArcadeScenarios(dayNumber, arcadeGameIndex);
 
-    let totalScore = 0;
     let correctAnswers = 0;
     for (const answer of submission.answers) {
       const scenario = scenarios.find(s => s.id === answer.scenarioId);
       if (!scenario) continue;
       const choice = scenario.choices.find(c => c.label === answer.choiceLabel);
-      if (choice) {
-        totalScore += choice.points;
-        if (choice.isCorrect) correctAnswers++;
-      }
+      if (choice && choice.isCorrect) correctAnswers++;
     }
+    const totalScore = correctAnswers * 100;
 
     let newPlaysToday = arcadePlaysToday;
     if (isNewGameUnlock) {

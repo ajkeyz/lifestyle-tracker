@@ -7,7 +7,7 @@ Lifestyle Creep is a daily money decision game inspired by Wordle. Players face 
 Core gameplay loop:
 - Daily drops with 5 financial scenarios (same for all players)
 - Multiple choice answers with 20-second timer per question
-- Scoring based on financial wisdom (Money Health, IQ)
+- Scoring: each correct answer = 100 points (score = correctCount × 100, max 500)
 - Streak tracking and social leaderboards
 - Share results in Wordle-style format
 

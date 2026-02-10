@@ -603,7 +603,6 @@ export class MemStorage implements IStorage {
         const isCorrect = choice?.isCorrect || false;
         
         if (choice) {
-          totalScore += choice.points;
           if (isCorrect) correctCount++;
         }
         answerLabels.push(answer.choiceLabel);
@@ -615,10 +614,10 @@ export class MemStorage implements IStorage {
       }
     });
 
-    const maxScore = drop.scenarios.length * 100;
-    const iq = Math.max(0, Math.min(500, Math.round((totalScore / maxScore) * 500 + 250)));
+    totalScore = correctCount * 100;
     const accuracy = correctCount / drop.scenarios.length;
-    const moneyHealth = Math.max(0, Math.min(100, Math.round(50 + accuracy * 50)));
+    const iq = totalScore;
+    const moneyHealth = Math.max(0, Math.min(100, Math.round(accuracy * 100)));
 
     const newStats: UserStats = {
       cash: Math.max(0, user.stats.cash + totalScore * 2),
@@ -1845,11 +1844,10 @@ export class MemStorage implements IStorage {
     if (!scenario) return undefined;
 
     const choice = scenario.choices.find(c => c.label === choiceLabel);
-    const points = choice?.points || 0;
 
     // Update player's answer
     session.players[playerIndex].answers[scenarioId] = choiceLabel;
-    session.players[playerIndex].score += points;
+    session.players[playerIndex].score += (choice?.isCorrect ? 100 : 0);
 
     this.coopSessions.set(sessionId, session);
     return session;
@@ -1953,17 +1951,14 @@ export class MemStorage implements IStorage {
     const dayNumber = getDayNumber();
     const scenarios = getArcadeScenarios(dayNumber, arcadeGameIndex);
 
-    let totalScore = 0;
     let correctAnswers = 0;
     for (const answer of submission.answers) {
       const scenario = scenarios.find(s => s.id === answer.scenarioId);
       if (!scenario) continue;
       const choice = scenario.choices.find(c => c.label === answer.choiceLabel);
-      if (choice) {
-        totalScore += choice.points;
-        if (choice.isCorrect) correctAnswers++;
-      }
+      if (choice && choice.isCorrect) correctAnswers++;
     }
+    const totalScore = correctAnswers * 100;
 
     if (isNewGameUnlock) {
       user.arcadePlaysToday += 1;
