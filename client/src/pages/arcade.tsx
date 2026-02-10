@@ -173,6 +173,7 @@ export default function Arcade() {
       setTimerRunning(true);
       playedWarnings.current.clear();
       play("whoosh");
+      window.scrollTo(0, 0);
     }
   }, [currentIndex, totalScenarios, play]);
 

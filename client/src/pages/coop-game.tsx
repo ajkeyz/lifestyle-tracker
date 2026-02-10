@@ -237,6 +237,7 @@ export default function CoopGame() {
 
   const handleNext = useCallback(() => {
     nextQuestionMutation.mutate();
+    window.scrollTo(0, 0);
   }, [nextQuestionMutation]);
 
   const bothAnswered = effectiveLocalAnswered && effectivePartnerAnswered;
