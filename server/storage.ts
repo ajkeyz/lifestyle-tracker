@@ -705,6 +705,8 @@ export class MemStorage implements IStorage {
       }
     });
 
+    const hadPrevStreak = user.hadPreviousStreak || (user.streak > 0 && newStreak === 1 && !playedYesterday && !wasFrozenYesterday);
+
     await this.updateUser(sessionId, {
       streak: newStreak,
       highestStreak: newHighestStreak,
@@ -717,6 +719,13 @@ export class MemStorage implements IStorage {
       todayResult: result,
       gameHistory: newGameHistory,
       categoryStats: newCategoryStats,
+      hadPreviousStreak: hadPrevStreak,
+    });
+
+    await this.computeAndUpdateAllBadges(sessionId, {
+      correctCount,
+      totalQuestions: drop.scenarios.length,
+      categoryResults,
     });
 
     return result;
@@ -1107,6 +1116,56 @@ export class MemStorage implements IStorage {
     }
     
     return user.badges;
+  }
+
+  private async computeAndUpdateAllBadges(
+    userId: string,
+    gameData: {
+      correctCount: number;
+      totalQuestions: number;
+      categoryResults: Map<string, { correct: number; total: number }>;
+    }
+  ): Promise<void> {
+    const user = await this.getUser(userId);
+    if (!user) {
+      console.log("[BADGES] User not found for badge update:", userId);
+      return;
+    }
+
+    console.log("[BADGES] Computing badges for user:", userId, "gamesPlayed:", user.gamesPlayed, "totalScore:", user.totalScore, "streak:", user.streak);
+
+    const spendingCategories = ["budgeting", "saving", "debt", "lifestyle", "credit"];
+    const spendingCorrect = (user.categoryStats || [])
+      .filter(c => spendingCategories.includes(c.category))
+      .reduce((sum, c) => sum + c.correctAnswers, 0);
+    await this.updateBadgeProgress(userId, "no_spend_ninja", spendingCorrect);
+
+    await this.updateBadgeProgress(userId, "credit_climber", user.totalScore);
+
+    await this.updateBadgeProgress(userId, "emergency_fund_builder", user.gamesPlayed);
+
+    const scamResults = gameData.categoryResults.get("scam");
+    let newScamStreak = user.scamStreak;
+    if (scamResults) {
+      if (scamResults.correct === scamResults.total && scamResults.total > 0) {
+        newScamStreak += scamResults.correct;
+      } else {
+        newScamStreak = 0;
+      }
+    }
+    await this.updateUser(userId, { scamStreak: newScamStreak });
+    await this.updateBadgeProgress(userId, "scam_spotter", newScamStreak);
+
+    const isPerfect = gameData.correctCount === gameData.totalQuestions && gameData.totalQuestions > 0;
+    const newPerfectGames = isPerfect ? user.perfectGames + 1 : user.perfectGames;
+    await this.updateUser(userId, { perfectGames: newPerfectGames });
+    await this.updateBadgeProgress(userId, "budget_sniper", newPerfectGames);
+
+    await this.updateBadgeProgress(userId, "streak_monster", user.streak);
+
+    if (user.hadPreviousStreak) {
+      await this.updateBadgeProgress(userId, "comeback_king", user.streak);
+    }
   }
 
   async updateBadgeProgress(userId: string, badgeId: BadgeId, progress: number): Promise<UserBadge | undefined> {
@@ -1956,6 +2015,7 @@ export class MemStorage implements IStorage {
 
     let correctAnswers = 0;
     let totalScore = 0;
+    const categoryResults: Map<string, { correct: number; total: number }> = new Map();
     for (const answer of submission.answers) {
       const scenario = scenarios.find(s => s.id === answer.scenarioId);
       if (!scenario) continue;
@@ -1966,22 +2026,60 @@ export class MemStorage implements IStorage {
           totalScore += Math.max(0, choice.points);
         }
       }
+      const catStats = categoryResults.get(scenario.category) || { correct: 0, total: 0 };
+      catStats.total++;
+      if (choice?.isCorrect) catStats.correct++;
+      categoryResults.set(scenario.category, catStats);
     }
     totalScore = Math.max(0, totalScore);
 
-    if (isNewGameUnlock) {
-      user.arcadePlaysToday += 1;
-      user.arcadeLastPlayedDate = today;
-      this.users.set(userId, user);
+    const newPlaysToday = isNewGameUnlock ? user.arcadePlaysToday + 1 : user.arcadePlaysToday;
+
+    const newCategoryStats = [...(user.categoryStats || [])];
+    const categoryEntries = Array.from(categoryResults.entries());
+    for (const [category, stats] of categoryEntries) {
+      const existingIndex = newCategoryStats.findIndex(c => c.category === category);
+      if (existingIndex >= 0) {
+        const existing = newCategoryStats[existingIndex];
+        const newTotal = existing.totalQuestions + stats.total;
+        const newCorrect = existing.correctAnswers + stats.correct;
+        newCategoryStats[existingIndex] = {
+          category,
+          totalQuestions: newTotal,
+          correctAnswers: newCorrect,
+          accuracy: newTotal > 0 ? Math.round((newCorrect / newTotal) * 100) : 0,
+        };
+      } else {
+        newCategoryStats.push({
+          category,
+          totalQuestions: stats.total,
+          correctAnswers: stats.correct,
+          accuracy: stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0,
+        });
+      }
     }
 
-    const playsRemaining = Math.max(0, maxPlays - user.arcadePlaysToday);
+    await this.updateUser(userId, {
+      arcadePlaysToday: newPlaysToday,
+      arcadeLastPlayedDate: today,
+      gamesPlayed: user.gamesPlayed + 1,
+      totalScore: user.totalScore + totalScore,
+      categoryStats: newCategoryStats,
+    });
+
+    await this.computeAndUpdateAllBadges(userId, {
+      correctCount: correctAnswers,
+      totalQuestions: scenarios.length,
+      categoryResults,
+    });
+
+    const playsRemaining = Math.max(0, maxPlays - newPlaysToday);
 
     return {
       score: totalScore,
       correctAnswers,
       totalQuestions: scenarios.length,
-      playsUsedToday: user.arcadePlaysToday,
+      playsUsedToday: newPlaysToday,
       playsRemaining,
     };
   }

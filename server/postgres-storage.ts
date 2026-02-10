@@ -537,7 +537,10 @@ export class PostgresStorage implements IStorage {
         const isCorrect = choice?.isCorrect || false;
 
         if (choice) {
-          if (isCorrect) correctCount++;
+          if (isCorrect) {
+            correctCount++;
+            totalScore += Math.max(0, choice.points);
+          }
         }
         answerLabels.push(answer.choiceLabel);
 
@@ -548,7 +551,7 @@ export class PostgresStorage implements IStorage {
       }
     });
 
-    totalScore = correctCount * 100;
+    totalScore = Math.max(0, totalScore);
     const accuracy = correctCount / drop.scenarios.length;
     const iq = totalScore;
     const moneyHealth = Math.max(0, Math.min(100, Math.round(accuracy * 100)));
@@ -648,6 +651,12 @@ export class PostgresStorage implements IStorage {
       todayResult: result,
       gameHistory: newGameHistory,
       categoryStats: newCategoryStats,
+    });
+
+    await this.computeAndUpdateAllBadges(sessionId, {
+      correctCount,
+      totalQuestions: drop.scenarios.length,
+      categoryResults,
     });
 
     return result;
@@ -1107,7 +1116,78 @@ export class PostgresStorage implements IStorage {
     const user = await this.getUser(userId);
     if (!user) return [];
 
+    const allZero = user.badges.every(b => b.progress === 0);
+    if (allZero && user.gamesPlayed > 0) {
+      await this.recomputeBadgeProgress(userId);
+      const updated = await this.getUser(userId);
+      return updated?.badges || user.badges;
+    }
+
     return user.badges;
+  }
+
+  private async recomputeBadgeProgress(userId: string): Promise<void> {
+    const user = await this.getUser(userId);
+    if (!user) return;
+
+    const spendingCategories = ["budgeting", "saving", "debt", "lifestyle", "credit"];
+    const spendingCorrect = (user.categoryStats || [])
+      .filter(c => spendingCategories.includes(c.category))
+      .reduce((sum, c) => sum + c.correctAnswers, 0);
+    await this.updateBadgeProgress(userId, "no_spend_ninja", spendingCorrect);
+    await this.updateBadgeProgress(userId, "credit_climber", user.totalScore);
+    await this.updateBadgeProgress(userId, "emergency_fund_builder", user.gamesPlayed);
+    await this.updateBadgeProgress(userId, "scam_spotter", user.scamStreak);
+    await this.updateBadgeProgress(userId, "budget_sniper", user.perfectGames);
+    await this.updateBadgeProgress(userId, "streak_monster", user.streak);
+    if (user.hadPreviousStreak) {
+      await this.updateBadgeProgress(userId, "comeback_king", user.streak);
+    }
+  }
+
+  private async computeAndUpdateAllBadges(
+    userId: string,
+    gameData: {
+      correctCount: number;
+      totalQuestions: number;
+      categoryResults: Map<string, { correct: number; total: number }>;
+    }
+  ): Promise<void> {
+    const user = await this.getUser(userId);
+    if (!user) return;
+
+    const spendingCategories = ["budgeting", "saving", "debt", "lifestyle", "credit"];
+    const spendingCorrect = (user.categoryStats || [])
+      .filter(c => spendingCategories.includes(c.category))
+      .reduce((sum, c) => sum + c.correctAnswers, 0);
+    await this.updateBadgeProgress(userId, "no_spend_ninja", spendingCorrect);
+
+    await this.updateBadgeProgress(userId, "credit_climber", user.totalScore);
+
+    await this.updateBadgeProgress(userId, "emergency_fund_builder", user.gamesPlayed);
+
+    const scamResults = gameData.categoryResults.get("scam");
+    let newScamStreak = user.scamStreak;
+    if (scamResults) {
+      if (scamResults.correct === scamResults.total && scamResults.total > 0) {
+        newScamStreak += scamResults.correct;
+      } else {
+        newScamStreak = 0;
+      }
+    }
+    await this.updateUser(userId, { scamStreak: newScamStreak });
+    await this.updateBadgeProgress(userId, "scam_spotter", newScamStreak);
+
+    const isPerfect = gameData.correctCount === gameData.totalQuestions && gameData.totalQuestions > 0;
+    const newPerfectGames = isPerfect ? user.perfectGames + 1 : user.perfectGames;
+    await this.updateUser(userId, { perfectGames: newPerfectGames });
+    await this.updateBadgeProgress(userId, "budget_sniper", newPerfectGames);
+
+    await this.updateBadgeProgress(userId, "streak_monster", user.streak);
+
+    if (user.hadPreviousStreak) {
+      await this.updateBadgeProgress(userId, "comeback_king", user.streak);
+    }
   }
 
   async updateBadgeProgress(userId: string, badgeId: BadgeId, progress: number): Promise<UserBadge | undefined> {
@@ -2467,7 +2547,6 @@ export class PostgresStorage implements IStorage {
     const user = await this.getOrCreateUser(userId);
     const today = getTodayDateString();
 
-    // Reset arcade plays if it's a new day
     let arcadePlaysToday = user.arcadePlaysToday || 0;
     if (user.arcadeLastPlayedDate !== today) {
       arcadePlaysToday = 0;
@@ -2479,7 +2558,6 @@ export class PostgresStorage implements IStorage {
     const parts = submission.arcadeDropId.split("-");
     const arcadeGameIndex = parseInt(parts[parts.length - 1]) || 0;
 
-    const isReplay = arcadeGameIndex < arcadePlaysToday;
     const isNewGameUnlock = arcadeGameIndex === arcadePlaysToday;
 
     if (isNewGameUnlock && arcadePlaysToday >= maxPlays) {
@@ -2487,29 +2565,68 @@ export class PostgresStorage implements IStorage {
     }
 
     const dayNumber = getDayNumber();
-    const scenarios = getArcadeScenarios(dayNumber, arcadeGameIndex);
+    const rawScenarios = getArcadeScenarios(dayNumber, arcadeGameIndex);
+    const scenarios = rawScenarios.map(scenario =>
+      shuffleScenarioChoices(scenario, today + "-arcade-" + arcadeGameIndex)
+    );
 
     let correctAnswers = 0;
+    let totalScore = 0;
+    const categoryResults: Map<string, { correct: number; total: number }> = new Map();
     for (const answer of submission.answers) {
       const scenario = scenarios.find(s => s.id === answer.scenarioId);
       if (!scenario) continue;
       const choice = scenario.choices.find(c => c.label === answer.choiceLabel);
-      if (choice && choice.isCorrect) correctAnswers++;
+      if (choice && choice.isCorrect) {
+        correctAnswers++;
+        totalScore += Math.max(0, choice.points);
+      }
+      const catStats = categoryResults.get(scenario.category) || { correct: 0, total: 0 };
+      catStats.total++;
+      if (choice?.isCorrect) catStats.correct++;
+      categoryResults.set(scenario.category, catStats);
     }
-    const totalScore = correctAnswers * 100;
+    totalScore = Math.max(0, totalScore);
 
-    let newPlaysToday = arcadePlaysToday;
-    if (isNewGameUnlock) {
-      newPlaysToday = arcadePlaysToday + 1;
-      await db
-        .update(appSchema.lifestyleUsers)
-        .set({
-          arcadePlaysToday: newPlaysToday,
-          arcadeLastPlayedDate: today,
-          updatedAt: new Date(),
-        })
-        .where(eq(appSchema.lifestyleUsers.id, userId));
+    const newPlaysToday = isNewGameUnlock ? arcadePlaysToday + 1 : arcadePlaysToday;
+
+    const newCategoryStats = [...(user.categoryStats || [])];
+    const categoryEntries = Array.from(categoryResults.entries());
+    for (const [category, stats] of categoryEntries) {
+      const existingIndex = newCategoryStats.findIndex(c => c.category === category);
+      if (existingIndex >= 0) {
+        const existing = newCategoryStats[existingIndex];
+        const newTotal = existing.totalQuestions + stats.total;
+        const newCorrect = existing.correctAnswers + stats.correct;
+        newCategoryStats[existingIndex] = {
+          category,
+          totalQuestions: newTotal,
+          correctAnswers: newCorrect,
+          accuracy: newTotal > 0 ? Math.round((newCorrect / newTotal) * 100) : 0,
+        };
+      } else {
+        newCategoryStats.push({
+          category,
+          totalQuestions: stats.total,
+          correctAnswers: stats.correct,
+          accuracy: stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0,
+        });
+      }
     }
+
+    await this.updateUser(userId, {
+      arcadePlaysToday: newPlaysToday,
+      arcadeLastPlayedDate: today,
+      gamesPlayed: user.gamesPlayed + 1,
+      totalScore: user.totalScore + totalScore,
+      categoryStats: newCategoryStats,
+    });
+
+    await this.computeAndUpdateAllBadges(userId, {
+      correctCount: correctAnswers,
+      totalQuestions: scenarios.length,
+      categoryResults,
+    });
 
     const playsRemaining = Math.max(0, maxPlays - newPlaysToday);
 
