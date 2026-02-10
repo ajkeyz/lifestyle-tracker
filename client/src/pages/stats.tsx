@@ -258,23 +258,40 @@ export default function Stats() {
             <CardContent className="space-y-4">
               {user.categoryStats
                 .sort((a, b) => b.accuracy - a.accuracy)
-                .map((cat) => (
-                  <div key={cat.category} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-3 h-3 rounded-full bg-gradient-to-br ${categoryColors[cat.category] || 'from-gray-400 to-gray-500'}`} />
-                        <span className="text-sm font-medium">
-                          {categoryLabels[cat.category] || cat.category}
-                        </span>
+                .map((cat) => {
+                  const accuracy = cat.accuracy;
+                  const barColor = accuracy >= 80
+                    ? "bg-emerald-500"
+                    : accuracy >= 60
+                      ? "bg-green-500"
+                      : accuracy >= 40
+                        ? "bg-yellow-500"
+                        : accuracy >= 20
+                          ? "bg-orange-500"
+                          : "bg-red-500";
+                  return (
+                    <div key={cat.category} className="space-y-2">
+                      <div className="flex items-center justify-between flex-wrap gap-1">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-3 h-3 rounded-full bg-gradient-to-br ${categoryColors[cat.category] || 'from-gray-400 to-gray-500'}`} />
+                          <span className="text-sm font-medium">
+                            {categoryLabels[cat.category] || cat.category}
+                          </span>
+                        </div>
+                        <span className="text-sm font-bold">{cat.accuracy}%</span>
                       </div>
-                      <span className="text-sm font-bold">{cat.accuracy}%</span>
+                      <div className="relative h-2 w-full overflow-hidden rounded-full bg-secondary/50">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ease-out ${barColor}`}
+                          style={{ width: `${accuracy}%` }}
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {cat.correctAnswers} / {cat.totalQuestions} correct
+                      </p>
                     </div>
-                    <Progress value={cat.accuracy} gradient className="h-2" />
-                    <p className="text-xs text-muted-foreground">
-                      {cat.correctAnswers} / {cat.totalQuestions} correct
-                    </p>
-                  </div>
-                ))}
+                  );
+                })}
             </CardContent>
           </Card>
         )}

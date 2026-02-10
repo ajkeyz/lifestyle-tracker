@@ -27,8 +27,7 @@ const Progress = React.forwardRef<
         "h-full w-full flex-1 transition-all duration-500 ease-out relative",
         gradient
           ? "bg-gradient-to-r from-primary via-accent to-primary bg-[length:200%_100%]"
-          : "bg-primary",
-        shimmer && "progress-shimmer"
+          : "bg-primary"
       )}
       style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
     >
