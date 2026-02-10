@@ -1135,7 +1135,7 @@ export class PostgresStorage implements IStorage {
       .filter(c => spendingCategories.includes(c.category))
       .reduce((sum, c) => sum + c.correctAnswers, 0);
     await this.updateBadgeProgress(userId, "no_spend_ninja", spendingCorrect);
-    await this.updateBadgeProgress(userId, "credit_climber", user.totalScore);
+    await this.updateBadgeProgress(userId, "credit_climber", user.moneyHealth);
     await this.updateBadgeProgress(userId, "emergency_fund_builder", user.gamesPlayed);
     await this.updateBadgeProgress(userId, "scam_spotter", user.scamStreak);
     await this.updateBadgeProgress(userId, "budget_sniper", user.perfectGames);
@@ -1162,7 +1162,7 @@ export class PostgresStorage implements IStorage {
       .reduce((sum, c) => sum + c.correctAnswers, 0);
     await this.updateBadgeProgress(userId, "no_spend_ninja", spendingCorrect);
 
-    await this.updateBadgeProgress(userId, "credit_climber", user.totalScore);
+    await this.updateBadgeProgress(userId, "credit_climber", user.moneyHealth);
 
     await this.updateBadgeProgress(userId, "emergency_fund_builder", user.gamesPlayed);
 
