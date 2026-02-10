@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { ScenarioCategory } from "@shared/schema";
 import { getContextBuffer } from "@/lib/game-insights";
@@ -63,63 +64,56 @@ export function QuestionHeader({ category, context, question }: QuestionHeaderPr
   const Icon = categoryIcons[category] || ShoppingBag;
 
   return (
-    <div className="space-y-4">
-      {/* Category Badge */}
+    <div className="grid grid-rows-[auto_auto] gap-3">
+      {/* Zone A: Context — category + scenario setup */}
       <motion.div
-        initial={{ opacity: 0, y: -10 }}
+        initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
+        className="space-y-2.5"
       >
-        <Badge
-          variant="outline"
-          className={cn("border", categoryColors[category])}
-          data-testid={`category-badge-${category}`}
-        >
-          <Icon className="w-3 h-3 mr-1.5" />
-          <span className="capitalize">{category}</span>
-        </Badge>
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <Badge
+            variant="outline"
+            className={cn("border", categoryColors[category])}
+            data-testid={`category-badge-${category}`}
+          >
+            <Icon className="w-3 h-3 mr-1.5" />
+            <span className="capitalize">{category}</span>
+          </Badge>
+          <span className="text-xs text-muted-foreground/60 italic" data-testid="text-context-buffer">
+            {getContextBuffer(category)}
+          </span>
+        </div>
+
+        {context && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4, delay: 0.15 }}
+            className="px-3.5 py-2.5 rounded-md bg-muted/40 border border-border/40 text-sm text-muted-foreground leading-relaxed"
+            data-testid="question-context"
+          >
+            {context}
+          </motion.div>
+        )}
       </motion.div>
 
-      {/* Context Buffer - reflective framing line */}
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.6, delay: 0.15 }}
-        className="text-sm italic text-muted-foreground/80"
-        data-testid="text-context-buffer"
-      >
-        {getContextBuffer(category)}
-      </motion.p>
-
-      {/* Context Card */}
-      {context && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.25 }}
-          className={cn(
-            "p-4 rounded-lg border bg-muted/50 backdrop-blur-sm",
-            "text-sm text-muted-foreground leading-relaxed"
-          )}
-          data-testid="question-context"
-        >
-          {context}
-        </motion.div>
-      )}
-
-      {/* Main Question */}
-      <motion.h2
+      {/* Zone B: Question — visually dominant */}
+      <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.35 }}
-        className={cn(
-          "text-2xl md:text-3xl font-display font-bold tracking-tight",
-          "leading-tight text-foreground"
-        )}
-        data-testid="question-text"
+        transition={{ duration: 0.4, delay: 0.2 }}
       >
-        {question}
-      </motion.h2>
+        <Card className="px-5 py-5" data-testid="question-panel">
+          <h2
+            className="text-xl sm:text-2xl md:text-[1.65rem] font-display font-bold tracking-tight leading-snug text-foreground"
+            data-testid="question-text"
+          >
+            {question}
+          </h2>
+        </Card>
+      </motion.div>
     </div>
   );
 }

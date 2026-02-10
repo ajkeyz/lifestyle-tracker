@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from "react";
-import { Card } from "@/components/ui/card";
 import { ChoiceCard } from "@/components/choice-card";
 import { QuestionHeader } from "@/components/question-header";
 import { classifyChoiceTone } from "@/lib/game-insights";
@@ -22,7 +21,6 @@ export function ScenarioCard({
   questionNumber,
   totalQuestions,
 }: ScenarioCardProps) {
-  // Multi-stage reveal animation states
   const [revealStage, setRevealStage] = useState(0);
 
   useEffect(() => {
@@ -41,43 +39,48 @@ export function ScenarioCard({
   }, [scenario.choices]);
 
   return (
-    <div className="space-y-6">
-      {/* Question Header */}
+    <div className="grid grid-rows-[auto_auto] gap-5">
+      {/* Zone A+B: Context + Question */}
       <QuestionHeader
         category={scenario.category}
         context={scenario.context}
         question={scenario.question}
       />
 
-      {/* Choices */}
-      <div
-        className="space-y-3"
-        role="radiogroup"
-        aria-label="Answer choices"
-        data-testid="choices-container"
-      >
-        {scenario.choices.map((choice, index) => {
-          const isSelected = selectedChoice === choice.label;
-          const isCorrect = choice.isCorrect;
+      {/* Zone C: Answer Options */}
+      <div className="space-y-2.5">
+        <p className="text-xs font-medium text-muted-foreground/50 uppercase tracking-wider px-1" data-testid="text-choose-label">
+          Choose your answer
+        </p>
+        <div
+          className="grid grid-cols-1 gap-2.5"
+          role="radiogroup"
+          aria-label="Answer choices"
+          data-testid="choices-container"
+        >
+          {scenario.choices.map((choice, index) => {
+            const isSelected = selectedChoice === choice.label;
+            const isCorrect = choice.isCorrect;
 
-          return (
-            <ChoiceCard
-              key={choice.label}
-              label={choice.label}
-              text={choice.text}
-              points={choice.points}
-              feedback={choice.feedback}
-              isSelected={isSelected}
-              isCorrect={isCorrect}
-              showResult={showResult}
-              revealStage={revealStage}
-              onSelect={() => onSelectChoice(choice.label)}
-              index={index}
-              disabled={showResult}
-              tone={choiceTones[index]}
-            />
-          );
-        })}
+            return (
+              <ChoiceCard
+                key={choice.label}
+                label={choice.label}
+                text={choice.text}
+                points={choice.points}
+                feedback={choice.feedback}
+                isSelected={isSelected}
+                isCorrect={isCorrect}
+                showResult={showResult}
+                revealStage={revealStage}
+                onSelect={() => onSelectChoice(choice.label)}
+                index={index}
+                disabled={showResult}
+                tone={choiceTones[index]}
+              />
+            );
+          })}
+        </div>
       </div>
     </div>
   );

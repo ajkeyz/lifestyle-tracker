@@ -353,16 +353,17 @@ export default function Arcade() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20">
+      {/* Sticky top bar: logo + progress pill */}
       <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur-sm">
-        <div className="container max-w-3xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
+        <div className="container max-w-2xl mx-auto px-4 py-2.5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
               <AppLogo size="sm" />
               <div className="hidden sm:flex flex-col">
                 <span className="text-xs text-muted-foreground flex items-center gap-1">
                   <Gamepad2 className="w-3 h-3" /> Arcade Mode
                 </span>
-                <span className="font-semibold flex items-center gap-2">
+                <span className="text-sm font-semibold flex items-center gap-2 flex-wrap">
                   {isReplaying ? (
                     <>
                       Replaying Game {replayGameIndex + 1}
@@ -375,7 +376,7 @@ export default function Arcade() {
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5">
               {currentScenario && (
                 <ProgressPill
                   current={currentIndex + 1}
@@ -388,30 +389,30 @@ export default function Arcade() {
         </div>
       </header>
 
-      <div className="sticky top-[65px] z-40 bg-background/95 backdrop-blur-sm border-b">
-        <div className="container max-w-3xl mx-auto px-4 py-3">
+      {/* Sticky progress + timer zone */}
+      <div className="sticky top-[57px] z-40 bg-background/95 backdrop-blur-sm border-b">
+        <div className="container max-w-2xl mx-auto px-4 py-2">
           <Progress
             value={progress}
-            className="h-2 bg-secondary"
+            className="h-1.5 bg-secondary"
             aria-label={`Progress: ${currentIndex + 1} of ${totalScenarios} questions`}
             data-testid="progress-bar"
           />
 
           {currentScenario && !showResults[currentScenario.id] && (
             <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="flex items-center gap-2 mt-2"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex items-center gap-2 mt-1.5"
             >
               <Clock className={cn(
-                "w-4 h-4",
+                "w-3.5 h-3.5 flex-shrink-0",
                 timeRemaining <= 5 ? "text-destructive" : "text-muted-foreground"
               )} />
               <Progress
                 value={(timeRemaining / TIMER_DURATION) * 100}
                 className={cn(
-                  "flex-1 h-1.5",
+                  "flex-1 h-1 transition-all",
                   timeRemaining <= 5 && "animate-pulse"
                 )}
                 aria-label={`Time remaining: ${timeRemaining} seconds`}
@@ -423,7 +424,7 @@ export default function Arcade() {
                 animate={{ scale: timeRemaining <= 5 ? [1, 1.1, 1] : 1 }}
                 transition={{ duration: 0.2 }}
                 className={cn(
-                  "font-mono text-sm font-medium tabular-nums",
+                  "font-mono text-xs font-medium tabular-nums",
                   timeRemaining <= 5 ? "text-destructive" : "text-muted-foreground"
                 )}
                 aria-live="polite"
@@ -436,17 +437,23 @@ export default function Arcade() {
         </div>
       </div>
 
-      <main className="container max-w-3xl mx-auto px-4 py-6 md:py-8">
+      {/* Main quiz grid */}
+      <main className="container max-w-2xl mx-auto px-4 py-5 md:py-6">
         {!currentScenario ? (
-          <div className="space-y-6">
-            <Skeleton className="h-32 w-full rounded-lg" />
-            <Skeleton className="h-16 w-full rounded-xl" />
-            <Skeleton className="h-16 w-full rounded-xl" />
-            <Skeleton className="h-16 w-full rounded-xl" />
-            <Skeleton className="h-16 w-full rounded-xl" />
+          <div className="grid gap-4">
+            <Skeleton className="h-10 w-28 rounded-md" />
+            <Skeleton className="h-16 w-full rounded-md" />
+            <Skeleton className="h-20 w-full rounded-xl" />
+            <div className="grid gap-2.5 mt-2">
+              <Skeleton className="h-14 w-full rounded-xl" />
+              <Skeleton className="h-14 w-full rounded-xl" />
+              <Skeleton className="h-14 w-full rounded-xl" />
+              <Skeleton className="h-14 w-full rounded-xl" />
+            </div>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="grid gap-5">
+            {/* Zone A+B+C: Context, Question, Answers */}
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentScenario.id}
@@ -466,17 +473,19 @@ export default function Arcade() {
               </motion.div>
             </AnimatePresence>
 
+            {/* Zone D: Action */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
+              className="grid gap-2.5"
             >
               {currentIndex < totalScenarios - 1 ? (
                 <Button
                   onClick={handleNext}
                   disabled={!showResults[currentScenario.id]}
                   size="lg"
-                  className="w-full h-14 text-base font-semibold"
+                  className="w-full text-base font-semibold"
                   aria-label="Continue to next question"
                   data-testid="button-next"
                 >
@@ -488,7 +497,7 @@ export default function Arcade() {
                   onClick={handleSubmit}
                   disabled={!allAnswered || submitMutation.isPending}
                   size="lg"
-                  className="w-full h-14 text-base font-semibold"
+                  className="w-full text-base font-semibold"
                   aria-label="Submit your answers"
                   data-testid="button-submit-arcade"
                 >
@@ -514,10 +523,10 @@ export default function Arcade() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5 }}
-                className="text-center text-xs text-muted-foreground"
+                className="text-center text-xs text-muted-foreground/50"
               >
-                Press <kbd className="px-1.5 py-0.5 rounded bg-muted font-mono">1</kbd>-
-                <kbd className="px-1.5 py-0.5 rounded bg-muted font-mono">4</kbd> to answer
+                Press <kbd className="px-1.5 py-0.5 rounded bg-muted font-mono text-muted-foreground">1</kbd>-
+                <kbd className="px-1.5 py-0.5 rounded bg-muted font-mono text-muted-foreground">4</kbd> to answer
               </motion.p>
             )}
           </div>

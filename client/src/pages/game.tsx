@@ -244,22 +244,19 @@ export default function Game() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20">
-      <motion.header
-        animate={{ opacity: isAnswering ? 0.4 : 1 }}
-        transition={{ duration: 0.4 }}
-        className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur-sm"
-      >
-        <div className="container max-w-3xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
+      {/* Sticky top bar: logo + progress pill + timer */}
+      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur-sm">
+        <div className="container max-w-2xl mx-auto px-4 py-2.5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
               <AppLogo size="sm" />
               <div className="hidden sm:flex flex-col">
                 <span className="text-xs text-muted-foreground">Daily Drop</span>
-                <span className="font-semibold">#{dailyDrop?.dropNumber || "..."}</span>
+                <span className="text-sm font-semibold">#{dailyDrop?.dropNumber || "..."}</span>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5">
               {!isLoading && currentScenario && (
                 <ProgressPill
                   current={currentIndex + 1}
@@ -270,32 +267,32 @@ export default function Game() {
             </div>
           </div>
         </div>
-      </motion.header>
+      </header>
 
-      <div className="sticky top-[65px] z-40 bg-background/95 backdrop-blur-sm border-b">
-        <div className="container max-w-3xl mx-auto px-4 py-3">
+      {/* Sticky progress + timer zone */}
+      <div className="sticky top-[57px] z-40 bg-background/95 backdrop-blur-sm border-b">
+        <div className="container max-w-2xl mx-auto px-4 py-2">
           <Progress
             value={progress}
-            className="h-2 bg-secondary"
+            className="h-1.5 bg-secondary"
             aria-label={`Progress: ${currentIndex + 1} of ${totalScenarios} questions`}
             data-testid="progress-bar"
           />
 
           {currentScenario && !showResults[currentScenario.id] && (
             <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="flex items-center gap-2 mt-2"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex items-center gap-2 mt-1.5"
             >
               <Clock className={cn(
-                "w-4 h-4",
+                "w-3.5 h-3.5 flex-shrink-0",
                 timeRemaining <= 5 ? "text-destructive" : "text-muted-foreground"
               )} />
               <Progress
                 value={(timeRemaining / TIMER_DURATION) * 100}
                 className={cn(
-                  "flex-1 h-1.5 transition-all",
+                  "flex-1 h-1 transition-all",
                   timeRemaining <= 5 && "animate-pulse"
                 )}
                 aria-label={`Time remaining: ${timeRemaining} seconds`}
@@ -309,7 +306,7 @@ export default function Game() {
                   exit={{ opacity: 0, y: 4 }}
                   transition={{ duration: 0.25 }}
                   className={cn(
-                    "text-xs font-medium whitespace-nowrap",
+                    "text-xs font-medium whitespace-nowrap tabular-nums",
                     timeRemaining <= 5 ? "text-destructive" : "text-muted-foreground"
                   )}
                   aria-live="polite"
@@ -323,14 +320,19 @@ export default function Game() {
         </div>
       </div>
 
-      <main className="container max-w-3xl mx-auto px-4 py-6 md:py-8">
+      {/* Main quiz grid */}
+      <main className="container max-w-2xl mx-auto px-4 py-5 md:py-6">
         {isLoading ? (
-          <div className="space-y-6">
-            <Skeleton className="h-32 w-full rounded-lg" />
-            <Skeleton className="h-16 w-full rounded-xl" />
-            <Skeleton className="h-16 w-full rounded-xl" />
-            <Skeleton className="h-16 w-full rounded-xl" />
-            <Skeleton className="h-16 w-full rounded-xl" />
+          <div className="grid gap-4">
+            <Skeleton className="h-10 w-28 rounded-md" />
+            <Skeleton className="h-16 w-full rounded-md" />
+            <Skeleton className="h-20 w-full rounded-xl" />
+            <div className="grid gap-2.5 mt-2">
+              <Skeleton className="h-14 w-full rounded-xl" />
+              <Skeleton className="h-14 w-full rounded-xl" />
+              <Skeleton className="h-14 w-full rounded-xl" />
+              <Skeleton className="h-14 w-full rounded-xl" />
+            </div>
           </div>
         ) : isError ? (
           <div className="text-center py-12 space-y-4">
@@ -341,17 +343,15 @@ export default function Game() {
             </Button>
           </div>
         ) : currentScenario ? (
-          <div className="space-y-6">
+          <div className="grid gap-5">
+            {/* Zone A+B+C: Context, Question, Answers */}
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentScenario.id}
                 initial={{ opacity: 0, x: 20, scale: 0.98 }}
                 animate={{ opacity: 1, x: 0, scale: 1 }}
                 exit={{ opacity: 0, x: -20, scale: 0.98 }}
-                transition={{
-                  duration: 0.35,
-                  ease: [0.4, 0, 0.2, 1],
-                }}
+                transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
               >
                 <ScenarioCard
                   scenario={currentScenario}
@@ -364,6 +364,7 @@ export default function Game() {
               </motion.div>
             </AnimatePresence>
 
+            {/* Post-answer reflection zone */}
             <AnimatePresence>
               {hasAnswered && (postReflection || counterfactual) && (
                 <motion.div
@@ -371,11 +372,11 @@ export default function Game() {
                   animate={{ opacity: 1, y: 0, height: "auto" }}
                   exit={{ opacity: 0, y: 8, height: 0 }}
                   transition={{ duration: 0.5, delay: 1.5 }}
-                  className="space-y-3 overflow-hidden"
+                  className="space-y-2.5 overflow-hidden"
                   data-testid="panel-post-reflection"
                 >
                   {postReflection && (
-                    <div className="p-4 rounded-lg border bg-muted/30 backdrop-blur-sm">
+                    <div className="px-4 py-3 rounded-lg border border-border/40 bg-muted/30">
                       <p className="text-sm text-muted-foreground leading-relaxed" data-testid="text-reflection-insight">
                         {postReflection}
                       </p>
@@ -386,7 +387,7 @@ export default function Game() {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: 2.5 }}
-                      className="text-xs text-muted-foreground/70 italic text-center"
+                      className="text-xs text-muted-foreground/60 italic text-center"
                       data-testid="text-counterfactual"
                     >
                       Many people also considered: &ldquo;{counterfactual}&rdquo;
@@ -396,11 +397,12 @@ export default function Game() {
               )}
             </AnimatePresence>
 
+            {/* Zone D: Action */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="space-y-3"
+              className="grid gap-2.5"
             >
               <AnimatePresence>
                 {microAffirmation && hasAnswered && (
@@ -422,7 +424,7 @@ export default function Game() {
                   onClick={handleNext}
                   disabled={!showResults[currentScenario.id]}
                   size="lg"
-                  className="w-full h-14 text-base font-semibold"
+                  className="w-full text-base font-semibold"
                   aria-label="Continue to next question"
                   data-testid="button-next"
                 >
@@ -434,7 +436,7 @@ export default function Game() {
                   onClick={handleSubmit}
                   disabled={!allAnswered || submitMutation.isPending}
                   size="lg"
-                  className="w-full h-14 text-base font-semibold"
+                  className="w-full text-base font-semibold"
                   aria-label="Submit your answers"
                   data-testid="button-submit"
                 >
@@ -460,10 +462,10 @@ export default function Game() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5 }}
-                className="text-center text-xs text-muted-foreground"
+                className="text-center text-xs text-muted-foreground/50"
               >
-                Press <kbd className="px-1.5 py-0.5 rounded bg-muted font-mono">1</kbd>-
-                <kbd className="px-1.5 py-0.5 rounded bg-muted font-mono">4</kbd> to answer
+                Press <kbd className="px-1.5 py-0.5 rounded bg-muted font-mono text-muted-foreground">1</kbd>-
+                <kbd className="px-1.5 py-0.5 rounded bg-muted font-mono text-muted-foreground">4</kbd> to answer
               </motion.p>
             )}
           </div>

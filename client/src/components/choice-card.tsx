@@ -46,46 +46,28 @@ export function ChoiceCard({
         opacity: { duration: 0.3 },
         y: { duration: 0.4, delay: index * 0.06, type: "spring", stiffness: 300 },
       }}
-      whileHover={!showResult && !disabled ? { y: -2, transition: { duration: 0.15 } } : {}}
       whileTap={!showResult && !disabled ? { scale: 0.98, transition: { duration: 0.1 } } : {}}
       onClick={!disabled ? onSelect : undefined}
       disabled={disabled}
       className={cn(
-        // Base styles
-        "group relative w-full min-h-[56px] p-4 rounded-xl border-2 text-left",
-        "transition-all duration-200 ease-out",
-        "flex items-start gap-3",
-        // Focus styles for accessibility
+        "group relative w-full rounded-xl border-2 text-left",
+        "transition-colors duration-200 ease-out",
+        "flex items-start gap-3 px-4 py-3.5",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-        // Default state
-        !showResult && !isSelected && [
-          "border-border bg-card hover:border-primary/40 hover:bg-primary/5",
-          "shadow-sm hover:shadow-md"
-        ],
-        // Selected (pre-result)
+        !showResult && !isSelected && "border-border bg-card hover-elevate",
         !showResult && isSelected && [
-          "border-primary bg-primary/10 shadow-md",
+          "border-primary bg-primary/10",
           "ring-2 ring-primary/20"
         ],
-        // Result: correct
-        showResult && isCorrect && [
-          "border-primary bg-gradient-to-br from-primary/10 via-primary/5 to-background",
-          "shadow-lg"
-        ],
-        // Result: incorrect (if selected)
-        showResult && isSelected && !isCorrect && [
-          "border-destructive bg-gradient-to-br from-destructive/10 via-destructive/5 to-background",
-        ],
-        // Disabled state
-        disabled && "opacity-60 cursor-not-allowed"
+        showResult && isCorrect && "border-primary bg-primary/5",
+        showResult && isSelected && !isCorrect && "border-destructive bg-destructive/5",
+        disabled && "cursor-not-allowed"
       )}
-      // Accessibility
       role="radio"
       aria-checked={isSelected}
       aria-label={`Choice ${label}: ${text}`}
       data-testid={`choice-${label.toLowerCase()}`}
     >
-      {/* Choice Letter/Icon */}
       <motion.div
         animate={showResult && revealStage >= 1 ? {
           scale: isCorrect || isSelected ? [1, 1.15, 1] : 1,
@@ -93,13 +75,10 @@ export function ChoiceCard({
         } : {}}
         transition={{ duration: 0.4, type: "spring", stiffness: 200 }}
         className={cn(
-          "relative flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center",
-          "font-bold text-base transition-colors duration-200",
-          // Default
-          !showResult && !isSelected && "bg-secondary text-secondary-foreground group-hover:bg-primary/10",
-          // Selected
+          "relative flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center",
+          "font-bold text-sm transition-colors duration-200",
+          !showResult && !isSelected && "bg-secondary text-secondary-foreground",
           !showResult && isSelected && "bg-primary text-primary-foreground",
-          // Result states
           showResult && isCorrect && "bg-primary text-primary-foreground",
           showResult && isSelected && !isCorrect && "bg-destructive text-destructive-foreground"
         )}
@@ -115,9 +94,9 @@ export function ChoiceCard({
               transition={{ type: "spring", stiffness: 400, damping: 20 }}
             >
               {isCorrect ? (
-                <Check className="w-5 h-5" aria-label="Correct" />
+                <Check className="w-4.5 h-4.5" aria-label="Correct" />
               ) : (
-                <X className="w-5 h-5" aria-label="Incorrect" />
+                <X className="w-4.5 h-4.5" aria-label="Incorrect" />
               )}
             </motion.div>
           ) : (
@@ -133,7 +112,6 @@ export function ChoiceCard({
         </AnimatePresence>
       </motion.div>
 
-      {/* Choice Text & Feedback */}
       <div className="flex-1 min-w-0">
         <div className="flex items-start gap-2">
           {tone && !showResult && (
@@ -149,7 +127,6 @@ export function ChoiceCard({
           <p
             className={cn(
               "font-medium leading-snug transition-colors flex-1",
-              !showResult && "group-hover:text-foreground",
               showResult && isCorrect && "text-foreground",
               showResult && isSelected && !isCorrect && "text-foreground"
             )}
@@ -159,7 +136,6 @@ export function ChoiceCard({
           </p>
         </div>
 
-        {/* Points & Feedback reveal */}
         <AnimatePresence>
           {showResult && showCorrectness && revealStage >= 3 && (
             <motion.div
@@ -186,11 +162,6 @@ export function ChoiceCard({
           )}
         </AnimatePresence>
       </div>
-
-      {/* Decorative gradient overlay on hover */}
-      {!showResult && (
-        <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-primary/0 via-primary/0 to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-      )}
     </motion.button>
   );
 }
