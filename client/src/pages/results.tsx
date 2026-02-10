@@ -99,7 +99,11 @@ export default function Results() {
   }, [user]);
 
   if (!user?.todayResult) {
-    return null;
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20 flex items-center justify-center">
+        <p className="text-muted-foreground" data-testid="text-no-results">Loading results...</p>
+      </div>
+    );
   }
 
   const result = user.todayResult;

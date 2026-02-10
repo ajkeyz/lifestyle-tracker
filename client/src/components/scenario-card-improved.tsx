@@ -25,15 +25,12 @@ export function ScenarioCard({
   // Multi-stage reveal animation states
   const [revealStage, setRevealStage] = useState(0);
 
-  // Trigger reveal sequence when showResult changes to true
   useEffect(() => {
     if (showResult && revealStage === 0) {
-      // Stage 1: Pause (0.5s tension)
-      setTimeout(() => setRevealStage(1), 500);
-      // Stage 2: Show result indicators (flip + icons)
-      setTimeout(() => setRevealStage(2), 800);
-      // Stage 3: Show points and feedback
-      setTimeout(() => setRevealStage(3), 1200);
+      const t1 = setTimeout(() => setRevealStage(1), 500);
+      const t2 = setTimeout(() => setRevealStage(2), 800);
+      const t3 = setTimeout(() => setRevealStage(3), 1200);
+      return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
     } else if (!showResult) {
       setRevealStage(0);
     }
