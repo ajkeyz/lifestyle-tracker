@@ -120,11 +120,11 @@ export function AnimatedAvatar({
         } : undefined}
         transition={isAnimated ? { duration: 2, repeat: Infinity, ease: "easeInOut" } : undefined}
       >
-        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-        
+        <div className="absolute inset-0 bg-gradient-to-t from-black/20 dark:from-black/40 to-transparent" />
+
         {isAnimated && (
           <motion.div
-            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+            className="absolute inset-0 bg-gradient-to-r from-transparent via-foreground/10 dark:via-foreground/20 to-transparent"
             animate={{ x: ["-100%", "100%"] }}
             transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", repeatDelay: 2 }}
           />

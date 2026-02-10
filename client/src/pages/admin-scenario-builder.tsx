@@ -206,7 +206,7 @@ export default function AdminScenarioBuilder() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
       <header className="flex items-center gap-3 p-4 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/admin")} data-testid="button-back">
+        <Button variant="ghost" size="icon" onClick={() => navigate("/admin")} data-testid="button-back" aria-label="Back to admin">
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex-1">

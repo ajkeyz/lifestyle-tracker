@@ -3,13 +3,27 @@
  *
  * Adds floating orbs with subtle animations for visual depth
  * Works in both light and dark modes
+ * Lazy-loads after 100ms for better FCP (First Contentful Paint)
  */
+
+import { useState, useEffect } from "react";
 
 interface AmbientBackgroundProps {
   variant?: "default" | "premium" | "minimal";
 }
 
 export function AmbientBackground({ variant = "default" }: AmbientBackgroundProps) {
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    // Lazy-load after initial render for better FCP
+    const timer = setTimeout(() => setIsLoaded(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (!isLoaded) {
+    return null;
+  }
   if (variant === "minimal") {
     return (
       <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
@@ -39,30 +53,12 @@ export function AmbientBackground({ variant = "default" }: AmbientBackgroundProp
           }}
         />
 
-        {/* Secondary orb - bottom left */}
+        {/* Secondary orb - bottom center */}
         <div
-          className="absolute -bottom-48 -left-32 w-96 h-96 rounded-full blur-3xl ambient-orb"
+          className="absolute -bottom-48 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full blur-3xl ambient-orb"
           style={{
             background: "radial-gradient(circle, hsl(270 67% 58% / 0.12) 0%, transparent 70%)",
             animationDelay: "10s",
-          }}
-        />
-
-        {/* Tertiary orb - bottom right */}
-        <div
-          className="absolute -bottom-32 -right-48 w-80 h-80 rounded-full blur-3xl ambient-orb"
-          style={{
-            background: "radial-gradient(circle, hsl(var(--primary) / 0.1) 0%, transparent 70%)",
-            animationDelay: "15s",
-          }}
-        />
-
-        {/* Center orb - subtle */}
-        <div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full blur-3xl ambient-orb"
-          style={{
-            background: "radial-gradient(circle, hsl(var(--accent) / 0.08) 0%, transparent 70%)",
-            animationDelay: "7s",
           }}
         />
       </div>

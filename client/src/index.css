@@ -109,64 +109,80 @@
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
 
-  --background: 160 20% 6%;
-  --foreground: 150 10% 95%;
+  /* Enhanced dark backgrounds with richer depth */
+  --background: 160 25% 8%;
+  --foreground: 150 5% 97%;
 
-  --border: 160 15% 15%;
+  --border: 160 20% 18%;
 
-  --card: 160 18% 9%;
-  --card-foreground: 150 10% 95%;
-  --card-border: 160 15% 13%;
+  /* Improved card contrast with subtle tint */
+  --card: 160 22% 11%;
+  --card-foreground: 150 5% 97%;
+  --card-border: 160 20% 16%;
 
-  --sidebar: 160 20% 7%;
-  --sidebar-foreground: 150 10% 92%;
-  --sidebar-border: 160 15% 12%;
-  --sidebar-primary: 160 75% 48%;
+  --sidebar: 160 25% 9%;
+  --sidebar-foreground: 150 5% 95%;
+  --sidebar-border: 160 20% 14%;
+  --sidebar-primary: 160 80% 52%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 160 25% 14%;
-  --sidebar-accent-foreground: 160 60% 72%;
-  --sidebar-ring: 160 75% 48%;
+  --sidebar-accent: 160 30% 16%;
+  --sidebar-accent-foreground: 160 65% 75%;
+  --sidebar-ring: 160 80% 52%;
 
-  --popover: 160 18% 8%;
-  --popover-foreground: 150 10% 95%;
-  --popover-border: 160 15% 13%;
+  --popover: 160 22% 10%;
+  --popover-foreground: 150 5% 97%;
+  --popover-border: 160 20% 16%;
 
-  --primary: 160 75% 48%;
+  /* Brighter, more vibrant primary in dark mode */
+  --primary: 160 80% 52%;
   --primary-foreground: 160 30% 5%;
 
-  --secondary: 160 15% 16%;
-  --secondary-foreground: 150 10% 92%;
+  --secondary: 160 20% 18%;
+  --secondary-foreground: 150 5% 95%;
 
-  --muted: 160 15% 12%;
-  --muted-foreground: 160 10% 55%;
+  /* Better muted contrast */
+  --muted: 160 20% 15%;
+  --muted-foreground: 160 8% 60%;
 
-  --accent: 43 90% 55%;
+  /* More vibrant accent */
+  --accent: 43 95% 60%;
   --accent-foreground: 35 100% 8%;
 
-  --destructive: 0 72% 58%;
+  --destructive: 0 75% 62%;
   --destructive-foreground: 0 0% 100%;
 
-  --input: 160 15% 18%;
-  --ring: 160 75% 48%;
+  --input: 160 20% 20%;
+  --ring: 160 80% 52%;
 
-  --chart-1: 160 75% 52%;
-  --chart-2: 43 90% 55%;
-  --chart-3: 0 72% 58%;
-  --chart-4: 199 85% 55%;
-  --chart-5: 270 60% 62%;
+  /* Enhanced chart colors for dark mode */
+  --chart-1: 160 80% 55%;
+  --chart-2: 43 95% 60%;
+  --chart-3: 0 75% 62%;
+  --chart-4: 199 90% 58%;
+  --chart-5: 270 65% 65%;
 
-  --shadow-2xs: 0px 1px 2px 0px rgba(0,0,0,0.3);
-  --shadow-xs: 0px 1px 3px 0px rgba(0,0,0,0.35), 0px 1px 2px 0px rgba(0,0,0,0.2);
-  --shadow-sm: 0px 2px 4px 0px rgba(0,0,0,0.4), 0px 1px 2px 0px rgba(0,0,0,0.25);
-  --shadow: 0px 4px 6px -1px rgba(0,0,0,0.45), 0px 2px 4px 0px rgba(0,0,0,0.3);
-  --shadow-md: 0px 6px 12px -2px rgba(0,0,0,0.5), 0px 3px 6px 0px rgba(0,0,0,0.35);
-  --shadow-lg: 0px 12px 24px -4px rgba(0,0,0,0.55), 0px 4px 8px 0px rgba(0,0,0,0.4);
-  --shadow-xl: 0px 20px 40px -6px rgba(0,0,0,0.6), 0px 8px 16px 0px rgba(0,0,0,0.45);
-  --shadow-2xl: 0px 32px 64px -8px rgba(0,0,0,0.65), 0px 12px 24px 0px rgba(0,0,0,0.5);
+  /* Enhanced shadows with subtle colored glow */
+  --shadow-2xs: 0px 1px 2px 0px rgba(0,0,0,0.4), 0px 0px 1px 0px rgba(16,185,129,0.1);
+  --shadow-xs: 0px 1px 3px 0px rgba(0,0,0,0.45), 0px 1px 2px 0px rgba(0,0,0,0.25), 0px 0px 2px 0px rgba(16,185,129,0.1);
+  --shadow-sm: 0px 2px 4px 0px rgba(0,0,0,0.5), 0px 1px 2px 0px rgba(0,0,0,0.3), 0px 0px 4px 0px rgba(16,185,129,0.08);
+  --shadow: 0px 4px 6px -1px rgba(0,0,0,0.55), 0px 2px 4px 0px rgba(0,0,0,0.35), 0px 0px 6px 0px rgba(16,185,129,0.08);
+  --shadow-md: 0px 6px 12px -2px rgba(0,0,0,0.6), 0px 3px 6px 0px rgba(0,0,0,0.4), 0px 0px 8px 0px rgba(16,185,129,0.06);
+  --shadow-lg: 0px 12px 24px -4px rgba(0,0,0,0.65), 0px 4px 8px 0px rgba(0,0,0,0.45), 0px 0px 12px 0px rgba(16,185,129,0.06);
+  --shadow-xl: 0px 20px 40px -6px rgba(0,0,0,0.7), 0px 8px 16px 0px rgba(0,0,0,0.5), 0px 0px 16px 0px rgba(16,185,129,0.05);
+  --shadow-2xl: 0px 32px 64px -8px rgba(0,0,0,0.75), 0px 12px 24px 0px rgba(0,0,0,0.55), 0px 0px 24px 0px rgba(16,185,129,0.05);
 
-  --success: 160 75% 48%;
-  --warning: 43 90% 55%;
-  --danger: 0 72% 58%;
+  /* Enhanced semantic colors */
+  --success: 160 80% 52%;
+  --warning: 43 95% 60%;
+  --danger: 0 75% 62%;
+  --info: 199 90% 58%;
+
+  /* Dark mode specific utilities */
+  --glow-primary: 0 0 20px rgba(16, 185, 129, 0.3);
+  --glow-accent: 0 0 20px rgba(251, 191, 36, 0.3);
+  --glow-success: 0 0 20px rgba(16, 185, 129, 0.4);
+  --glow-warning: 0 0 20px rgba(251, 191, 36, 0.4);
+  --glow-danger: 0 0 20px rgba(239, 68, 68, 0.4);
 }
 
 @layer base {
@@ -228,7 +244,7 @@
     position: absolute;
     inset: 0px;
     border-radius: inherit;
-    z-index: 999;
+    z-index: 1;
   }
 
   .hover-elevate:hover:not(.no-default-hover-elevate)::after,
@@ -408,13 +424,7 @@
     }
   }
 
-  /* Shimmer animation for skeletons */
-  @keyframes shimmer {
-    100% {
-      transform: translateX(100%);
-    }
-  }
-
+  /* Shimmer animation utility class */
   .animate-shimmer {
     animation: shimmer 1.5s infinite;
   }
@@ -433,30 +443,12 @@
     animation: gradient-x 3s ease infinite;
   }
 
-  /* Pulse glow animation */
-  @keyframes pulse-glow {
-    0%, 100% {
-      box-shadow: 0 0 5px rgba(16, 185, 129, 0.3);
-    }
-    50% {
-      box-shadow: 0 0 20px rgba(16, 185, 129, 0.6);
-    }
-  }
-
+  /* Pulse glow animation utility class */
   .animate-pulse-glow {
     animation: pulse-glow 2s ease-in-out infinite;
   }
 
-  /* Float animation */
-  @keyframes float {
-    0%, 100% {
-      transform: translateY(0);
-    }
-    50% {
-      transform: translateY(-10px);
-    }
-  }
-
+  /* Float animation utility class */
   .animate-float {
     animation: float 3s ease-in-out infinite;
   }
@@ -517,6 +509,19 @@
 
   .glass-premium {
     @apply bg-gradient-to-br from-card/90 to-card/80 backdrop-blur-2xl border border-white/20 shadow-2xl;
+  }
+
+  /* Performance: CSS containment for isolated elements */
+  .contain-layout {
+    contain: layout;
+  }
+
+  .contain-paint {
+    contain: paint;
+  }
+
+  .contain-strict {
+    contain: layout style paint;
   }
 
   /* Progress bar shimmer */
@@ -592,6 +597,7 @@
 
   .ambient-orb {
     animation: ambient-float 20s ease-in-out infinite;
+    will-change: transform, opacity;
   }
 
   /* Glow intensity variations */
@@ -627,6 +633,7 @@
   /* Hover lift effect */
   .hover-lift {
     @apply transition-all duration-300;
+    will-change: transform;
   }
 
   .hover-lift:hover {
@@ -636,6 +643,7 @@
   /* Scale on hover */
   .hover-scale {
     @apply transition-transform duration-200;
+    will-change: transform;
   }
 
   .hover-scale:hover {
@@ -657,6 +665,7 @@
     );
     background-size: 200% auto;
     animation: gradient-x 8s linear infinite;
+    will-change: background-position;
   }
 
   /* Button glow on hover */
@@ -690,4 +699,145 @@
   .stagger-3 { animation-delay: 0.3s; }
   .stagger-4 { animation-delay: 0.4s; }
   .stagger-5 { animation-delay: 0.5s; }
+
+  /* Accessibility: Respect user's motion preferences */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+
+    .ambient-orb,
+    .animate-pulse,
+    .animate-shimmer,
+    .animate-gradient-x,
+    .animate-pulse-glow,
+    .animate-float,
+    .animate-bounce-subtle,
+    .animate-wiggle,
+    .animate-scale-pulse,
+    .gradient-text-animated,
+    .card-enter,
+    .bounce-in,
+    .scenario-reveal,
+    .shake,
+    .fire-animation {
+      animation: none !important;
+    }
+
+    .hover-lift:hover,
+    .hover-scale:hover {
+      transform: none !important;
+    }
+  }
+
+  /* Dark Mode Enhancements */
+  .dark .card-dark-enhanced {
+    background: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(160 22% 13%) 100%);
+    border-color: hsl(160 25% 20%);
+  }
+
+  .dark .gradient-dark-primary {
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.15) 0%, hsl(var(--accent) / 0.1) 100%);
+  }
+
+  .dark .gradient-dark-subtle {
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.08) 0%, hsl(var(--accent) / 0.05) 100%);
+  }
+
+  .dark .glow-dark-primary {
+    box-shadow: var(--glow-primary), 0 0 40px rgba(16, 185, 129, 0.15);
+  }
+
+  .dark .glow-dark-accent {
+    box-shadow: var(--glow-accent), 0 0 40px rgba(251, 191, 36, 0.15);
+  }
+
+  .dark .text-glow-primary {
+    text-shadow: 0 0 10px rgba(16, 185, 129, 0.5), 0 0 20px rgba(16, 185, 129, 0.3);
+  }
+
+  .dark .text-glow-accent {
+    text-shadow: 0 0 10px rgba(251, 191, 36, 0.5), 0 0 20px rgba(251, 191, 36, 0.3);
+  }
+
+  /* Enhanced glass effect for dark mode */
+  .dark .glass-card {
+    background: rgba(var(--card) / 0.6);
+    backdrop-filter: blur(20px) saturate(180%);
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow:
+      0 8px 32px 0 rgba(0, 0, 0, 0.37),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .dark .glass-premium {
+    background: linear-gradient(
+      135deg,
+      rgba(16, 185, 129, 0.1) 0%,
+      rgba(251, 191, 36, 0.05) 100%
+    );
+    backdrop-filter: blur(24px) saturate(200%);
+    border-color: rgba(16, 185, 129, 0.2);
+    box-shadow:
+      0 8px 32px 0 rgba(16, 185, 129, 0.15),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+  }
+
+  /* Dark mode specific text colors */
+  .dark .text-bright {
+    color: hsl(150 5% 98%);
+  }
+
+  .dark .text-dimmed {
+    color: hsl(160 8% 50%);
+  }
+
+  /* Better hover states in dark mode */
+  .dark .hover-lift:hover {
+    box-shadow:
+      0 20px 25px -5px rgba(0, 0, 0, 0.5),
+      0 10px 10px -5px rgba(0, 0, 0, 0.3),
+      0 0 15px rgba(16, 185, 129, 0.2);
+  }
+
+  /* Dark mode progress bars with glow */
+  .dark .progress-glow {
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.4), 0 0 20px rgba(16, 185, 129, 0.2);
+  }
+
+  /* Enhanced buttons in dark mode */
+  .dark .button-primary-enhanced {
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(160 85% 45%) 100%);
+    box-shadow:
+      0 4px 14px 0 rgba(16, 185, 129, 0.39),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+  }
+
+  .dark .button-primary-enhanced:hover {
+    background: linear-gradient(135deg, hsl(160 85% 55%) 0%, hsl(160 90% 48%) 100%);
+    box-shadow:
+      0 6px 20px 0 rgba(16, 185, 129, 0.5),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
+  }
+
+  /* Dark mode badges with better visibility */
+  .dark .badge-enhanced {
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.2) 0%, hsl(var(--accent) / 0.15) 100%);
+    border: 1px solid hsl(var(--primary) / 0.3);
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+  }
+
+  /* Smooth theme transitions */
+  .theme-transition {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  }
+
+  .theme-transition-slow {
+    transition: background-color 0.5s ease, color 0.5s ease, border-color 0.5s ease, box-shadow 0.5s ease;
+  }
 }

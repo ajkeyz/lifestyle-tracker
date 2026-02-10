@@ -25,7 +25,7 @@ export function ShimmerSkeleton({ className, variant = "default", style }: Shimm
       style={style}
     >
       <motion.div
-        className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent"
+        className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-foreground/10 dark:via-foreground/20 to-transparent"
         animate={{ translateX: ["-100%", "100%"] }}
         transition={{
           duration: 1.5,

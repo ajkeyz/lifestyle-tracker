@@ -156,7 +156,7 @@ export function LiquidMoneyMeter({
 
           {/* Shimmer Effect */}
           <motion.div
-            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
+            className="absolute inset-0 bg-gradient-to-r from-transparent via-foreground/5 dark:via-foreground/10 to-transparent"
             animate={{
               x: ["-100%", "200%"],
             }}
@@ -224,7 +224,7 @@ export function LiquidMoneyMeter({
 
         {/* Glass Reflection Effect */}
         <div
-          className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/20 to-transparent pointer-events-none"
+          className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-foreground/10 dark:from-foreground/20 to-transparent pointer-events-none"
           style={{ borderTopLeftRadius: dimensions.borderRadius - 4, borderTopRightRadius: dimensions.borderRadius - 4 }}
         />
       </motion.div>

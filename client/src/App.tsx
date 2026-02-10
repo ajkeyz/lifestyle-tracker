@@ -118,7 +118,12 @@ function UnauthenticatedRouter() {
 function SplashScreen({ onComplete }: { onComplete: () => void }) {
   useEffect(() => {
     const timer = setTimeout(onComplete, 2000);
-    return () => clearTimeout(timer);
+    // Fallback in case AnimatePresence doesn't complete
+    const fallbackTimer = setTimeout(onComplete, 2500);
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(fallbackTimer);
+    };
   }, [onComplete]);
 
   return (
@@ -205,11 +210,32 @@ function AppContent() {
   const [showSplash, setShowSplash] = useState(true);
   const splashDone = !showSplash;
 
-  if (isLoading || !splashDone) {
+  // Force complete splash after max time to prevent stuck screens
+  useEffect(() => {
+    const maxWaitTimer = setTimeout(() => {
+      if (showSplash) {
+        setShowSplash(false);
+      }
+    }, 3000);
+    return () => clearTimeout(maxWaitTimer);
+  }, [showSplash]);
+
+  if (isLoading && !splashDone) {
     return (
-      <AnimatePresence mode="wait" onExitComplete={() => {}}>
+      <AnimatePresence mode="wait">
         <SplashScreen key="splash" onComplete={() => setShowSplash(false)} />
       </AnimatePresence>
+    );
+  }
+
+  if (isLoading && splashDone) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <AppLogo size="md" glow />
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
+      </div>
     );
   }
 

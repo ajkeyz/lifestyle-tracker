@@ -260,13 +260,13 @@ export default function Home() {
                   <User className="w-4 h-4" />
                 </Button>
               </Link>
-              <Button variant="ghost" size="icon" onClick={() => navigate("/stats")} data-testid="button-stats">
+              <Button variant="ghost" size="icon" onClick={() => navigate("/stats")} data-testid="button-stats" aria-label="View statistics">
                 <BarChart3 className="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="icon" onClick={() => navigate("/settings")} data-testid="button-settings">
+              <Button variant="ghost" size="icon" onClick={() => navigate("/settings")} data-testid="button-settings" aria-label="Open settings">
                 <Settings className="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="icon" onClick={() => logout()} data-testid="button-logout">
+              <Button variant="ghost" size="icon" onClick={() => logout()} data-testid="button-logout" aria-label="Log out">
                 <LogOut className="w-4 h-4" />
               </Button>
             </div>

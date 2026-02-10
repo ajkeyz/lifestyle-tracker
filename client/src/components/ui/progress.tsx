@@ -33,7 +33,7 @@ const Progress = React.forwardRef<
       style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
     >
       {shimmer && (
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-foreground/10 dark:via-foreground/20 to-transparent animate-shimmer" />
       )}
     </ProgressPrimitive.Indicator>
   </ProgressPrimitive.Root>

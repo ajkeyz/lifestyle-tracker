@@ -55,8 +55,10 @@ export default function Game() {
     };
   }, []);
 
-  const { data: dailyDrop, isLoading } = useQuery<DailyDrop>({
+  const { data: dailyDrop, isLoading, isError, error, refetch } = useQuery<DailyDrop>({
     queryKey: ["/api/daily-drop"],
+    retry: 1,
+    retryDelay: 1000,
   });
 
   const { data: user } = useQuery<User>({
@@ -186,7 +188,7 @@ export default function Game() {
     });
   }, [dailyDrop, scenarios, answers, submitMutation]);
 
-  const allAnswered = scenarios.every((s) => showResults[s.id]);
+  const allAnswered = scenarios.length > 0 && scenarios.every((s) => showResults[s.id] === true);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -328,6 +330,14 @@ export default function Game() {
             <Skeleton className="h-16 w-full rounded-xl" />
             <Skeleton className="h-16 w-full rounded-xl" />
             <Skeleton className="h-16 w-full rounded-xl" />
+          </div>
+        ) : isError ? (
+          <div className="text-center py-12 space-y-4">
+            <p className="text-lg font-semibold">Failed to load Daily Drop</p>
+            <p className="text-sm text-muted-foreground">{error?.message || "Unknown error"}</p>
+            <Button onClick={() => refetch()} variant="outline" size="lg">
+              Try Again
+            </Button>
           </div>
         ) : currentScenario ? (
           <div className="space-y-6">

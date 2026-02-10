@@ -24,7 +24,7 @@ export function ShimmerSkeleton({
   return (
     <div className={cn(baseClasses, variantClasses[variant], className)}>
       {animate && (
-        <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+        <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-foreground/10 dark:via-foreground/20 to-transparent" />
       )}
     </div>
   );

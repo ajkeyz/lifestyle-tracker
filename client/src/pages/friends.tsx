@@ -97,7 +97,7 @@ export default function Friends() {
       <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
         <header className="flex items-center justify-between gap-2 p-4 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={() => setViewMode("main")} data-testid="button-back">
+            <Button variant="ghost" size="icon" onClick={() => setViewMode("main")} data-testid="button-back" aria-label="Go back">
               <ArrowLeft className="w-4 h-4" />
             </Button>
             <span className="font-bold text-lg">Add Friend</span>
@@ -183,7 +183,7 @@ export default function Friends() {
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
       <header className="flex items-center justify-between gap-2 p-4 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/")} data-testid="button-back-home">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/")} data-testid="button-back-home" aria-label="Back to home">
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <AppLogo size="sm" />
