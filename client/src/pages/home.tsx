@@ -14,6 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LiveActivityTicker, PlayerCounter } from "@/components/live-activity-ticker";
 import { TipCardCarousel } from "@/components/stories-tips";
 import { AnimatedCounter } from "@/components/animated-counter";
+import { AnimatedAvatar } from "@/components/animated-avatar";
 import { DebugScreen, useDebugGesture } from "@/components/debug-screen";
 import { AmbientBackground } from "@/components/ambient-background";
 import { 
@@ -39,7 +40,6 @@ import {
   MessageSquare,
   BarChart3,
   RefreshCw,
-  User,
   Flame
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -253,12 +253,11 @@ export default function Home() {
           {authUser && (
             <div className="flex items-center gap-2">
               <Link href="/profile" data-testid="link-profile">
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                >
-                  <User className="w-4 h-4" />
-                </Button>
+                <AnimatedAvatar 
+                  avatarId={user?.avatar || "cosmic-cat"} 
+                  size="sm" 
+                  isAnimated={false}
+                />
               </Link>
               <Button variant="ghost" size="icon" onClick={() => navigate("/stats")} data-testid="button-stats" aria-label="View statistics">
                 <BarChart3 className="w-4 h-4" />
