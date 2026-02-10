@@ -247,7 +247,7 @@ export default function Home() {
           <div onClick={handleTap} className="cursor-pointer">
             <AppLogo size="sm" />
           </div>
-          <span className="font-display font-bold text-lg tracking-tight" data-testid="text-app-title">Lifestyle Creep</span>
+          <span className="font-display font-semibold text-lg tracking-[-0.02em]" data-testid="text-app-title">Lifestyle Creep</span>
         </div>
         <div className="flex items-center gap-2">
           {authUser && (
@@ -336,7 +336,7 @@ export default function Home() {
                   {dropLoading ? (
                     <Skeleton className="h-8 w-40 mb-2" />
                   ) : (
-                    <h1 className="text-2xl md:text-3xl font-display font-bold mb-1 tracking-tight" data-testid="text-daily-drop-title">
+                    <h1 className="text-2xl md:text-3xl font-semibold mb-1 tracking-[-0.02em]" data-testid="text-daily-drop-title">
                       Daily Drop #{dailyDrop?.dropNumber || "..."}
                     </h1>
                   )}
@@ -464,7 +464,7 @@ export default function Home() {
 
             {/* ===== SECONDARY SECTION: Explore More ===== */}
             <div className="pt-2">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3 px-1">Explore</p>
+              <p className="text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-[0.12em] mb-3 px-1">Explore</p>
             </div>
 
             {/* Quick Tip - Enhanced Carousel */}

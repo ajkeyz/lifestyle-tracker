@@ -86,7 +86,7 @@ export function ReferralCard() {
     <Card className="p-4" data-testid="referral-card">
       <div className="flex items-center gap-2 mb-3">
         <Gift className="w-5 h-5 text-primary" />
-        <h3 className="font-display font-bold tracking-tight">Invite Friends</h3>
+        <h3 className="font-semibold tracking-[-0.02em]">Invite Friends</h3>
         {user.referralCount > 0 && (
           <Badge variant="secondary" className="ml-auto">
             {user.referralCount} invited

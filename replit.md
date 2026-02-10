@@ -25,7 +25,13 @@ Preferred communication style: Simple, everyday language.
 - **Build Tool**: Vite with custom plugins for Replit integration
 - **Theme**: Dark/light mode support with CSS custom properties
 - **Animations**: Framer Motion for page transitions, staggered animations, and micro-interactions
-- **Typography**: Inter (body), Space Grotesk (headings/display)
+- **Typography**: Plus Jakarta Sans (primary — body + display), Inter (fallback), Fira Code (mono)
+  - Headings: font-semibold, tracking-[-0.02em], text-wrap: balance (auto via CSS base)
+  - Body: font-medium for choice/answer text, font-regular for prose
+  - Labels/Overlines: text-[11px], font-semibold, tracking-[0.12em], uppercase
+  - Question text: text-[1.2rem] sm:text-[1.4rem] md:text-[1.55rem], leading-[1.4]
+  - Dark mode: +0.01em letter-spacing globally for legibility
+  - font-feature-settings: "cv11", "ss01" for stylistic alternates
 - **Color Palette**: Emerald/teal primary (#10b981), gold accent (#f59e0b)
 
 ### UI Enhancement Components

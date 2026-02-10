@@ -41,7 +41,7 @@ export default function AuthPage() {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15, duration: 0.5 }}
-              className="text-2xl font-display font-bold mb-2 tracking-tight"
+              className="text-2xl font-semibold mb-2 tracking-[-0.02em]"
               data-testid="text-auth-title"
             >
               Your money habits, decoded.
@@ -51,7 +51,7 @@ export default function AuthPage() {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.25, duration: 0.5 }}
-              className="text-muted-foreground text-base leading-relaxed"
+              className="text-muted-foreground text-[0.9375rem] leading-relaxed"
               data-testid="text-auth-subtitle"
             >
               5 scenarios. 2 minutes. One smarter you.

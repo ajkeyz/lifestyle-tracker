@@ -118,7 +118,7 @@ export function EmptyState({
         animate={{ opacity: 1 }}
         transition={{ delay: 0.2 }}
       >
-        <h3 className="text-lg font-display font-bold tracking-tight mb-2">
+        <h3 className="text-lg font-semibold tracking-[-0.02em] mb-2">
           {title || config.defaultTitle}
         </h3>
         <p className="text-sm text-muted-foreground max-w-xs mb-4">

@@ -240,7 +240,7 @@ export function RollingNumber({
   return (
     <motion.div 
       className={cn(
-        "font-display font-bold tabular-nums",
+        "font-display font-semibold tabular-nums",
         sizeClasses[size],
         colorClasses[color],
         className

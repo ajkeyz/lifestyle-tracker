@@ -166,7 +166,7 @@ function SplashScreen({ onComplete }: { onComplete: () => void }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4, duration: 0.5 }}
         >
-          <h1 className="text-2xl font-bold tracking-tight" data-testid="text-splash-title">
+          <h1 className="text-2xl font-semibold tracking-[-0.02em]" data-testid="text-splash-title">
             Lifestyle Creep
           </h1>
           <motion.p

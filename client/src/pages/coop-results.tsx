@@ -47,7 +47,7 @@ export default function CoopResults() {
         <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b">
           <div className="container flex h-14 items-center gap-4 px-4">
             <AppLogo size="sm" />
-            <h1 className="font-display text-lg font-semibold tracking-tight">
+            <h1 className="text-lg font-semibold tracking-[-0.02em]">
               Co-op Results
             </h1>
             <div className="ml-auto">
@@ -80,7 +80,7 @@ export default function CoopResults() {
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
         <div className="container flex h-14 items-center gap-4 px-4">
           <AppLogo size="sm" />
-          <h1 className="font-display text-lg font-semibold tracking-tight">
+          <h1 className="text-lg font-semibold tracking-[-0.02em]">
             Game Complete
           </h1>
           <div className="ml-auto">
@@ -129,7 +129,7 @@ export default function CoopResults() {
                   <motion.p
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="text-3xl font-display font-bold text-primary"
+                    className="text-3xl font-display font-semibold text-primary"
                   >
                     {currentPlayerResult?.score || 0}
                   </motion.p>
@@ -152,7 +152,7 @@ export default function CoopResults() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.2 }}
-                    className="text-3xl font-display font-bold text-foreground"
+                    className="text-3xl font-display font-semibold text-foreground"
                   >
                     {partnerResult?.score || 0}
                   </motion.p>

@@ -138,7 +138,7 @@ export default function CoopLobby() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <AppLogo size="sm" />
-          <h1 className="font-display text-lg font-semibold tracking-tight">
+          <h1 className="text-lg font-semibold tracking-[-0.02em]">
             Play with Friend
           </h1>
           <div className="ml-auto">

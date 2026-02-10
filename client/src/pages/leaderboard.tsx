@@ -39,7 +39,7 @@ export default function Leaderboard() {
 
       <main className="container max-w-4xl mx-auto p-4">
         <div className="mb-6">
-          <h1 className="text-2xl font-display font-bold tracking-tight" data-testid="text-leaderboards-title">Leaderboards</h1>
+          <h1 className="text-2xl font-semibold tracking-[-0.02em]" data-testid="text-leaderboards-title">Leaderboards</h1>
           <p className="text-muted-foreground" data-testid="text-leaderboards-subtitle">
             Compete with friends and climb the ranks
           </p>

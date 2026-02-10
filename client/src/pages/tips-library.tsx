@@ -126,7 +126,7 @@ export default function TipsLibrary() {
         </Button>
         <div className="flex items-center gap-2">
           <Lightbulb className="h-5 w-5 text-yellow-500" />
-          <h1 className="font-display font-bold text-lg tracking-tight" data-testid="text-page-title">
+          <h1 className="font-semibold text-lg tracking-[-0.02em]" data-testid="text-page-title">
             Financial Tips Library
           </h1>
         </div>

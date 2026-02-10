@@ -50,7 +50,7 @@ export function useAchievementToast() {
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-400 to-amber-600 flex items-center justify-center animate-bounce">
                 <Award className="w-4 h-4 text-white" />
               </div>
-              <span className="font-display tracking-tight">Badge Unlocked!</span>
+              <span className="font-display font-semibold tracking-[-0.02em]">Badge Unlocked!</span>
               <Sparkles className="w-4 h-4 text-yellow-500" />
             </div>
           ) as unknown as string,

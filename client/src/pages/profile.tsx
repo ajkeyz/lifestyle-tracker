@@ -356,7 +356,7 @@ export default function Profile() {
           </Button>
           <div className="flex items-center gap-2">
             <AppLogo size="sm" />
-            <span className="font-display font-bold tracking-tight">
+            <span className="font-display font-semibold tracking-[-0.02em]">
               {isOwnProfile ? "Profile" : user?.username || "Profile"}
             </span>
           </div>
@@ -420,7 +420,7 @@ export default function Profile() {
           </div>
 
           <div className="text-center space-y-1">
-            <h1 className="text-2xl font-display font-bold tracking-tight" data-testid="text-username">
+            <h1 className="text-2xl font-semibold tracking-[-0.02em]" data-testid="text-username">
               {user.username}
             </h1>
             {user.bio && (

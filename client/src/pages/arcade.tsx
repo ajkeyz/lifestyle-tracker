@@ -249,7 +249,7 @@ export default function Arcade() {
             </div>
 
             <div>
-              <h1 className="text-3xl font-display font-bold mb-2" data-testid="text-arcade-title">Arcade Mode</h1>
+              <h1 className="text-3xl font-semibold mb-2 tracking-[-0.02em]" data-testid="text-arcade-title">Arcade Mode</h1>
               <p className="text-muted-foreground max-w-md mx-auto">
                 Play extra rounds with different scenarios. Your scores don't affect your daily streak.
               </p>

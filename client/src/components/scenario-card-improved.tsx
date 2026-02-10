@@ -49,7 +49,7 @@ export function ScenarioCard({
 
       {/* Zone C: Answer Options */}
       <div className="space-y-2.5">
-        <p className="text-xs font-medium text-muted-foreground/50 uppercase tracking-wider px-1" data-testid="text-choose-label">
+        <p className="text-[11px] font-semibold text-muted-foreground/40 uppercase tracking-[0.12em] px-1" data-testid="text-choose-label">
           Choose your answer
         </p>
         <div

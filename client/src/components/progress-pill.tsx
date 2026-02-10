@@ -25,7 +25,7 @@ export function ProgressPill({ current, total, className }: ProgressPillProps) {
       aria-label={`Question ${current} of ${total}`}
       data-testid="progress-pill"
     >
-      <span className="font-display font-bold text-primary">Q{current}</span>
+      <span className="font-display font-semibold text-primary">Q{current}</span>
       <span className="text-muted-foreground text-xs">of</span>
       <span className="font-display font-semibold">{total}</span>
     </motion.div>

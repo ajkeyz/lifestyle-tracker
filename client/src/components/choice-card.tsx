@@ -126,7 +126,7 @@ export function ChoiceCard({
           )}
           <p
             className={cn(
-              "font-medium leading-snug transition-colors flex-1",
+              "text-[0.9375rem] font-medium leading-[1.45] transition-colors flex-1",
               showResult && isCorrect && "text-foreground",
               showResult && isSelected && !isCorrect && "text-foreground"
             )}

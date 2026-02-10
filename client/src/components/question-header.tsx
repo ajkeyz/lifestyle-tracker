@@ -91,7 +91,7 @@ export function QuestionHeader({ category, context, question }: QuestionHeaderPr
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.4, delay: 0.15 }}
-            className="px-3.5 py-2.5 rounded-md bg-muted/40 border border-border/40 text-sm text-muted-foreground leading-relaxed"
+            className="px-3.5 py-2.5 rounded-md bg-muted/40 border border-border/40 text-[13px] text-muted-foreground leading-relaxed tracking-wide"
             data-testid="question-context"
           >
             {context}
@@ -107,7 +107,7 @@ export function QuestionHeader({ category, context, question }: QuestionHeaderPr
       >
         <Card className="px-5 py-5" data-testid="question-panel">
           <h2
-            className="text-xl sm:text-2xl md:text-[1.65rem] font-display font-bold tracking-tight leading-snug text-foreground"
+            className="text-[1.2rem] sm:text-[1.4rem] md:text-[1.55rem] font-semibold tracking-[-0.01em] leading-[1.4] text-foreground"
             data-testid="question-text"
           >
             {question}

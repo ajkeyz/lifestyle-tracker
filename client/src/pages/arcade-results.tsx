@@ -75,7 +75,7 @@ export default function ArcadeResults() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4 }}
-              className={`text-2xl font-display font-bold ${gradeColor}`}
+              className={`text-2xl font-semibold ${gradeColor}`}
               data-testid="text-arcade-grade"
             >
               {grade}
@@ -102,21 +102,21 @@ export default function ArcadeResults() {
                   <div className="flex items-center justify-center gap-1 mb-1">
                     <Zap className="w-4 h-4 text-yellow-500" />
                   </div>
-                  <p className="text-3xl font-bold font-display" data-testid="text-score">{score}</p>
+                  <p className="text-3xl font-semibold font-display" data-testid="text-score">{score}</p>
                   <p className="text-xs text-muted-foreground">out of {maxScore}</p>
                 </div>
                 <div>
                   <div className="flex items-center justify-center gap-1 mb-1">
                     <Target className="w-4 h-4 text-emerald-500" />
                   </div>
-                  <p className="text-3xl font-bold font-display" data-testid="text-correct">{correct}/{total}</p>
+                  <p className="text-3xl font-semibold font-display" data-testid="text-correct">{correct}/{total}</p>
                   <p className="text-xs text-muted-foreground">correct</p>
                 </div>
                 <div>
                   <div className="flex items-center justify-center gap-1 mb-1">
                     <Trophy className="w-4 h-4 text-purple-500" />
                   </div>
-                  <p className="text-3xl font-bold font-display" data-testid="text-accuracy">{percentage}%</p>
+                  <p className="text-3xl font-semibold font-display" data-testid="text-accuracy">{percentage}%</p>
                   <p className="text-xs text-muted-foreground">accuracy</p>
                 </div>
               </div>
