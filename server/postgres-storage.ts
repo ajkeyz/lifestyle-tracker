@@ -447,6 +447,9 @@ export class PostgresStorage implements IStorage {
       membershipTier,
       arcadePlaysToday: dbUser.arcadePlaysToday || 0,
       arcadeLastPlayedDate: dbUser.arcadeLastPlayedDate || null,
+      moneyPhilosophy: dbUser.moneyPhilosophy || "",
+      whyImHere: dbUser.whyImHere || "",
+      friendVisibility: dbUser.friendVisibility || "trend",
     };
   }
 

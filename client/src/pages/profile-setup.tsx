@@ -95,6 +95,9 @@ export default function ProfileSetup() {
         bio: user.bio || "",
         allowFriendsToFind: user.allowFriendsToFind ?? true,
         isProfilePrivate: user.isProfilePrivate ?? false,
+        moneyPhilosophy: user.moneyPhilosophy || "",
+        whyImHere: user.whyImHere || "",
+        friendVisibility: user.friendVisibility || "trend",
       });
     }
   }, [user, isEditMode]);

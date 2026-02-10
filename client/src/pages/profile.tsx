@@ -212,21 +212,36 @@ export default function Profile() {
   });
 
   const updateFieldMutation = useMutation({
-    mutationFn: async (updates: { moneyPhilosophy?: string; whyImHere?: string; friendVisibility?: string }) => {
+    mutationFn: async (updates: Partial<Pick<User, 'moneyPhilosophy' | 'whyImHere' | 'friendVisibility' | 'allowFriendsToFind' | 'isProfilePrivate'>>) => {
       const res = await apiRequest("POST", "/api/profile", {
         username: user?.username,
         avatar: user?.avatar,
         bio: user?.bio || "",
         allowFriendsToFind: user?.allowFriendsToFind ?? true,
         isProfilePrivate: user?.isProfilePrivate ?? false,
+        moneyPhilosophy: user?.moneyPhilosophy || "",
+        whyImHere: user?.whyImHere || "",
+        friendVisibility: user?.friendVisibility || "trend",
         ...updates,
       });
       return res.json();
     },
+    onMutate: async (updates) => {
+      await queryClient.cancelQueries({ queryKey: ["/api/user"] });
+      const previousUser = queryClient.getQueryData<User>(["/api/user"]);
+      if (previousUser) {
+        queryClient.setQueryData<User>(["/api/user"], { ...previousUser, ...updates });
+      }
+      return { previousUser };
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      toast({ title: "Saved", description: "Your changes have been saved." });
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _variables, context) => {
+      if (context?.previousUser) {
+        queryClient.setQueryData(["/api/user"], context.previousUser);
+      }
       toast({
         title: "Couldn't save",
         description: error.message || "Please try again.",
@@ -688,7 +703,7 @@ export default function Profile() {
               <span className="text-sm text-muted-foreground">Friends can see:</span>
               <Select
                 value={user.friendVisibility || "trend"}
-                onValueChange={(value) => {
+                onValueChange={(value: "nothing" | "trend" | "streak") => {
                   updateFieldMutation.mutate({ friendVisibility: value });
                 }}
               >

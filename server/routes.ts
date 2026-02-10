@@ -290,6 +290,11 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Username is already taken" });
       }
 
+      const existingUser = await storage.getUser(sessionId);
+      if (!existingUser) {
+        await storage.getOrCreateUser(sessionId);
+      }
+
       const user = await storage.updateUser(sessionId, {
         username: parsed.data.username,
         avatar: parsed.data.avatar,
