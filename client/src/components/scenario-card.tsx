@@ -5,11 +5,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { TiltCard } from "@/components/ui/tilt-card";
 import type { Scenario, ScenarioCategory } from "@shared/schema";
-import { Check, X } from "lucide-react";
+import { Check, X, Coins } from "lucide-react";
 import { 
   Laptop, Plane, ShoppingBag, ShieldAlert, TrendingUp, CreditCard,
   Briefcase, Heart, Home, Shield, Receipt, Wallet, AlertTriangle,
-  PiggyBank, Activity, Gift, Coins, Users, Sparkles, HelpCircle
+  PiggyBank, Activity, Gift, Coins as CoinsIcon, Users, Sparkles, HelpCircle
 } from "lucide-react";
 
 const categoryIcons: Record<ScenarioCategory, typeof Laptop> = {
@@ -29,7 +29,7 @@ const categoryIcons: Record<ScenarioCategory, typeof Laptop> = {
   budgeting: PiggyBank,
   health: Activity,
   giving: Gift,
-  saving: Coins,
+  saving: CoinsIcon,
   family: Users,
   windfall: Sparkles,
 };
@@ -56,6 +56,14 @@ const categoryColors: Record<ScenarioCategory, string> = {
   windfall: "bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800",
 };
 
+function getPointHint(points: number): { color: string; bgColor: string } {
+  if (points >= 100) return { color: "text-primary", bgColor: "bg-primary/10" };
+  if (points >= 80) return { color: "text-emerald-500 dark:text-emerald-400", bgColor: "bg-emerald-500/10" };
+  if (points >= 50) return { color: "text-amber-500 dark:text-amber-400", bgColor: "bg-amber-500/10" };
+  if (points >= 20) return { color: "text-muted-foreground", bgColor: "bg-muted/50" };
+  return { color: "text-muted-foreground/60", bgColor: "bg-muted/30" };
+}
+
 interface ScenarioCardProps {
   scenario: Scenario;
   selectedChoice: string | null;
@@ -77,17 +85,12 @@ export function ScenarioCard({
 }: ScenarioCardProps) {
   const Icon = categoryIcons[scenario.category] || ShoppingBag;
 
-  // Multi-stage reveal animation states
   const [revealStage, setRevealStage] = useState(0);
 
-  // Trigger reveal sequence when showResult changes to true
   useEffect(() => {
     if (showResult && revealStage === 0) {
-      // Stage 1: Pause (0.5s tension)
       setTimeout(() => setRevealStage(1), 500);
-      // Stage 2: Show result indicators (flip + icons)
       setTimeout(() => setRevealStage(2), 800);
-      // Stage 3: Show points and feedback
       setTimeout(() => setRevealStage(3), 1200);
     } else if (!showResult) {
       setRevealStage(0);
@@ -133,6 +136,8 @@ export function ScenarioCard({
           const isSelected = selectedChoice === choice.label;
           const isCorrect = choice.isCorrect;
           const showCorrectness = showResult && (isSelected || isCorrect);
+          const hint = getPointHint(choice.points);
+          const earnedPoints = Math.max(0, choice.points);
 
           return (
             <motion.button
@@ -153,7 +158,7 @@ export function ScenarioCard({
               onClick={() => !showResult && onSelectChoice(choice.label)}
               disabled={showResult}
               className={cn(
-                "w-full p-4 rounded-lg border-2 text-left transition-all relative overflow-hidden",
+                "w-full p-4 rounded-lg border-2 text-left transition-all relative overflow-visible group",
                 "flex items-start gap-3",
                 !showResult && !isSelected && "hover-elevate border-border hover:border-primary/30 hover:bg-primary/5",
                 !showResult && isSelected && "border-primary bg-primary/5 shadow-lg",
@@ -199,22 +204,59 @@ export function ScenarioCard({
                 <p className="font-medium" data-testid={`text-choice-${choice.label}`}>{choice.text}</p>
                 <AnimatePresence>
                   {showResult && showCorrectness && revealStage >= 3 && (
-                    <motion.p
+                    <motion.div
                       initial={{ opacity: 0, height: 0, y: -10 }}
                       animate={{ opacity: 1, height: "auto", y: 0 }}
                       exit={{ opacity: 0, height: 0 }}
                       transition={{ duration: 0.4, delay: 0.1 }}
-                      className={cn(
-                        "text-sm mt-2 font-medium",
+                      className="mt-2 space-y-1"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <Coins className={cn("w-3.5 h-3.5", isCorrect ? "text-primary" : "text-destructive")} />
+                        <span className={cn(
+                          "text-sm font-semibold tabular-nums",
+                          isCorrect ? "text-primary" : "text-destructive"
+                        )}>
+                          +{earnedPoints} pts
+                        </span>
+                        {isCorrect && choice.points >= 100 && (
+                          <span className="text-[10px] font-semibold uppercase tracking-wider text-primary/70 ml-1">Best</span>
+                        )}
+                        {isCorrect && choice.points < 100 && choice.points >= 50 && (
+                          <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-500/70 dark:text-amber-400/70 ml-1">Good</span>
+                        )}
+                      </div>
+                      <p className={cn(
+                        "text-sm font-medium",
                         isCorrect ? "text-primary" : "text-destructive"
                       )}
-                      data-testid={`text-feedback-${choice.label}`}
-                    >
-                      {choice.feedback}
-                    </motion.p>
+                        data-testid={`text-feedback-${choice.label}`}
+                      >
+                        {choice.feedback}
+                      </p>
+                    </motion.div>
                   )}
                 </AnimatePresence>
               </div>
+
+              {!showResult && (
+                <div
+                  className={cn(
+                    "flex-shrink-0 self-center",
+                    "flex items-center gap-1 px-2 py-0.5 rounded-full",
+                    "text-[11px] font-semibold tabular-nums tracking-wide",
+                    "transition-opacity duration-200",
+                    hint.bgColor,
+                    hint.color,
+                    isSelected ? "opacity-100" : "opacity-50 group-hover:opacity-80"
+                  )}
+                  data-testid={`points-hint-${choice.label}`}
+                >
+                  <Coins className="w-3 h-3" />
+                  <span>{Math.max(0, choice.points)}</span>
+                </div>
+              )}
+
               <AnimatePresence>
                 {showResult && isCorrect && revealStage >= 3 && (
                   <motion.div

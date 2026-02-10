@@ -3,6 +3,9 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Users,
   Search,
@@ -13,11 +16,21 @@ import {
   Loader2,
   Check,
   X,
-  ArrowLeft
+  ArrowLeft,
+  Flame,
+  Heart
 } from "lucide-react";
 import { AppLogo } from "@/components/app-logo";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+
+interface FriendEntry {
+  id: string;
+  username: string;
+  avatar: string;
+  moneyHealth: number;
+  streak: number;
+}
 
 type ViewMode = "main" | "search" | "contacts" | "contacts-granted";
 
@@ -49,6 +62,10 @@ export default function FriendsSetup() {
     staleTime: 5000,
   });
 
+  const { data: friends, isLoading: friendsLoading } = useQuery<FriendEntry[]>({
+    queryKey: ["/api/friends"],
+  });
+
   const handleSkip = () => {
     navigate("/setup");
   };
@@ -63,7 +80,7 @@ export default function FriendsSetup() {
         <header className="flex items-center justify-between gap-2 p-4 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
           <div className="flex items-center gap-2">
             <AppLogo size="sm" />
-            <span className="font-bold text-lg" data-testid="text-app-title">Lifestyle Creep</span>
+            <span className="font-semibold text-lg tracking-[-0.02em]" data-testid="text-app-title">Lifestyle Creep</span>
           </div>
           <ThemeToggle />
         </header>
@@ -73,7 +90,7 @@ export default function FriendsSetup() {
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-accent/20 to-primary/20 flex items-center justify-center">
               <Contact className="w-8 h-8 text-accent" />
             </div>
-            <h1 className="text-2xl md:text-3xl font-bold mb-2" data-testid="text-contacts-title">
+            <h1 className="text-2xl md:text-3xl font-semibold tracking-[-0.02em] mb-2" data-testid="text-contacts-title">
               Find Friends in Contacts
             </h1>
             <p className="text-muted-foreground" data-testid="text-contacts-description">
@@ -129,7 +146,7 @@ export default function FriendsSetup() {
         <header className="flex items-center justify-between gap-2 p-4 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
           <div className="flex items-center gap-2">
             <AppLogo size="sm" />
-            <span className="font-bold text-lg" data-testid="text-app-title">Lifestyle Creep</span>
+            <span className="font-semibold text-lg tracking-[-0.02em]" data-testid="text-app-title">Lifestyle Creep</span>
           </div>
           <ThemeToggle />
         </header>
@@ -139,7 +156,7 @@ export default function FriendsSetup() {
             <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-green-500/20 flex items-center justify-center">
               <Check className="w-10 h-10 text-green-500" />
             </div>
-            <h1 className="text-2xl md:text-3xl font-bold mb-2" data-testid="text-contacts-granted-title">
+            <h1 className="text-2xl md:text-3xl font-semibold tracking-[-0.02em] mb-2" data-testid="text-contacts-granted-title">
               Contacts Enabled
             </h1>
             <p className="text-muted-foreground" data-testid="text-contacts-granted-description">
@@ -179,14 +196,14 @@ export default function FriendsSetup() {
         <header className="flex items-center justify-between gap-2 p-4 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
           <div className="flex items-center gap-2">
             <AppLogo size="sm" />
-            <span className="font-bold text-lg" data-testid="text-app-title">Lifestyle Creep</span>
+            <span className="font-semibold text-lg tracking-[-0.02em]" data-testid="text-app-title">Lifestyle Creep</span>
           </div>
           <ThemeToggle />
         </header>
 
         <main className="container max-w-md mx-auto p-4 space-y-6">
           <div className="text-center py-6">
-            <h1 className="text-2xl md:text-3xl font-bold mb-2" data-testid="text-search-title">
+            <h1 className="text-2xl md:text-3xl font-semibold tracking-[-0.02em] mb-2" data-testid="text-search-title">
               Find a Friend
             </h1>
             <p className="text-muted-foreground" data-testid="text-search-description">
@@ -281,7 +298,7 @@ export default function FriendsSetup() {
       <header className="flex items-center justify-between gap-2 p-4 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="flex items-center gap-2">
           <AppLogo size="sm" />
-          <span className="font-bold text-lg" data-testid="text-app-title">Lifestyle Creep</span>
+          <span className="font-semibold text-lg tracking-[-0.02em]" data-testid="text-app-title">Lifestyle Creep</span>
         </div>
         <ThemeToggle />
       </header>
@@ -291,7 +308,7 @@ export default function FriendsSetup() {
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
             <Users className="w-8 h-8 text-primary" />
           </div>
-          <h1 className="text-2xl md:text-3xl font-bold mb-2" data-testid="text-friends-title">
+          <h1 className="text-2xl md:text-3xl font-semibold tracking-[-0.02em] mb-2" data-testid="text-friends-title">
             Play with Friends
           </h1>
           <p className="text-muted-foreground" data-testid="text-friends-description">
@@ -338,6 +355,83 @@ export default function FriendsSetup() {
             </div>
           </Card>
         </div>
+
+        {friendsLoading ? (
+          <div className="space-y-3" data-testid="friends-list-loading">
+            <div className="flex items-center justify-between gap-2 px-1">
+              <h2 className="text-sm font-semibold tracking-[-0.02em]">Your Friends</h2>
+            </div>
+            {[1, 2, 3].map((i) => (
+              <Card key={i} className="p-3">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="w-10 h-10 rounded-full" />
+                  <div className="flex-1 space-y-1.5">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-3 w-16" />
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        ) : friends && friends.length > 0 ? (
+          <div className="space-y-3" data-testid="friends-list-section">
+            <div className="flex items-center justify-between gap-2 px-1">
+              <h2 className="text-sm font-semibold tracking-[-0.02em]" data-testid="text-friends-list-title">
+                Your Friends
+              </h2>
+              <Badge variant="secondary" data-testid="badge-friends-count">
+                {friends.length}
+              </Badge>
+            </div>
+            <div className="space-y-2">
+              {friends.map((friend) => (
+                <Card
+                  key={friend.id}
+                  className="p-3"
+                  data-testid={`friend-card-${friend.id}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Avatar className="w-10 h-10" data-testid={`friend-avatar-${friend.id}`}>
+                      <AvatarImage src={friend.avatar} alt={friend.username} />
+                      <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
+                        {friend.username?.charAt(0).toUpperCase() || "?"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate" data-testid={`friend-username-${friend.id}`}>
+                        {friend.username}
+                      </p>
+                      <div className="flex items-center gap-3 mt-0.5">
+                        {friend.streak > 0 && (
+                          <span className="flex items-center gap-1 text-xs text-muted-foreground" data-testid={`friend-streak-${friend.id}`}>
+                            <Flame className="w-3 h-3 text-orange-500" />
+                            {friend.streak}d
+                          </span>
+                        )}
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground" data-testid={`friend-health-${friend.id}`}>
+                          <Heart className="w-3 h-3 text-primary" />
+                          {friend.moneyHealth}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-4 space-y-2" data-testid="friends-list-empty">
+            <div className="w-12 h-12 mx-auto rounded-full bg-muted/50 flex items-center justify-center">
+              <Users className="w-6 h-6 text-muted-foreground/50" />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              No friends added yet
+            </p>
+            <p className="text-xs text-muted-foreground/70">
+              Search by username or invite contacts to get started
+            </p>
+          </div>
+        )}
 
         <div className="flex items-center gap-3 p-4 bg-muted/30 rounded-md" data-testid="privacy-notice">
           <Shield className="w-5 h-5 text-muted-foreground flex-shrink-0" />

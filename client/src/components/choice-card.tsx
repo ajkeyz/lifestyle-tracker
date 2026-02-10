@@ -1,7 +1,16 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, X } from "lucide-react";
+import { Check, X, Coins } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toneColors, type ChoiceTone } from "@/lib/game-insights";
+
+function getPointTier(points: number): { label: string; color: string; bgColor: string } {
+  const displayPoints = Math.max(0, points);
+  if (points >= 100) return { label: String(displayPoints), color: "text-primary", bgColor: "bg-primary/10" };
+  if (points >= 80) return { label: String(displayPoints), color: "text-emerald-500 dark:text-emerald-400", bgColor: "bg-emerald-500/10" };
+  if (points >= 50) return { label: String(displayPoints), color: "text-amber-500 dark:text-amber-400", bgColor: "bg-amber-500/10" };
+  if (points >= 20) return { label: String(displayPoints), color: "text-muted-foreground", bgColor: "bg-muted/50" };
+  return { label: String(displayPoints), color: "text-muted-foreground/60", bgColor: "bg-muted/30" };
+}
 
 interface ChoiceCardProps {
   label: string;
@@ -33,6 +42,8 @@ export function ChoiceCard({
   tone,
 }: ChoiceCardProps) {
   const showCorrectness = showResult && (isSelected || isCorrect);
+  const pointTier = points !== undefined ? getPointTier(points) : null;
+  const earnedPoints = points !== undefined ? Math.max(0, points) : 0;
 
   return (
     <motion.button
@@ -65,7 +76,7 @@ export function ChoiceCard({
       )}
       role="radio"
       aria-checked={isSelected}
-      aria-label={`Choice ${label}: ${text}`}
+      aria-label={`Choice ${label}: ${text}${pointTier ? `, worth up to ${pointTier.label} points` : ''}`}
       data-testid={`choice-${label.toLowerCase()}`}
     >
       <motion.div
@@ -146,12 +157,31 @@ export function ChoiceCard({
               className="mt-2 space-y-1 overflow-hidden"
             >
               {points !== undefined && (
-                <p className={cn(
-                  "text-sm font-semibold",
-                  isCorrect ? "text-primary" : "text-destructive"
-                )}>
-                  +{points} points
-                </p>
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.1 }}
+                  className="flex items-center gap-1.5"
+                  data-testid={`points-earned-${label.toLowerCase()}`}
+                >
+                  <Coins className={cn("w-3.5 h-3.5", isCorrect ? "text-primary" : "text-destructive")} />
+                  <span className={cn(
+                    "text-sm font-semibold tabular-nums",
+                    isCorrect ? "text-primary" : "text-destructive"
+                  )}>
+                    +{earnedPoints} pts
+                  </span>
+                  {isCorrect && points >= 100 && (
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-primary/70 ml-1">
+                      Best
+                    </span>
+                  )}
+                  {isCorrect && points < 100 && points >= 50 && (
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-500/70 dark:text-amber-400/70 ml-1">
+                      Good
+                    </span>
+                  )}
+                </motion.div>
               )}
               {feedback && (
                 <p className="text-sm text-muted-foreground leading-snug">
@@ -162,6 +192,24 @@ export function ChoiceCard({
           )}
         </AnimatePresence>
       </div>
+
+      {pointTier && !showResult && (
+        <div
+          className={cn(
+            "flex-shrink-0 self-center",
+            "flex items-center gap-1 px-2 py-0.5 rounded-full",
+            "text-[11px] font-semibold tabular-nums tracking-wide",
+            "transition-opacity duration-200",
+            pointTier.bgColor,
+            pointTier.color,
+            isSelected ? "opacity-100" : "opacity-50 group-hover:opacity-80"
+          )}
+          data-testid={`points-hint-${label.toLowerCase()}`}
+        >
+          <Coins className="w-3 h-3" />
+          <span>{pointTier.label}</span>
+        </div>
+      )}
     </motion.button>
   );
 }

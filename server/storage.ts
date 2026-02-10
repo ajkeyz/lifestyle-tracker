@@ -604,6 +604,7 @@ export class MemStorage implements IStorage {
         
         if (choice) {
           if (isCorrect) correctCount++;
+          totalScore += Math.max(0, choice.points);
         }
         answerLabels.push(answer.choiceLabel);
 
@@ -614,7 +615,7 @@ export class MemStorage implements IStorage {
       }
     });
 
-    totalScore = correctCount * 100;
+    totalScore = Math.max(0, totalScore);
     const accuracy = correctCount / drop.scenarios.length;
     const iq = totalScore;
     const moneyHealth = Math.max(0, Math.min(100, Math.round(accuracy * 100)));
@@ -1952,13 +1953,17 @@ export class MemStorage implements IStorage {
     const scenarios = getArcadeScenarios(dayNumber, arcadeGameIndex);
 
     let correctAnswers = 0;
+    let totalScore = 0;
     for (const answer of submission.answers) {
       const scenario = scenarios.find(s => s.id === answer.scenarioId);
       if (!scenario) continue;
       const choice = scenario.choices.find(c => c.label === answer.choiceLabel);
-      if (choice && choice.isCorrect) correctAnswers++;
+      if (choice) {
+        if (choice.isCorrect) correctAnswers++;
+        totalScore += Math.max(0, choice.points);
+      }
     }
-    const totalScore = correctAnswers * 100;
+    totalScore = Math.max(0, totalScore);
 
     if (isNewGameUnlock) {
       user.arcadePlaysToday += 1;
