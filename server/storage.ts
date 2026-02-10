@@ -603,8 +603,10 @@ export class MemStorage implements IStorage {
         const isCorrect = choice?.isCorrect || false;
         
         if (choice) {
-          if (isCorrect) correctCount++;
-          totalScore += Math.max(0, choice.points);
+          if (isCorrect) {
+            correctCount++;
+            totalScore += Math.max(0, choice.points);
+          }
         }
         answerLabels.push(answer.choiceLabel);
 
@@ -1848,7 +1850,7 @@ export class MemStorage implements IStorage {
 
     // Update player's answer
     session.players[playerIndex].answers[scenarioId] = choiceLabel;
-    session.players[playerIndex].score += (choice?.isCorrect ? 100 : 0);
+    session.players[playerIndex].score += (choice && choice.isCorrect) ? Math.max(0, choice.points) : 0;
 
     this.coopSessions.set(sessionId, session);
     return session;
@@ -1959,8 +1961,10 @@ export class MemStorage implements IStorage {
       if (!scenario) continue;
       const choice = scenario.choices.find(c => c.label === answer.choiceLabel);
       if (choice) {
-        if (choice.isCorrect) correctAnswers++;
-        totalScore += Math.max(0, choice.points);
+        if (choice.isCorrect) {
+          correctAnswers++;
+          totalScore += Math.max(0, choice.points);
+        }
       }
     }
     totalScore = Math.max(0, totalScore);

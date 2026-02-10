@@ -76,7 +76,7 @@ export function ChoiceCard({
       )}
       role="radio"
       aria-checked={isSelected}
-      aria-label={`Choice ${label}: ${text}${pointTier ? `, worth up to ${pointTier.label} points` : ''}`}
+      aria-label={`Choice ${label}: ${text}${showResult && pointTier ? `, worth ${pointTier.label} points` : ''}`}
       data-testid={`choice-${label.toLowerCase()}`}
     >
       <motion.div
@@ -193,22 +193,23 @@ export function ChoiceCard({
         </AnimatePresence>
       </div>
 
-      {pointTier && !showResult && (
-        <div
+      {pointTier && showResult && (isSelected || isCorrect) && revealStage >= 2 && (
+        <motion.div
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.15 }}
           className={cn(
             "flex-shrink-0 self-center",
             "flex items-center gap-1 px-2 py-0.5 rounded-full",
             "text-[11px] font-semibold tabular-nums tracking-wide",
-            "transition-opacity duration-200",
             pointTier.bgColor,
             pointTier.color,
-            isSelected ? "opacity-100" : "opacity-50 group-hover:opacity-80"
           )}
           data-testid={`points-hint-${label.toLowerCase()}`}
         >
           <Coins className="w-3 h-3" />
           <span>{pointTier.label}</span>
-        </div>
+        </motion.div>
       )}
     </motion.button>
   );

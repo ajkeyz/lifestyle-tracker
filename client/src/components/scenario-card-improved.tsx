@@ -24,15 +24,15 @@ export function ScenarioCard({
   const [revealStage, setRevealStage] = useState(0);
 
   useEffect(() => {
-    if (showResult && revealStage === 0) {
+    if (showResult) {
       const t1 = setTimeout(() => setRevealStage(1), 500);
       const t2 = setTimeout(() => setRevealStage(2), 800);
       const t3 = setTimeout(() => setRevealStage(3), 1200);
       return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
-    } else if (!showResult) {
+    } else {
       setRevealStage(0);
     }
-  }, [showResult, revealStage]);
+  }, [showResult]);
 
   const choiceTones = useMemo(() => {
     return scenario.choices.map(choice => classifyChoiceTone(choice));

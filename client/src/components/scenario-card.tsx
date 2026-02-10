@@ -239,22 +239,23 @@ export function ScenarioCard({
                 </AnimatePresence>
               </div>
 
-              {!showResult && (
-                <div
+              {showResult && (isSelected || isCorrect) && revealStage >= 2 && (
+                <motion.div
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.15 }}
                   className={cn(
                     "flex-shrink-0 self-center",
                     "flex items-center gap-1 px-2 py-0.5 rounded-full",
                     "text-[11px] font-semibold tabular-nums tracking-wide",
-                    "transition-opacity duration-200",
                     hint.bgColor,
                     hint.color,
-                    isSelected ? "opacity-100" : "opacity-50 group-hover:opacity-80"
                   )}
                   data-testid={`points-hint-${choice.label}`}
                 >
                   <Coins className="w-3 h-3" />
                   <span>{Math.max(0, choice.points)}</span>
-                </div>
+                </motion.div>
               )}
 
               <AnimatePresence>
