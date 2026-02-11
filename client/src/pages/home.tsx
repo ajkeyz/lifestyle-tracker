@@ -243,7 +243,7 @@ export default function Home() {
       <AmbientBackground variant="default" />
       <header className="flex items-center justify-between gap-2 p-4 border-b bg-card/80 backdrop-blur-xl sticky top-0 z-50 border-white/10">
         <span className="font-display font-semibold text-sm tracking-[-0.02em]" data-testid="text-daily-drop-header">
-          Daily Drop #{dailyDrop?.dropNumber || "..."}
+          Day {dailyDrop?.dropNumber || "..."} — Pattern Spotting
         </span>
         <div className="flex items-center gap-2">
           {authUser && (
