@@ -242,12 +242,8 @@ export default function Home() {
       <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 relative">
       <AmbientBackground variant="default" />
       <header className="flex items-center justify-between gap-2 p-4 border-b bg-card/80 backdrop-blur-xl sticky top-0 z-50 border-white/10">
-        <span className="font-display font-semibold text-sm tracking-[-0.02em] text-muted-foreground" data-testid="text-header-context">
-          {hasPlayedToday
-            ? `Day ${dailyDrop?.dropNumber || "..."} — Pattern Spotting`
-            : user?.gamesPlayed === 0
-              ? "Your First Decisions"
-              : `Day ${dailyDrop?.dropNumber || "..."} — Today's Decisions`}
+        <span className="font-display font-semibold text-sm tracking-[-0.02em]" data-testid="text-daily-drop-header">
+          Daily Drop #{dailyDrop?.dropNumber || "..."}
         </span>
         <div className="flex items-center gap-2">
           {authUser && (
@@ -332,13 +328,6 @@ export default function Home() {
             >
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div className="flex-1 min-w-0">
-                  {dropLoading ? (
-                    <Skeleton className="h-8 w-40 mb-2" />
-                  ) : (
-                    <h1 className="text-2xl md:text-3xl font-semibold mb-1 tracking-[-0.02em]" data-testid="text-daily-drop-title">
-                      Daily Drop #{dailyDrop?.dropNumber || "..."}
-                    </h1>
-                  )}
                   <div className="flex items-center gap-2 mb-2 flex-wrap">
                     <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-muted/50 ${themeConfig.color}`}>
                       <ThemeIcon className="w-3.5 h-3.5" />
