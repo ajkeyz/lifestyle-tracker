@@ -8,13 +8,17 @@ import { SiApple, SiGoogle } from "react-icons/si";
 import { Link } from "wouter";
 
 export default function AuthPage() {
-  const [playersToday, setPlayersToday] = useState(0);
+  const [playersToday, setPlayersToday] = useState<number | null>(null);
 
   useEffect(() => {
-    const base = 1247;
-    const hour = new Date().getHours();
-    const noise = Math.floor(Math.sin(hour * 7.3) * 180 + 200);
-    setPlayersToday(base + noise);
+    fetch("/api/daily-stats")
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data?.totalPlayers && data.totalPlayers > 0) {
+          setPlayersToday(data.totalPlayers);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   return (
@@ -139,9 +143,11 @@ export default function AuthPage() {
             transition={{ delay: 0.65, duration: 0.5 }}
             className="text-center"
           >
-            <p className="text-xs text-muted-foreground/50 mb-2" data-testid="text-social-proof">
-              {playersToday.toLocaleString()} people played today
-            </p>
+            {playersToday !== null && (
+              <p className="text-xs text-muted-foreground/50 mb-2" data-testid="text-social-proof">
+                {playersToday.toLocaleString()} people played today
+              </p>
+            )}
 
             <p className="text-[11px] text-muted-foreground/40" data-testid="footer-auth">
               By continuing, you agree to our{" "}

@@ -1,0 +1,106 @@
+You are a senior staff full-stack engineer doing a pre-launch audit of a production app.
+
+App: Lifestyle Creep (mobile-first web app / PWA style)
+Goal: Thoroughly assess the codebase for:
+- Bugs, edge cases, broken flows
+- Missing “final 10%” features that cause churn or support tickets
+- Security/privacy issues
+- Performance/UX issues (“UI slop”)
+- Release readiness (logging, error handling, env config)
+
+Constraints:
+- Do NOT redesign the product or add major new systems.
+- Focus on launch-blockers and high-risk issues first.
+- Keep changes minimal, targeted, and well-justified.
+- Prefer fixes that are idiomatic for the current stack and repo conventions.
+- If you’re unsure about intended behavior, infer from existing UI and patterns rather than asking me questions.
+
+Process (follow exactly):
+
+PHASE 1 — Repo Understanding (read-only)
+1) Identify stack and architecture:
+   - Routing (Next/React Router/etc), state management, data layer, auth provider, DB, API routes
+2) Map core user journeys (by reading code):
+   - Sign up/login (Apple/Google/Email)
+   - Start Daily Drop quiz
+   - Answer questions + submit
+   - View results
+   - Streak/health updates
+   - Friends/leagues/community (if present)
+   - Profile and settings
+   - Terms/privacy pages
+3) List all routes/pages and major components.
+
+PHASE 2 — Automated + Manual Audit
+Perform a systematic audit and document findings by category:
+
+A) Functionality Bugs / Edge Cases
+- Navigation: scroll restoration, back/forward, deep links, refresh behavior
+- Auth: session persistence, token refresh, logout, account linking collisions
+- Quiz flow: timer behavior, double-submit, partial completion, resume, offline/refresh mid-quiz
+- State correctness: streak increments, daily reset logic, timezone/UTC boundaries, idempotency
+- Data integrity: duplicate records, race conditions, optimistic updates mismatches
+- Error paths: API failures, empty states, retries, loading states
+
+B) Missing “Expected” Features (launch readiness)
+- Forgot password / magic link flow (if email auth exists)
+- Account deletion request / data deletion pathway (even if basic)
+- User feedback/report issue entry point
+- Basic settings: sign out, notification prefs (optional), privacy controls (if social exists)
+- Empty states for leagues/community/friends
+- Rate limiting / abuse controls for public endpoints (if any)
+
+C) Security & Privacy
+- Secrets and env vars safety (no keys in client bundles)
+- Auth middleware correctness; public routes allowed (/terms, /privacy)
+- API authorization checks for user-owned data
+- XSS/CSRF considerations where relevant
+- PII minimization; analytics events (no leaking emails/user IDs)
+- Logging: ensure no sensitive data is logged
+
+D) Performance & UX Polish
+- Bundle size and unnecessary deps
+- Excess re-renders in quiz flow
+- Layout shift (CLS) from images/fonts
+- Slow hydration / long tasks on mobile
+- Tap targets, focus states, keyboard nav
+- Safe-area handling iOS, overscroll behavior, scroll containers
+- Consistent typography + spacing across screens
+
+E) Reliability / Observability
+- Error boundary coverage
+- API error normalization
+- Client-side logging strategy
+- Server logs and request tracing (basic)
+- Analytics event sanity (only if already present)
+
+PHASE 3 — Prioritized Fix Plan + Implementation
+1) Output a prioritized list of issues:
+   - P0 launch blockers
+   - P1 important
+   - P2 polish
+Each item must include:
+   - Where it occurs (file/path)
+   - How to reproduce
+   - Root cause
+   - Suggested minimal fix
+
+2) Implement fixes for ALL P0 items and the highest-value P1 items (up to ~10 fixes total).
+- Provide code diffs and file paths.
+- Add/adjust small tests where feasible (unit or e2e), or at minimum a reproducible manual test checklist.
+
+PHASE 4 — Release Checklist
+Provide a final “ship checklist” tailored to this repo:
+- Env vars required (dev/staging/prod)
+- Build commands
+- Smoke test steps (mobile-first)
+- Monitoring checks post-deploy
+- Rollback plan notes (simple)
+
+Deliverable format:
+- Summary table of issues (Severity, Area, Status)
+- Detailed findings by category
+- Patch/diff sections for implemented fixes
+- Final launch checklist
+
+Start now by scanning the repo for routes/pages, auth flow, and quiz flow entry points, then proceed through the phases.

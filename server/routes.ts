@@ -73,6 +73,45 @@ function getSessionId(req: Request): string {
   return req.session.visitorId;
 }
 
+function isAuthenticatedUser(req: Request): boolean {
+  const user = req.user as any;
+  return !!(user?.claims?.sub);
+}
+
+function requireAuth(req: Request, res: Response, next: Function) {
+  if (!isAuthenticatedUser(req)) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+  next();
+}
+
+const rateLimiters: Map<string, Map<string, { count: number; resetAt: number }>> = new Map();
+
+function rateLimit(key: string, maxRequests: number, windowMs: number) {
+  return (req: Request, res: Response, next: Function) => {
+    const sessionId = getSessionId(req);
+    
+    if (!rateLimiters.has(key)) {
+      rateLimiters.set(key, new Map());
+    }
+    const limiter = rateLimiters.get(key)!;
+    const now = Date.now();
+    const entry = limiter.get(sessionId);
+    
+    if (!entry || now > entry.resetAt) {
+      limiter.set(sessionId, { count: 1, resetAt: now + windowMs });
+      return next();
+    }
+    
+    if (entry.count >= maxRequests) {
+      return res.status(429).json({ error: "Too many requests. Please try again later." });
+    }
+    
+    entry.count++;
+    next();
+  };
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -141,13 +180,13 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/submit-game", async (req: Request, res: Response) => {
+  app.post("/api/submit-game", requireAuth, rateLimit("submit-game", 5, 60000), async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
       const parsed = submitGameSchema.safeParse(req.body);
       
       if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid submission data", details: parsed.error });
+        return res.status(400).json({ error: "Invalid submission data" });
       }
 
       const user = await storage.getUser(sessionId);
@@ -183,7 +222,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/apply-referral", async (req: Request, res: Response) => {
+  app.post("/api/apply-referral", requireAuth, rateLimit("referral", 5, 60000), async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
       const { referralCode } = req.body;
@@ -214,13 +253,13 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/set-mode", async (req: Request, res: Response) => {
+  app.post("/api/set-mode", requireAuth, async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
       const parsed = setModeSchema.safeParse(req.body);
       
       if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid mode", details: parsed.error });
+        return res.status(400).json({ error: "Invalid mode" });
       }
 
       const user = await storage.updateUser(sessionId, { mode: parsed.data.mode });
@@ -234,7 +273,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/search-user/:username", async (req: Request, res: Response) => {
+  app.get("/api/search-user/:username", requireAuth, async (req: Request, res: Response) => {
     try {
       const username = req.params.username as string;
       const sessionId = getSessionId(req);
@@ -276,13 +315,13 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/profile", async (req: Request, res: Response) => {
+  app.post("/api/profile", requireAuth, rateLimit("profile", 10, 60000), async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
       const parsed = updateProfileSchema.safeParse(req.body);
       
       if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid profile data", details: parsed.error });
+        return res.status(400).json({ error: "Invalid profile data" });
       }
 
       const isAvailable = await storage.checkUsernameAvailable(parsed.data.username, sessionId);
@@ -318,7 +357,7 @@ export async function registerRoutes(
   });
 
   // Low pressure mode toggle
-  app.post("/api/low-pressure-mode", async (req: Request, res: Response) => {
+  app.post("/api/low-pressure-mode", requireAuth, async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
       const { enabled } = req.body;
@@ -342,7 +381,7 @@ export async function registerRoutes(
   });
 
   // Toggle sound effects
-  app.post("/api/toggle-sound", async (req: Request, res: Response) => {
+  app.post("/api/toggle-sound", requireAuth, async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
       const user = await storage.getUser(sessionId);
@@ -363,7 +402,7 @@ export async function registerRoutes(
   });
 
   // Complete onboarding
-  app.post("/api/complete-onboarding", async (req: Request, res: Response) => {
+  app.post("/api/complete-onboarding", requireAuth, async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
       const user = await storage.updateUser(sessionId, {
@@ -381,7 +420,7 @@ export async function registerRoutes(
   });
 
   // Notification preferences
-  app.post("/api/notification-prefs", async (req: Request, res: Response) => {
+  app.post("/api/notification-prefs", requireAuth, async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
       const prefs = req.body;
@@ -401,7 +440,7 @@ export async function registerRoutes(
   });
 
   // League routes
-  app.get("/api/leagues", async (req: Request, res: Response) => {
+  app.get("/api/leagues", requireAuth, async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
       const leagues = await storage.getUserLeagues(sessionId);
@@ -426,13 +465,13 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/leagues", async (req: Request, res: Response) => {
+  app.post("/api/leagues", requireAuth, rateLimit("create-league", 5, 60000), async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
       const parsed = createLeagueSchema.safeParse(req.body);
       
       if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid league data", details: parsed.error });
+        return res.status(400).json({ error: "Invalid league data" });
       }
 
       const league = await storage.createLeague(sessionId, parsed.data);
@@ -443,13 +482,13 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/leagues/join", async (req: Request, res: Response) => {
+  app.post("/api/leagues/join", requireAuth, rateLimit("join-league", 10, 60000), async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
       const parsed = joinLeagueSchema.safeParse(req.body);
       
       if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid invite code", details: parsed.error });
+        return res.status(400).json({ error: "Invalid invite code" });
       }
 
       const league = await storage.joinLeague(sessionId, parsed.data.inviteCode);
@@ -463,7 +502,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/leagues/:id/leave", async (req: Request, res: Response) => {
+  app.post("/api/leagues/:id/leave", requireAuth, async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
       const leagueId = req.params.id as string;
@@ -480,7 +519,7 @@ export async function registerRoutes(
   });
 
   // Challenge routes
-  app.get("/api/friends", async (req: Request, res: Response) => {
+  app.get("/api/friends", requireAuth, async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
       const friends = await storage.getFriends(sessionId);
@@ -497,7 +536,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/friends/add", async (req: Request, res: Response) => {
+  app.post("/api/friends/add", requireAuth, rateLimit("add-friend", 20, 60000), async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
       const { friendId } = req.body;
@@ -517,7 +556,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/challenges", async (req: Request, res: Response) => {
+  app.get("/api/challenges", requireAuth, async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
       const challenges = await storage.getUserChallenges(sessionId);
@@ -528,13 +567,13 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/challenges", async (req: Request, res: Response) => {
+  app.post("/api/challenges", requireAuth, rateLimit("create-challenge", 10, 60000), async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
       const parsed = createChallengeSchema.safeParse(req.body);
       
       if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid challenge data", details: parsed.error });
+        return res.status(400).json({ error: "Invalid challenge data" });
       }
 
       const challenge = await storage.createChallenge(sessionId, parsed.data);
@@ -556,7 +595,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/challenges/:id/respond", async (req: Request, res: Response) => {
+  app.post("/api/challenges/:id/respond", requireAuth, async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
       const challengeId = req.params.id as string;
@@ -578,7 +617,7 @@ export async function registerRoutes(
   });
 
   // Streak protection routes
-  app.get("/api/streak-calendar", async (req: Request, res: Response) => {
+  app.get("/api/streak-calendar", requireAuth, async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
       const days = parseInt(req.query.days as string) || 30;
@@ -590,7 +629,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/use-freeze", async (req: Request, res: Response) => {
+  app.post("/api/use-freeze", requireAuth, rateLimit("freeze", 5, 60000), async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
       const result = await storage.useStreakFreeze(sessionId);
@@ -604,13 +643,13 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/add-freeze-token", async (req: Request, res: Response) => {
+  app.post("/api/add-freeze-token", requireAuth, rateLimit("freeze-token", 10, 60000), async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
       const parsed = addFreezeTokenSchema.safeParse(req.body);
       
       if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid request", details: parsed.error });
+        return res.status(400).json({ error: "Invalid request" });
       }
       
       const user = await storage.addFreezeToken(sessionId, parsed.data.count);
@@ -625,7 +664,7 @@ export async function registerRoutes(
   });
 
   // Badge/Achievement endpoints
-  app.get("/api/badges", async (req: Request, res: Response) => {
+  app.get("/api/badges", requireAuth, async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
       const badges = await storage.getBadges(sessionId);
@@ -637,7 +676,7 @@ export async function registerRoutes(
   });
 
   // Streak Insurance endpoints
-  app.post("/api/streak-buyback", async (req: Request, res: Response) => {
+  app.post("/api/streak-buyback", requireAuth, rateLimit("buyback", 3, 60000), async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
       const result = await storage.useStreakBuyback(sessionId);
@@ -651,7 +690,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/late-pass", async (req: Request, res: Response) => {
+  app.post("/api/late-pass", requireAuth, rateLimit("late-pass", 3, 60000), async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
       const result = await storage.useLatePass(sessionId);
@@ -665,7 +704,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/toggle-plus", async (req: Request, res: Response) => {
+  app.post("/api/toggle-plus", requireAuth, async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
       const { isPlus } = req.body;
@@ -714,13 +753,13 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/community/scenarios", async (req: Request, res: Response) => {
+  app.post("/api/community/scenarios", requireAuth, rateLimit("community-post", 5, 60000), async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
       const { communityScenarioSchema } = await import("@shared/schema");
       const parsed = communityScenarioSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid scenario data", details: parsed.error.issues });
+        return res.status(400).json({ error: "Invalid scenario data" });
       }
       const scenario = await storage.createCommunityScenario(sessionId, parsed.data);
       res.json(scenario);
@@ -730,7 +769,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/community/scenarios/:id/vote", async (req: Request, res: Response) => {
+  app.post("/api/community/scenarios/:id/vote", requireAuth, rateLimit("vote", 30, 60000), async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
       const scenarioId = req.params.id as string;
@@ -760,7 +799,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/membership/upgrade", async (req: Request, res: Response) => {
+  app.post("/api/membership/upgrade", requireAuth, async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
       const { tier } = req.body;
@@ -789,13 +828,13 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/community/comments", async (req: Request, res: Response) => {
+  app.post("/api/community/comments", requireAuth, rateLimit("comment", 10, 60000), async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
       const { communityCommentSchema } = await import("@shared/schema");
       const parsed = communityCommentSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid comment data", details: parsed.error.issues });
+        return res.status(400).json({ error: "Invalid comment data" });
       }
       const comment = await storage.addComment(sessionId, parsed.data);
       res.json(comment);
@@ -805,7 +844,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/community/comments/:id/vote", async (req: Request, res: Response) => {
+  app.post("/api/community/comments/:id/vote", requireAuth, rateLimit("vote", 30, 60000), async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
       const commentId = req.params.id as string;
@@ -905,7 +944,7 @@ export async function registerRoutes(
       const sessionId = getSessionId(req);
       const parsed = addModeratorSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
+        return res.status(400).json({ error: "Invalid data" });
       }
       const moderator = await storage.addModerator(parsed.data.userId, sessionId);
       if (!moderator) {
@@ -948,7 +987,7 @@ export async function registerRoutes(
       const sessionId = getSessionId(req);
       const parsed = banUserSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
+        return res.status(400).json({ error: "Invalid data" });
       }
       const bannedUser = await storage.banUser(parsed.data, sessionId);
       if (!bannedUser) {
@@ -1005,7 +1044,7 @@ export async function registerRoutes(
       const sessionId = getSessionId(req);
       const parsed = adminScenarioSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid scenario data", details: parsed.error.issues });
+        return res.status(400).json({ error: "Invalid scenario data" });
       }
       const scenario = await storage.createAdminScenario(sessionId, parsed.data);
       res.json(scenario);
@@ -1020,7 +1059,7 @@ export async function registerRoutes(
       const scenarioId = req.params.id as string;
       const parsed = adminScenarioSchema.partial().safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid scenario data", details: parsed.error.issues });
+        return res.status(400).json({ error: "Invalid scenario data" });
       }
       const scenario = await storage.updateAdminScenario(scenarioId, parsed.data);
       if (!scenario) {
@@ -1069,7 +1108,7 @@ export async function registerRoutes(
     res.json({ publicKey: VAPID_PUBLIC_KEY });
   });
 
-  app.post("/api/push/subscribe", async (req: Request, res: Response) => {
+  app.post("/api/push/subscribe", requireAuth, async (req: Request, res: Response) => {
     try {
       if (!pushNotificationsEnabled) {
         return res.status(503).json({ error: "Push notifications not configured" });
@@ -1101,7 +1140,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/push/unsubscribe", async (req: Request, res: Response) => {
+  app.post("/api/push/unsubscribe", requireAuth, async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
       const { endpoint } = req.body;
@@ -1159,7 +1198,7 @@ export async function registerRoutes(
 
   // ==================== ARCADE MODE ROUTES ====================
 
-  app.get("/api/arcade-status", async (req: Request, res: Response) => {
+  app.get("/api/arcade-status", requireAuth, async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
       const status = await storage.getArcadeStatus(sessionId);
@@ -1170,7 +1209,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/arcade-drop", async (req: Request, res: Response) => {
+  app.get("/api/arcade-drop", requireAuth, async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
       const gameIndexParam = req.query.gameIndex as string | undefined;
@@ -1194,12 +1233,12 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/submit-arcade", async (req: Request, res: Response) => {
+  app.post("/api/submit-arcade", requireAuth, rateLimit("submit-arcade", 5, 60000), async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
       const parsed = submitArcadeGameSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid submission", details: parsed.error.errors });
+        return res.status(400).json({ error: "Invalid submission" });
       }
       const result = await storage.submitArcadeGame(sessionId, parsed.data);
       res.json(result);
@@ -1231,12 +1270,12 @@ export async function registerRoutes(
     });
   }
 
-  app.post("/api/coop/create", async (req: Request, res: Response) => {
+  app.post("/api/coop/create", requireAuth, rateLimit("coop-create", 5, 60000), async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
       const parsed = createCoopSessionSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+        return res.status(400).json({ error: "Invalid request" });
       }
       const { mode, arcadeGameIndex } = parsed.data;
       const session = await storage.createCoopSession(sessionId, mode, arcadeGameIndex ?? null);
@@ -1263,12 +1302,12 @@ export async function registerRoutes(
   });
 
   // Join co-op session by code
-  app.post("/api/coop/join", async (req: Request, res: Response) => {
+  app.post("/api/coop/join", requireAuth, rateLimit("coop-join", 10, 60000), async (req: Request, res: Response) => {
     try {
       const userId = getSessionId(req);
       const parsed = joinCoopSessionSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+        return res.status(400).json({ error: "Invalid request" });
       }
 
       const session = await storage.joinCoopSession(userId, parsed.data.code);
@@ -1291,7 +1330,7 @@ export async function registerRoutes(
   });
 
   // Start co-op game (host only)
-  app.post("/api/coop/session/:sessionId/start", async (req: Request, res: Response) => {
+  app.post("/api/coop/session/:sessionId/start", requireAuth, async (req: Request, res: Response) => {
     try {
       const userId = getSessionId(req);
       const { sessionId } = req.params;
@@ -1328,7 +1367,7 @@ export async function registerRoutes(
   });
 
   // Submit answer in co-op game
-  app.post("/api/coop/session/:sessionId/answer", async (req: Request, res: Response) => {
+  app.post("/api/coop/session/:sessionId/answer", requireAuth, async (req: Request, res: Response) => {
     try {
       const userId = getSessionId(req);
       const { sessionId } = req.params;
