@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -170,12 +170,23 @@ export default function Home() {
   const [showDebugScreen, setShowDebugScreen] = useState(false);
   const { handleTap } = useDebugGesture(() => setShowDebugScreen(true));
 
+  // P1: Optimize countdown timer - update every second only in last hour, otherwise every minute
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCountdown(getTimeUntilMidnightUTC());
-    }, 1000);
+    const updateCountdown = () => {
+      const newCountdown = getTimeUntilMidnightUTC();
+      setCountdown(newCountdown);
+      return newCountdown;
+    };
+
+    // Initial update
+    const initialCountdown = updateCountdown();
+
+    // Update more frequently in the last hour for urgency
+    const interval = initialCountdown.hours === 0 ? 1000 : 60000;
+    const timer = setInterval(updateCountdown, interval);
+
     return () => clearInterval(timer);
-  }, []);
+  }, [countdown.hours]); // Re-run when hours change to switch from 60s to 1s updates
 
   const { data: user, isLoading: userLoading } = useQuery<UserType>({
     queryKey: ["/api/user"],
@@ -259,10 +270,10 @@ export default function Home() {
         <div className="flex items-center gap-2">
           {authUser && (
             <div className="flex items-center gap-2">
-              <Link href="/profile" data-testid="link-profile">
-                <AnimatedAvatar 
-                  avatarId={user?.avatar || "cosmic-cat"} 
-                  size="xs" 
+              <Link href="/profile" data-testid="link-profile" onClick={handleTap}>
+                <AnimatedAvatar
+                  avatarId={user?.avatar || "cosmic-cat"}
+                  size="xs"
                   isAnimated={false}
                 />
               </Link>

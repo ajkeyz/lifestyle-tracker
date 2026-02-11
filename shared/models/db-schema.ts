@@ -85,6 +85,8 @@ export const lifestyleUsers = pgTable("lifestyle_users", {
   uniqueIndex("idx_lifestyle_users_username").on(table.username),
   uniqueIndex("idx_lifestyle_users_referral_code").on(table.referralCode),
   index("idx_lifestyle_users_money_health").on(table.moneyHealth),
+  index("idx_lifestyle_users_last_played_date").on(table.lastPlayedDate), // P0: Used in daily stats queries
+  index("idx_lifestyle_users_streak").on(table.streak), // P0: Used in leaderboard sorting
 ]);
 
 // ============================================
@@ -159,6 +161,9 @@ export const challenges = pgTable("challenges", {
   index("idx_challenges_challenger_id").on(table.challengerId),
   index("idx_challenges_challengee_id").on(table.challengeeId),
   index("idx_challenges_status").on(table.status),
+  // P1: Composite indexes for better query performance when filtering by status + user
+  index("idx_challenges_status_challenger").on(table.status, table.challengerId),
+  index("idx_challenges_status_challengee").on(table.status, table.challengeeId),
 ]);
 
 // ============================================
@@ -184,6 +189,8 @@ export const communityScenarios = pgTable("community_scenarios", {
   index("idx_community_scenarios_category").on(table.category),
   index("idx_community_scenarios_week_number").on(table.weekNumber),
   index("idx_community_scenarios_created_at").on(table.createdAt),
+  // P1: Composite index for category filtering + sorting by date
+  index("idx_community_scenarios_category_created").on(table.category, table.createdAt),
 ]);
 
 export const communityComments = pgTable("community_comments", {

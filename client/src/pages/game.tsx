@@ -40,6 +40,7 @@ export default function Game() {
   const [timerRunning, setTimerRunning] = useState(true);
   const [timedOut, setTimedOut] = useState<Record<string, boolean>>({});
   const playedWarnings = useRef<Set<number>>(new Set());
+  const timerStartTime = useRef<number>(Date.now());
 
   useEffect(() => {
     window.history.pushState({ inGame: true }, "");
@@ -54,6 +55,25 @@ export default function Game() {
       window.removeEventListener("popstate", handlePopState);
     };
   }, []);
+
+  // Warn user before leaving page during active quiz
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // Only show warning if quiz is in progress (not all questions answered)
+      if (!allAnswered && scenarios.length > 0) {
+        e.preventDefault();
+        // Modern browsers ignore custom messages, but we still need to set returnValue
+        e.returnValue = "You haven't finished the quiz yet. Are you sure you want to leave?";
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [allAnswered, scenarios.length]);
 
   const { data: dailyDrop, isLoading, isError, error, refetch } = useQuery<DailyDrop>({
     queryKey: ["/api/daily-drop"],
@@ -144,22 +164,26 @@ export default function Game() {
     if (!timerRunning || !currentScenario || showResults[currentScenario.id]) return;
 
     const interval = setInterval(() => {
-      setTimeRemaining((prev) => {
-        if (prev <= 1) {
-          handleTimeUp();
-          return 0;
-        }
-        if (prev === 11 && !playedWarnings.current.has(10)) {
-          playedWarnings.current.add(10);
-          play("timerWarning");
-        }
-        if (prev === 6 && !playedWarnings.current.has(5)) {
-          playedWarnings.current.add(5);
-          play("timerCritical");
-        }
-        return prev - 1;
-      });
-    }, 1000);
+      const elapsed = Math.floor((Date.now() - timerStartTime.current) / 1000);
+      const remaining = Math.max(0, TIMER_DURATION - elapsed);
+
+      setTimeRemaining(remaining);
+
+      if (remaining <= 0) {
+        handleTimeUp();
+        return;
+      }
+
+      // Play warning sounds at specific thresholds (only once each)
+      if (remaining === 10 && !playedWarnings.current.has(10)) {
+        playedWarnings.current.add(10);
+        play("timerWarning");
+      }
+      if (remaining === 5 && !playedWarnings.current.has(5)) {
+        playedWarnings.current.add(5);
+        play("timerCritical");
+      }
+    }, 100); // Check every 100ms for more accurate timing
 
     return () => clearInterval(interval);
   }, [timerRunning, currentScenario, showResults, handleTimeUp, play]);
@@ -169,6 +193,7 @@ export default function Game() {
       setCurrentIndex((prev) => prev + 1);
       setTimeRemaining(TIMER_DURATION);
       setTimerRunning(true);
+      timerStartTime.current = Date.now(); // Reset timer start time
       playedWarnings.current.clear();
       play("whoosh");
       window.scrollTo(0, 0);
@@ -189,7 +214,10 @@ export default function Game() {
     });
   }, [dailyDrop, scenarios, answers, submitMutation]);
 
-  const allAnswered = scenarios.length > 0 && scenarios.every((s) => showResults[s.id] === true);
+  // P1: Memoize expensive calculation to prevent re-running on every render
+  const allAnswered = useMemo(() => {
+    return scenarios.length > 0 && scenarios.every((s) => showResults[s.id] === true);
+  }, [scenarios, showResults]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

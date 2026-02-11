@@ -1,4 +1,4 @@
-import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { QueryClient, QueryFunction, QueryCache, MutationCache } from "@tanstack/react-query";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -41,7 +41,29 @@ export const getQueryFn: <T>(options: {
     return await res.json();
   };
 
+// Global error handler for authentication failures
+const handleGlobalError = (error: unknown) => {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+
+  // Check if error is a 401 Unauthorized
+  if (errorMessage.includes("401:") || errorMessage.toLowerCase().includes("unauthorized")) {
+    // Clear all queries to prevent stale data
+    queryClient.clear();
+    // Redirect to login page (will trigger auth flow)
+    // Small delay to allow any in-flight operations to complete
+    setTimeout(() => {
+      window.location.href = "/";
+    }, 100);
+  }
+};
+
 export const queryClient = new QueryClient({
+  queryCache: new QueryCache({
+    onError: handleGlobalError,
+  }),
+  mutationCache: new MutationCache({
+    onError: handleGlobalError,
+  }),
   defaultOptions: {
     queries: {
       queryFn: getQueryFn({ on401: "throw" }),

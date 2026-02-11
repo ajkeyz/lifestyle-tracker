@@ -18,8 +18,11 @@ import { useConfetti } from "@/components/confetti";
 import type { DailyDrop, ArcadeStatus, SubmitArcadeGame } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { isFeatureEnabled } from "@/lib/feature-flags";
 
+// Experimental game modes: faster timer, speed bonuses
 const TIMER_DURATION = 20;
+const EXPERIMENTAL_TIMER_DURATION = 15;
 
 export default function Arcade() {
   const [, navigate] = useLocation();
@@ -35,6 +38,10 @@ export default function Arcade() {
   const [gameStarted, setGameStarted] = useState(false);
   const [replayGameIndex, setReplayGameIndex] = useState<number | null>(null);
   const playedWarnings = useRef<Set<number>>(new Set());
+
+  // Experimental game modes flag
+  const isExperimentalMode = isFeatureEnabled("new_game_modes");
+  const timerDuration = isExperimentalMode ? EXPERIMENTAL_TIMER_DURATION : TIMER_DURATION;
 
   useEffect(() => {
     if (gameStarted) {
@@ -97,7 +104,7 @@ export default function Arcade() {
     setCurrentIndex(0);
     setAnswers({});
     setShowResults({});
-    setTimeRemaining(TIMER_DURATION);
+    setTimeRemaining(timerDuration);
     setTimerRunning(true);
     playedWarnings.current.clear();
   }, [refetchDrop, toast]);
@@ -145,18 +152,22 @@ export default function Arcade() {
   useEffect(() => {
     if (!gameStarted || !timerRunning || !currentScenario || showResults[currentScenario.id]) return;
 
+    // Adjust warning thresholds for experimental mode
+    const warningThreshold = isExperimentalMode ? 8 : 10;
+    const criticalThreshold = isExperimentalMode ? 4 : 5;
+
     const interval = setInterval(() => {
       setTimeRemaining((prev) => {
         if (prev <= 1) {
           handleTimeUp();
           return 0;
         }
-        if (prev === 11 && !playedWarnings.current.has(10)) {
-          playedWarnings.current.add(10);
+        if (prev === warningThreshold + 1 && !playedWarnings.current.has(warningThreshold)) {
+          playedWarnings.current.add(warningThreshold);
           play("timerWarning");
         }
-        if (prev === 6 && !playedWarnings.current.has(5)) {
-          playedWarnings.current.add(5);
+        if (prev === criticalThreshold + 1 && !playedWarnings.current.has(criticalThreshold)) {
+          playedWarnings.current.add(criticalThreshold);
           play("timerCritical");
         }
         return prev - 1;
@@ -164,18 +175,18 @@ export default function Arcade() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [gameStarted, timerRunning, currentScenario, showResults, handleTimeUp, play]);
+  }, [gameStarted, timerRunning, currentScenario, showResults, handleTimeUp, play, isExperimentalMode]);
 
   const handleNext = useCallback(() => {
     if (currentIndex < totalScenarios - 1) {
       setCurrentIndex((prev) => prev + 1);
-      setTimeRemaining(TIMER_DURATION);
+      setTimeRemaining(timerDuration);
       setTimerRunning(true);
       playedWarnings.current.clear();
       play("whoosh");
       window.scrollTo(0, 0);
     }
-  }, [currentIndex, totalScenarios, play]);
+  }, [currentIndex, totalScenarios, timerDuration, play]);
 
   const handleSubmit = useCallback(() => {
     if (!arcadeDrop) return;
@@ -249,9 +260,21 @@ export default function Arcade() {
             </div>
 
             <div>
-              <h1 className="text-3xl font-semibold mb-2 tracking-[-0.02em]" data-testid="text-arcade-title">Arcade Mode</h1>
+              <h1 className="text-3xl font-semibold mb-2 tracking-[-0.02em]" data-testid="text-arcade-title">
+                Arcade Mode
+                {isExperimentalMode && (
+                  <Badge variant="outline" className="ml-2 text-xs bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20">
+                    Speed Mode
+                  </Badge>
+                )}
+              </h1>
               <p className="text-muted-foreground max-w-md mx-auto">
                 Play extra rounds with different scenarios. Your scores don't affect your daily streak.
+                {isExperimentalMode && (
+                  <span className="block mt-2 text-sm text-purple-600 dark:text-purple-400 font-medium">
+                    ⚡ Speed Mode active: {EXPERIMENTAL_TIMER_DURATION}s per question (faster gameplay)
+                  </span>
+                )}
               </p>
             </div>
 
@@ -372,6 +395,11 @@ export default function Arcade() {
                   ) : (
                     `Game #${(arcadeStatus?.playsUsedToday || 0) + 1}`
                   )}
+                  {isExperimentalMode && (
+                    <Badge variant="outline" className="text-xs bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20">
+                      Speed Mode
+                    </Badge>
+                  )}
                 </span>
               </div>
             </div>
@@ -407,13 +435,13 @@ export default function Arcade() {
             >
               <Clock className={cn(
                 "w-3.5 h-3.5 flex-shrink-0",
-                timeRemaining <= 5 ? "text-destructive" : "text-muted-foreground"
+                timeRemaining <= (isExperimentalMode ? 4 : 5) ? "text-destructive" : "text-muted-foreground"
               )} />
               <Progress
-                value={(timeRemaining / TIMER_DURATION) * 100}
+                value={(timeRemaining / timerDuration) * 100}
                 className={cn(
                   "flex-1 h-1 transition-all",
-                  timeRemaining <= 5 && "animate-pulse"
+                  timeRemaining <= (isExperimentalMode ? 4 : 5) && "animate-pulse"
                 )}
                 aria-label={`Time remaining: ${timeRemaining} seconds`}
                 data-testid="timer-bar"
@@ -421,11 +449,11 @@ export default function Arcade() {
               <motion.span
                 key={timeRemaining}
                 initial={{ scale: 0.9 }}
-                animate={{ scale: timeRemaining <= 5 ? [1, 1.1, 1] : 1 }}
+                animate={{ scale: timeRemaining <= (isExperimentalMode ? 4 : 5) ? [1, 1.1, 1] : 1 }}
                 transition={{ duration: 0.2 }}
                 className={cn(
                   "font-mono text-xs font-medium tabular-nums",
-                  timeRemaining <= 5 ? "text-destructive" : "text-muted-foreground"
+                  timeRemaining <= (isExperimentalMode ? 4 : 5) ? "text-destructive" : "text-muted-foreground"
                 )}
                 aria-live="polite"
                 data-testid="timer-text"

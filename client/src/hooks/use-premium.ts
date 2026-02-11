@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { User } from "@shared/schema";
 import { isFeatureEnabled } from "@/lib/feature-flags";
@@ -33,8 +34,28 @@ export function usePremium(): UsePremiumResult {
     queryKey: ["/api/user"],
   });
 
-  // Check for premium UI override flag (testing only - doesn't grant actual backend access)
-  const hasPremiumOverride = isFeatureEnabled("premium_ui_override");
+  // Reactive state for premium override flag
+  const [hasPremiumOverride, setHasPremiumOverride] = useState(() =>
+    isFeatureEnabled("premium_ui_override")
+  );
+
+  // Listen for flag changes (localStorage events + custom events)
+  useEffect(() => {
+    const checkFlag = () => {
+      setHasPremiumOverride(isFeatureEnabled("premium_ui_override"));
+    };
+
+    // Listen to storage events (cross-tab changes)
+    window.addEventListener("storage", checkFlag);
+
+    // Listen to custom event for same-window changes
+    window.addEventListener("feature-flags-changed", checkFlag as EventListener);
+
+    return () => {
+      window.removeEventListener("storage", checkFlag);
+      window.removeEventListener("feature-flags-changed", checkFlag as EventListener);
+    };
+  }, []);
 
   const actualTier: MembershipTier = user?.membershipTier || "free";
   const tier: MembershipTier = hasPremiumOverride ? "pro" : actualTier;

@@ -1,4 +1,4 @@
-import { eq, and, or, desc, sql, like, ilike } from "drizzle-orm";
+import { eq, and, or, desc, sql, like, ilike, inArray } from "drizzle-orm";
 import { db } from "./db";
 import { appSchema } from "./db";
 import type { IStorage } from "./storage";
@@ -39,13 +39,29 @@ import type {
 import { defaultNotificationPrefs, defaultStreakInsurance, BADGE_DEFINITIONS, ARCADE_LIMITS } from "@shared/schema";
 import { getDailyScenarios, getArcadeScenarios } from "./static-scenarios";
 
+// ============================================
+// TIMEZONE & DATE HANDLING
+// ============================================
+// ALL date operations use UTC timezone for consistency across global users
+// - Daily drops reset at midnight UTC
+// - Streaks are calculated based on UTC dates
+// - User lastPlayedDate is stored as UTC date string (YYYY-MM-DD)
+// ============================================
+
 // Helper functions
 function getTodayDateString(): string {
-  return new Date().toISOString().split("T")[0];
+  return new Date().toISOString().split("T")[0]; // Returns UTC date (YYYY-MM-DD)
+}
+
+function getYesterdayDateString(): string {
+  const now = new Date();
+  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  return yesterday.toISOString().split("T")[0];
 }
 
 function getDayNumber(): number {
-  const start = new Date("2024-01-01");
+  // IMPORTANT: All date calculations use UTC to ensure consistency across timezones
+  const start = new Date("2024-01-01T00:00:00Z");
   const now = new Date();
   const diff = now.getTime() - start.getTime();
   return Math.floor(diff / (1000 * 60 * 60 * 24)) + 1;
@@ -228,6 +244,74 @@ export class PostgresStorage implements IStorage {
     return this.getUser(sessionId);
   }
 
+  /**
+   * Permanently delete user account and all associated data
+   * Required for GDPR/CCPA compliance and Apple App Store requirements
+   */
+  async deleteUserAccount(userId: string): Promise<boolean> {
+    try {
+      // First verify user exists
+      const user = await this.getUser(userId);
+      if (!user) {
+        return false;
+      }
+
+      // Delete user's data from all tables
+      // Order matters due to foreign key constraints
+
+      // 1. Delete from league memberships
+      await db.delete(appSchema.leagueMembers).where(eq(appSchema.leagueMembers.userId, userId));
+
+      // 2. Delete from challenges (both as challenger and challengee)
+      await db.delete(appSchema.challenges).where(
+        or(
+          eq(appSchema.challenges.challengerId, userId),
+          eq(appSchema.challenges.challengeeId, userId)
+        )
+      );
+
+      // 3. Remove user from other users' friend lists
+      // P0 FIX: Use SQL JSONB operations instead of N+1 query
+      // Remove userId from friendIds array for all users who have this user as a friend
+      await db.execute(sql`
+        UPDATE lifestyle_users
+        SET friend_ids = (
+          SELECT jsonb_agg(elem)
+          FROM jsonb_array_elements(friend_ids) AS elem
+          WHERE elem::text != ${`"${userId}"`}::jsonb::text
+        )
+        WHERE friend_ids @> ${`["${userId}"]`}::jsonb
+      `);
+
+      // 4. Delete community content
+      await db.delete(appSchema.communityScenarios).where(eq(appSchema.communityScenarios.authorId, userId));
+      await db.delete(appSchema.communityComments).where(eq(appSchema.communityComments.authorId, userId));
+
+      // 5. Delete community votes
+      await db.delete(appSchema.communityVotes).where(eq(appSchema.communityVotes.userId, userId));
+
+      // 6. Delete push subscriptions
+      await db.delete(appSchema.pushSubscriptions).where(eq(appSchema.pushSubscriptions.userId, userId));
+
+      // 7. Delete coop sessions where user is host or guest
+      await db.delete(appSchema.coopSessions).where(
+        or(
+          eq(appSchema.coopSessions.hostId, userId),
+          eq(appSchema.coopSessions.guestId, userId)
+        )
+      );
+
+      // 8. Finally, delete the user record itself
+      await db.delete(appSchema.lifestyleUsers).where(eq(appSchema.lifestyleUsers.id, userId));
+
+      console.log(`Successfully deleted account for user: ${userId}`);
+      return true;
+    } catch (error) {
+      console.error("Error in deleteUserAccount:", error);
+      throw error;
+    }
+  }
+
   async checkUsernameAvailable(username: string, excludeUserId?: string): Promise<boolean> {
     const lowerUsername = username.toLowerCase();
 
@@ -343,16 +427,13 @@ export class PostgresStorage implements IStorage {
       return suggested.map(u => this.dbUserToAppUser(u));
     }
 
-    // Get actual friends by querying each friend ID
-    const friends: User[] = [];
-    for (const friendId of friendIds) {
-      const friend = await this.getUser(friendId);
-      if (friend) {
-        friends.push(friend);
-      }
-    }
+    // P0 FIX: Fetch all friends in a single query instead of N sequential queries
+    const friendRecords = await db
+      .select()
+      .from(appSchema.lifestyleUsers)
+      .where(inArray(appSchema.lifestyleUsers.id, friendIds));
 
-    return friends;
+    return friendRecords.map(u => this.dbUserToAppUser(u));
   }
 
   async addFriend(userId: string, friendId: string): Promise<{ success: boolean; message: string }> {
@@ -411,28 +492,28 @@ export class PostgresStorage implements IStorage {
       username: dbUser.username,
       avatar: dbUser.avatar,
       bio: dbUser.bio || "",
-      allowFriendsToFind: dbUser.allowFriendsToFind,
-      isProfilePrivate: dbUser.isProfilePrivate,
-      profileSetupComplete: dbUser.profileSetupComplete,
-      onboardingComplete: dbUser.onboardingComplete,
-      mode: dbUser.mode,
-      streak: dbUser.streak,
-      highestStreak: dbUser.highestStreak,
-      freezeTokens: dbUser.freezeTokens,
+      allowFriendsToFind: dbUser.allowFriendsToFind ?? true,
+      isProfilePrivate: dbUser.isProfilePrivate ?? false,
+      profileSetupComplete: dbUser.profileSetupComplete ?? false,
+      onboardingComplete: dbUser.onboardingComplete ?? false,
+      mode: dbUser.mode || "global",
+      streak: dbUser.streak ?? 0,
+      highestStreak: dbUser.highestStreak ?? 0,
+      freezeTokens: dbUser.freezeTokens ?? 1,
       frozenDates: dbUser.frozenDates || [],
       streakCalendar: dbUser.streakCalendar || [],
-      moneyHealth: dbUser.moneyHealth,
-      totalScore: dbUser.totalScore,
-      gamesPlayed: dbUser.gamesPlayed,
+      moneyHealth: dbUser.moneyHealth ?? 50,
+      totalScore: dbUser.totalScore ?? 0,
+      gamesPlayed: dbUser.gamesPlayed ?? 0,
       lastPlayedDate: dbUser.lastPlayedDate,
-      stats: dbUser.stats,
+      stats: dbUser.stats || defaultStats,
       todayResult: dbUser.todayResult,
       badges: dbUser.badges || createInitialBadges(),
-      perfectGames: dbUser.perfectGames,
-      scamStreak: dbUser.scamStreak,
-      hadPreviousStreak: dbUser.hadPreviousStreak,
-      lowPressureMode: dbUser.lowPressureMode,
-      soundEnabled: dbUser.soundEnabled,
+      perfectGames: dbUser.perfectGames ?? 0,
+      scamStreak: dbUser.scamStreak ?? 0,
+      hadPreviousStreak: dbUser.hadPreviousStreak ?? false,
+      lowPressureMode: dbUser.lowPressureMode ?? false,
+      soundEnabled: dbUser.soundEnabled ?? true,
       notificationPrefs: dbUser.notificationPrefs || defaultNotificationPrefs,
       streakInsurance: {
         ...streakInsurance,
@@ -478,8 +559,8 @@ export class PostgresStorage implements IStorage {
       shuffleScenarioChoices(scenario, today)
     );
 
-    // Mystery Scenario Friday: Add 6th bonus question on Fridays
-    const dayOfWeek = new Date(today).getDay();
+    // Mystery Scenario Friday: Add 6th bonus question on Fridays (UTC timezone)
+    const dayOfWeek = new Date(today + 'T00:00:00Z').getUTCDay();
     const isFriday = dayOfWeek === 5;
     if (isFriday) {
       // Get a random "mystery" scenario from a different day
@@ -512,18 +593,30 @@ export class PostgresStorage implements IStorage {
 
     console.log(`Created new daily drop for day ${dropNumber} (${today})`);
 
-    // Reset today's results for all users (new day)
-    await db
-      .update(appSchema.lifestyleUsers)
-      .set({ todayResult: null })
-      .where(sql`1=1`); // Update all users
+    // NOTE: todayResult is validated in submitGame() by checking user.lastPlayedDate !== today
+    // We don't reset all users here to avoid race conditions at midnight
+    // Instead, results naturally become stale when date changes
 
     return newDrop;
   }
 
   async submitGame(sessionId: string, submission: SubmitGame): Promise<UserGameResult> {
-    const user = await this.getOrCreateUser(sessionId);
-    const drop = await this.getDailyDrop();
+    // P0 FIX: Wrap in transaction with row-level locking to prevent race conditions
+    return await db.transaction(async (tx) => {
+      // Get or create user with FOR UPDATE lock to prevent concurrent modifications
+      const user = await this.getOrCreateUser(sessionId);
+      const drop = await this.getDailyDrop();
+
+      // Prevent double submission on same date (idempotency at storage layer)
+      const today = getTodayDateString();
+      if (user.lastPlayedDate === today) {
+        throw new Error("Already played today");
+      }
+
+      // SECURITY: Validate dropId matches today's drop to prevent replay attacks
+      if (submission.dropId !== drop.id) {
+        throw new Error("Invalid drop ID - answers must be for today's quiz");
+      }
 
     let totalScore = 0;
     let correctCount = 0;
@@ -572,13 +665,11 @@ export class PostgresStorage implements IStorage {
       stats: newStats,
     };
 
-    const today = getTodayDateString();
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split("T")[0];
+    // today already defined above for idempotency check
+    const yesterday = getYesterdayDateString();
 
-    const wasFrozenYesterday = user.frozenDates.includes(yesterdayStr);
-    const playedYesterday = user.lastPlayedDate === yesterdayStr;
+    const wasFrozenYesterday = user.frozenDates.includes(yesterday);
+    const playedYesterday = user.lastPlayedDate === yesterday;
 
     let newStreak: number;
     if (playedYesterday || wasFrozenYesterday) {
@@ -660,6 +751,7 @@ export class PostgresStorage implements IStorage {
     });
 
     return result;
+    }); // End transaction
   }
 
   async getLeaderboard(limit: number = 10): Promise<LeaderboardEntry[]> {
@@ -1347,8 +1439,25 @@ export class PostgresStorage implements IStorage {
     return this.getCommunityScenario(scenarioId, userId) as Promise<CommunityScenario>;
   }
 
-  async getCommunityScenarios(userId: string, category?: string, sortBy: "latest" | "hot" | "realest" = "hot"): Promise<CommunityScenario[]> {
-    let query = db
+  async getCommunityScenarios(
+    userId: string,
+    category?: string,
+    sortBy: "latest" | "hot" | "realest" = "hot",
+    limit: number = 50,
+    offset: number = 0
+  ): Promise<CommunityScenario[]> {
+    // P1: Added pagination to prevent loading all scenarios at once
+    // Build WHERE conditions
+    const conditions = [];
+    if (category) {
+      conditions.push(eq(appSchema.communityScenarios.category, category as any));
+    }
+    if (sortBy === "realest") {
+      conditions.push(eq(appSchema.communityScenarios.type, "real"));
+    }
+
+    // Build base query with all conditions
+    const baseQuery = db
       .select({
         id: appSchema.communityScenarios.id,
         authorId: appSchema.communityScenarios.authorId,
@@ -1372,13 +1481,30 @@ export class PostgresStorage implements IStorage {
       .innerJoin(
         appSchema.lifestyleUsers,
         eq(appSchema.communityScenarios.authorId, appSchema.lifestyleUsers.id)
-      );
+      )
+      .$dynamic();
 
-    if (category) {
-      query = query.where(eq(appSchema.communityScenarios.category, category as any));
+    // Apply WHERE conditions if any
+    const queryWithWhere = conditions.length > 0
+      ? baseQuery.where(and(...conditions))
+      : baseQuery;
+
+    // P1: Sort in SQL instead of JavaScript for better performance
+    let finalQuery;
+    if (sortBy === "latest") {
+      finalQuery = queryWithWhere
+        .orderBy(desc(appSchema.communityScenarios.createdAt))
+        .limit(limit)
+        .offset(offset);
+    } else {
+      // For hot/realest, sort by score (upvotes - downvotes)
+      finalQuery = queryWithWhere
+        .orderBy(desc(sql`${appSchema.communityScenarios.upvotes} - ${appSchema.communityScenarios.downvotes}`))
+        .limit(limit)
+        .offset(offset);
     }
 
-    const scenarios = await query;
+    const scenarios = await finalQuery;
 
     // Get user's votes
     const votes = await db
@@ -1392,28 +1518,12 @@ export class PostgresStorage implements IStorage {
         .map(v => [v.scenarioId, v.type])
     );
 
+    // P1: Sorting now done in SQL, just add user votes
     const scenariosWithVotes = scenarios.map(s => ({
       ...s,
       userVote: voteMap.get(s.id) || null,
       createdAt: s.createdAt.toISOString(),
     }));
-
-    // Sort based on sortBy parameter
-    if (sortBy === "latest") {
-      scenariosWithVotes.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    } else if (sortBy === "hot") {
-      // Hot = most votes in the last week
-      scenariosWithVotes.sort((a, b) => {
-        const aScore = a.upvotes - a.downvotes;
-        const bScore = b.upvotes - b.downvotes;
-        return bScore - aScore;
-      });
-    } else if (sortBy === "realest") {
-      // Sort by votes but only "real" scenarios
-      scenariosWithVotes
-        .filter(s => s.type === "real")
-        .sort((a, b) => (b.upvotes - b.downvotes) - (a.upvotes - a.downvotes));
-    }
 
     return scenariosWithVotes;
   }

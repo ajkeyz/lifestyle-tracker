@@ -87,6 +87,9 @@ function requireAuth(req: Request, res: Response, next: Function) {
 
 const rateLimiters: Map<string, Map<string, { count: number; resetAt: number }>> = new Map();
 
+// In-memory cache for idempotency - tracks in-flight submissions
+const submissionCache: Map<string, Promise<any>> = new Map();
+
 function rateLimit(key: string, maxRequests: number, windowMs: number) {
   return (req: Request, res: Response, next: Function) => {
     const sessionId = getSessionId(req);
@@ -184,17 +187,38 @@ export async function registerRoutes(
     try {
       const sessionId = getSessionId(req);
       const parsed = submitGameSchema.safeParse(req.body);
-      
+
       if (!parsed.success) {
         return res.status(400).json({ error: "Invalid submission data" });
       }
 
+      // Create idempotency key from userId + dropId
+      const idempotencyKey = `${sessionId}:${parsed.data.dropId}`;
+
+      // Check if this exact submission is already in progress
+      if (submissionCache.has(idempotencyKey)) {
+        console.log(`Duplicate submission detected for ${idempotencyKey}, returning cached promise`);
+        const cachedResult = await submissionCache.get(idempotencyKey);
+        return res.json(cachedResult);
+      }
+
+      // Check if user already played today (timezone-safe using lastPlayedDate)
       const user = await storage.getUser(sessionId);
-      if (user?.todayResult) {
+      const today = new Date().toISOString().split("T")[0]; // UTC date string
+      if (user?.lastPlayedDate === today) {
         return res.status(400).json({ error: "Already played today" });
       }
 
-      const result = await storage.submitGame(sessionId, parsed.data);
+      // Create promise for this submission and cache it
+      const submissionPromise = storage.submitGame(sessionId, parsed.data)
+        .finally(() => {
+          // Clear from cache after completion (success or failure)
+          submissionCache.delete(idempotencyKey);
+        });
+
+      submissionCache.set(idempotencyKey, submissionPromise);
+
+      const result = await submissionPromise;
       res.json(result);
     } catch (error) {
       console.error("Error submitting game:", error);
@@ -361,7 +385,7 @@ export async function registerRoutes(
     try {
       const sessionId = getSessionId(req);
       const { enabled } = req.body;
-      
+
       if (typeof enabled !== "boolean") {
         return res.status(400).json({ error: "Invalid request" });
       }
@@ -369,7 +393,7 @@ export async function registerRoutes(
       const user = await storage.updateUser(sessionId, {
         lowPressureMode: enabled,
       });
-      
+
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
@@ -377,6 +401,105 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error toggling low pressure mode:", error);
       res.status(500).json({ error: "Failed to update settings" });
+    }
+  });
+
+  // Data export endpoint (GDPR Article 20: Right to data portability)
+  app.get("/api/export-data", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const user = await storage.getUser(sessionId);
+
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Prepare complete user data export
+      const exportData = {
+        exportedAt: new Date().toISOString(),
+        profile: {
+          id: user.id,
+          username: user.username,
+          avatar: user.avatar,
+          bio: user.bio,
+          moneyPhilosophy: user.moneyPhilosophy,
+          membershipTier: user.membershipTier,
+        },
+        gameProgress: {
+          streak: user.streak,
+          highestStreak: user.highestStreak,
+          moneyHealth: user.moneyHealth,
+          totalScore: user.totalScore,
+          gamesPlayed: user.gamesPlayed,
+          perfectGames: user.perfectGames,
+          lastPlayedDate: user.lastPlayedDate,
+        },
+        statistics: {
+          stats: user.stats,
+          categoryStats: user.categoryStats,
+          gameHistory: user.gameHistory,
+        },
+        achievements: {
+          badges: user.badges,
+        },
+        calendar: {
+          streakCalendar: user.streakCalendar,
+          frozenDates: user.frozenDates,
+          freezeTokens: user.freezeTokens,
+        },
+        settings: {
+          mode: user.mode,
+          lowPressureMode: user.lowPressureMode,
+          soundEnabled: user.soundEnabled,
+          notificationPrefs: user.notificationPrefs,
+          isProfilePrivate: user.isProfilePrivate,
+          allowFriendsToFind: user.allowFriendsToFind,
+        },
+        social: {
+          friendIds: user.friendIds,
+          referralCode: user.referralCode,
+          referredBy: user.referredBy,
+          referralCount: user.referralCount,
+        },
+      };
+
+      // Set headers for file download
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="lifestyle-creep-data-${user.username}-${new Date().toISOString().split('T')[0]}.json"`);
+
+      res.json(exportData);
+    } catch (error) {
+      console.error("Error exporting user data:", error);
+      res.status(500).json({ error: "Failed to export data" });
+    }
+  });
+
+  // Account deletion endpoint (GDPR/CCPA compliance + Apple App Store requirement)
+  app.delete("/api/account", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+
+      // Log deletion request for audit trail
+      console.log(`Account deletion requested by user: ${sessionId}`);
+
+      // Delete all user data from database
+      const deleted = await storage.deleteUserAccount(sessionId);
+
+      if (!deleted) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Destroy session after successful deletion
+      req.session.destroy((err) => {
+        if (err) {
+          console.error("Error destroying session after account deletion:", err);
+        }
+      });
+
+      res.json({ success: true, message: "Account permanently deleted" });
+    } catch (error) {
+      console.error("Error deleting account:", error);
+      res.status(500).json({ error: "Failed to delete account. Please contact support." });
     }
   });
 
@@ -730,7 +853,10 @@ export async function registerRoutes(
       const sessionId = getSessionId(req);
       const category = req.query.category as string | undefined;
       const sortBy = (req.query.sortBy as "latest" | "hot" | "realest") || "latest";
-      const scenarios = await storage.getCommunityScenarios(sessionId, category, sortBy);
+      // P1: Add pagination support (default: 50 items per page)
+      const limit = Math.min(parseInt(req.query.limit as string) || 50, 100); // Cap at 100
+      const offset = parseInt(req.query.offset as string) || 0;
+      const scenarios = await storage.getCommunityScenarios(sessionId, category, sortBy, limit, offset);
       res.json(scenarios);
     } catch (error) {
       console.error("Error getting community scenarios:", error);
@@ -1472,7 +1598,38 @@ export async function registerRoutes(
     let currentSessionId: string | null = null;
     let currentUserId: string | null = null;
 
+    // P1: Add heartbeat mechanism to detect stale connections
+    let isAlive = true;
+    let heartbeatInterval: NodeJS.Timeout | null = null;
+    let inactivityTimeout: NodeJS.Timeout | null = null;
+
+    // Reset inactivity timer
+    const resetInactivityTimer = () => {
+      if (inactivityTimeout) clearTimeout(inactivityTimeout);
+      // Close connection after 10 minutes of inactivity
+      inactivityTimeout = setTimeout(() => {
+        console.log(`Closing inactive WebSocket connection: ${currentUserId}`);
+        ws.terminate();
+      }, 10 * 60 * 1000);
+    };
+
+    // Start heartbeat ping every 30 seconds
+    heartbeatInterval = setInterval(() => {
+      if (!isAlive) {
+        console.log(`WebSocket connection dead, terminating: ${currentUserId}`);
+        clearInterval(heartbeatInterval!);
+        return ws.terminate();
+      }
+      isAlive = false;
+      ws.ping();
+    }, 30000);
+
+    ws.on('pong', () => {
+      isAlive = true;
+    });
+
     ws.on('message', async (data: Buffer) => {
+      resetInactivityTimer();
       try {
         const message = JSON.parse(data.toString());
         
@@ -1519,6 +1676,10 @@ export async function registerRoutes(
     });
 
     ws.on('close', async () => {
+      // P1: Clean up timers to prevent memory leaks
+      if (heartbeatInterval) clearInterval(heartbeatInterval);
+      if (inactivityTimeout) clearTimeout(inactivityTimeout);
+
       if (currentSessionId && currentUserId) {
         // Remove from connections
         const sessionConnections = coopConnections.get(currentSessionId);
@@ -1547,6 +1708,16 @@ export async function registerRoutes(
         }
       }
     });
+
+    // P1: Add error handler to clean up on errors
+    ws.on('error', (error) => {
+      console.error(`WebSocket error for user ${currentUserId}:`, error);
+      if (heartbeatInterval) clearInterval(heartbeatInterval);
+      if (inactivityTimeout) clearTimeout(inactivityTimeout);
+    });
+
+    // P1: Start inactivity timer on connection
+    resetInactivityTimer();
   });
 
   return httpServer;

@@ -7,97 +7,116 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { PageTransition } from "@/components/page-transition";
 import { useAuth } from "@/hooks/use-auth";
 import { analytics, trackAppOpened } from "@/lib/analytics";
-import { useEffect } from "react";
-import Home from "@/pages/home";
-import AuthPage from "@/pages/auth";
-import ProfileSetup from "@/pages/profile-setup";
-import NotificationsSetup from "@/pages/notifications-setup";
-import FriendsSetup from "@/pages/friends-setup";
-import Setup from "@/pages/setup";
-import Game from "@/pages/game";
-import Results from "@/pages/results";
-import Leaderboard from "@/pages/leaderboard";
-import Leagues from "@/pages/leagues";
-import Challenges from "@/pages/challenges";
-import SharePage from "@/pages/share";
-import Achievements from "@/pages/achievements";
-import DeepDive from "@/pages/deep-dive";
-import WeeklyRecap from "@/pages/weekly-recap";
-import Settings from "@/pages/settings";
-import Stats from "@/pages/stats";
-import Insights from "@/pages/insights";
-import Help from "@/pages/help";
-import NotificationsPrefs from "@/pages/notifications-prefs";
-import StreakInsurance from "@/pages/streak-insurance";
-import Membership from "@/pages/membership";
-import Community from "@/pages/community";
-import CommunityDetail from "@/pages/community-detail";
-import CommunitySubmit from "@/pages/community-submit";
-import TipsLibrary from "@/pages/tips-library";
-import Admin from "@/pages/admin";
-import AdminScenarioBuilder from "@/pages/admin-scenario-builder";
-import Profile from "@/pages/profile";
-import Friends from "@/pages/friends";
-import CoopLobby from "@/pages/coop-lobby";
-import CoopGame from "@/pages/coop-game";
-import CoopResults from "@/pages/coop-results";
-import ArcadePage from "@/pages/arcade";
-import ArcadeResults from "@/pages/arcade-results";
-import Terms from "@/pages/terms";
-import Privacy from "@/pages/privacy";
-import NotFound from "@/pages/not-found";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useAchievementToast } from "@/hooks/use-achievement-toast";
-import { useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AppLogo } from "@/components/app-logo";
+import { ErrorBoundary } from "@/components/error-boundary";
+import { OfflineIndicator } from "@/components/offline-indicator";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useAchievementToast } from "@/hooks/use-achievement-toast";
+
+// Eager load critical pages (auth flow + core game)
+import Home from "@/pages/home";
+import AuthPage from "@/pages/auth";
+import Game from "@/pages/game";
+import Results from "@/pages/results";
+
+// Lazy load all other pages for better initial bundle size
+const ProfileSetup = lazy(() => import("@/pages/profile-setup"));
+const NotificationsSetup = lazy(() => import("@/pages/notifications-setup"));
+const FriendsSetup = lazy(() => import("@/pages/friends-setup"));
+const Setup = lazy(() => import("@/pages/setup"));
+const Leaderboard = lazy(() => import("@/pages/leaderboard"));
+const Leagues = lazy(() => import("@/pages/leagues"));
+const Challenges = lazy(() => import("@/pages/challenges"));
+const SharePage = lazy(() => import("@/pages/share"));
+const Achievements = lazy(() => import("@/pages/achievements"));
+const DeepDive = lazy(() => import("@/pages/deep-dive"));
+const WeeklyRecap = lazy(() => import("@/pages/weekly-recap"));
+const Settings = lazy(() => import("@/pages/settings"));
+const Stats = lazy(() => import("@/pages/stats"));
+const Insights = lazy(() => import("@/pages/insights"));
+const Help = lazy(() => import("@/pages/help"));
+const NotificationsPrefs = lazy(() => import("@/pages/notifications-prefs"));
+const StreakInsurance = lazy(() => import("@/pages/streak-insurance"));
+const Membership = lazy(() => import("@/pages/membership"));
+const Community = lazy(() => import("@/pages/community"));
+const CommunityDetail = lazy(() => import("@/pages/community-detail"));
+const CommunitySubmit = lazy(() => import("@/pages/community-submit"));
+const TipsLibrary = lazy(() => import("@/pages/tips-library"));
+const Admin = lazy(() => import("@/pages/admin"));
+const AdminScenarioBuilder = lazy(() => import("@/pages/admin-scenario-builder"));
+const Profile = lazy(() => import("@/pages/profile"));
+const Friends = lazy(() => import("@/pages/friends"));
+const CoopLobby = lazy(() => import("@/pages/coop-lobby"));
+const CoopGame = lazy(() => import("@/pages/coop-game"));
+const CoopResults = lazy(() => import("@/pages/coop-results"));
+const ArcadePage = lazy(() => import("@/pages/arcade"));
+const ArcadeResults = lazy(() => import("@/pages/arcade-results"));
+const Terms = lazy(() => import("@/pages/terms"));
+const Privacy = lazy(() => import("@/pages/privacy"));
+const NotFound = lazy(() => import("@/pages/not-found"));
+
+// Loading fallback component
+function RouteLoadingFallback() {
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20 flex items-center justify-center">
+      <div className="flex flex-col items-center gap-4">
+        <AppLogo size="md" glow />
+        <p className="text-sm text-muted-foreground">Loading...</p>
+      </div>
+    </div>
+  );
+}
 
 function AuthenticatedRouter() {
   // Monitor for badge unlocks and show celebratory toasts
   useAchievementToast();
   return (
     <PageTransition>
-      <Switch>
-        <Route path="/" component={Home} />
-        <Route path="/profile-setup" component={ProfileSetup} />
-        <Route path="/notifications-setup" component={NotificationsSetup} />
-        <Route path="/friends-setup" component={FriendsSetup} />
-        <Route path="/setup" component={Setup} />
-        <Route path="/play" component={Game} />
-        <Route path="/results" component={Results} />
-        <Route path="/leaderboard" component={Leaderboard} />
-        <Route path="/leagues" component={Leagues} />
-        <Route path="/challenges" component={Challenges} />
-        <Route path="/share" component={SharePage} />
-        <Route path="/achievements" component={Achievements} />
-        <Route path="/deep-dive" component={DeepDive} />
-        <Route path="/weekly-recap" component={WeeklyRecap} />
-        <Route path="/settings" component={Settings} />
-        <Route path="/stats" component={Stats} />
-        <Route path="/insights" component={Insights} />
-        <Route path="/help" component={Help} />
-        <Route path="/notifications-prefs" component={NotificationsPrefs} />
-        <Route path="/streak-insurance" component={StreakInsurance} />
-        <Route path="/membership" component={Membership} />
-        <Route path="/community" component={Community} />
-        <Route path="/community/submit" component={CommunitySubmit} />
-        <Route path="/community/:id" component={CommunityDetail} />
-        <Route path="/tips" component={TipsLibrary} />
-        <Route path="/admin" component={Admin} />
-        <Route path="/admin/scenario-builder" component={AdminScenarioBuilder} />
-        <Route path="/admin/scenario-builder/:id" component={AdminScenarioBuilder} />
-        <Route path="/profile" component={Profile} />
-        <Route path="/profile/:userId" component={Profile} />
-        <Route path="/friends" component={Friends} />
-        <Route path="/coop-lobby" component={CoopLobby} />
-        <Route path="/coop-game/:sessionId" component={CoopGame} />
-        <Route path="/coop-results/:sessionId" component={CoopResults} />
-        <Route path="/arcade" component={ArcadePage} />
-        <Route path="/arcade-results" component={ArcadeResults} />
-        <Route path="/terms" component={Terms} />
-        <Route path="/privacy" component={Privacy} />
-        <Route component={NotFound} />
-      </Switch>
+      <Suspense fallback={<RouteLoadingFallback />}>
+        <Switch>
+          <Route path="/" component={Home} />
+          <Route path="/profile-setup" component={ProfileSetup} />
+          <Route path="/notifications-setup" component={NotificationsSetup} />
+          <Route path="/friends-setup" component={FriendsSetup} />
+          <Route path="/setup" component={Setup} />
+          <Route path="/play" component={Game} />
+          <Route path="/results" component={Results} />
+          <Route path="/leaderboard" component={Leaderboard} />
+          <Route path="/leagues" component={Leagues} />
+          <Route path="/challenges" component={Challenges} />
+          <Route path="/share" component={SharePage} />
+          <Route path="/achievements" component={Achievements} />
+          <Route path="/deep-dive" component={DeepDive} />
+          <Route path="/weekly-recap" component={WeeklyRecap} />
+          <Route path="/settings" component={Settings} />
+          <Route path="/stats" component={Stats} />
+          <Route path="/insights" component={Insights} />
+          <Route path="/help" component={Help} />
+          <Route path="/notifications-prefs" component={NotificationsPrefs} />
+          <Route path="/streak-insurance" component={StreakInsurance} />
+          <Route path="/membership" component={Membership} />
+          <Route path="/community" component={Community} />
+          <Route path="/community/submit" component={CommunitySubmit} />
+          <Route path="/community/:id" component={CommunityDetail} />
+          <Route path="/tips" component={TipsLibrary} />
+          <Route path="/admin" component={Admin} />
+          <Route path="/admin/scenario-builder" component={AdminScenarioBuilder} />
+          <Route path="/admin/scenario-builder/:id" component={AdminScenarioBuilder} />
+          <Route path="/profile" component={Profile} />
+          <Route path="/profile/:userId" component={Profile} />
+          <Route path="/friends" component={Friends} />
+          <Route path="/coop-lobby" component={CoopLobby} />
+          <Route path="/coop-game/:sessionId" component={CoopGame} />
+          <Route path="/coop-results/:sessionId" component={CoopResults} />
+          <Route path="/arcade" component={ArcadePage} />
+          <Route path="/arcade-results" component={ArcadeResults} />
+          <Route path="/terms" component={Terms} />
+          <Route path="/privacy" component={Privacy} />
+          <Route component={NotFound} />
+        </Switch>
+      </Suspense>
     </PageTransition>
   );
 }
@@ -105,12 +124,14 @@ function AuthenticatedRouter() {
 function UnauthenticatedRouter() {
   return (
     <PageTransition>
-      <Switch>
-        <Route path="/" component={AuthPage} />
-        <Route path="/terms" component={Terms} />
-        <Route path="/privacy" component={Privacy} />
-        <Route component={AuthPage} />
-      </Switch>
+      <Suspense fallback={<RouteLoadingFallback />}>
+        <Switch>
+          <Route path="/" component={AuthPage} />
+          <Route path="/terms" component={Terms} />
+          <Route path="/privacy" component={Privacy} />
+          <Route component={AuthPage} />
+        </Switch>
+      </Suspense>
     </PageTransition>
   );
 }
@@ -258,15 +279,18 @@ function AnalyticsTracker() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <TooltipProvider>
-          <Toaster />
-          <AnalyticsTracker />
-          <AppContent />
-        </TooltipProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <TooltipProvider>
+            <Toaster />
+            <OfflineIndicator />
+            <AnalyticsTracker />
+            <AppContent />
+          </TooltipProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

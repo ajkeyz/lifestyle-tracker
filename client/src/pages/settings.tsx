@@ -4,6 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
@@ -21,9 +32,13 @@ import {
   Volume2,
   VolumeX,
   Crown,
-  Sparkles
+  Sparkles,
+  Trash2,
+  AlertTriangle,
+  Download
 } from "lucide-react";
 import { useSound } from "@/hooks/use-sound";
+import { useAuth } from "@/hooks/use-auth";
 import { ReferralCard } from "@/components/referral-card";
 import type { User } from "@shared/schema";
 
@@ -31,6 +46,8 @@ export default function Settings() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const { soundEnabled, toggleSound, isToggling } = useSound();
+  const { logout } = useAuth();
+
 
   const { data: user, isLoading } = useQuery<User>({
     queryKey: ["/api/user"],
@@ -48,8 +65,8 @@ export default function Settings() {
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       toast({
         title: user?.lowPressureMode ? "Low Pressure Mode disabled" : "Low Pressure Mode enabled",
-        description: user?.lowPressureMode 
-          ? "Rankings and comparisons are now visible" 
+        description: user?.lowPressureMode
+          ? "Rankings and comparisons are now visible"
           : "Focus on your personal growth",
       });
     },
@@ -57,6 +74,29 @@ export default function Settings() {
       toast({
         title: "Error",
         description: "Failed to update settings",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteAccountMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("DELETE", "/api/account");
+    },
+    onSuccess: () => {
+      toast({
+        title: "Account deleted",
+        description: "Your account and all data have been permanently deleted.",
+      });
+      // Logout after successful deletion
+      setTimeout(() => {
+        logout();
+      }, 1500);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to delete account. Please try again or contact support.",
         variant: "destructive",
       });
     },
@@ -321,7 +361,7 @@ export default function Settings() {
         </Card>
 
         {adminCheck?.hasAccess && (
-          <Card 
+          <Card
             className="cursor-pointer"
             onClick={() => navigate("/admin")}
             data-testid="card-admin"
@@ -344,6 +384,116 @@ export default function Settings() {
             </CardHeader>
           </Card>
         )}
+
+        {/* Data Export - GDPR Article 20 */}
+        <Card data-testid="card-export-data">
+          <CardHeader>
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <Download className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">Download Your Data</CardTitle>
+                <CardDescription>Export all your data in JSON format</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              Download a complete copy of your profile, game history, achievements, and settings.
+            </p>
+            <Button
+              variant="outline"
+              onClick={() => {
+                window.location.href = "/api/export-data";
+                toast({
+                  title: "Downloading data",
+                  description: "Your data export will download shortly",
+                });
+              }}
+              data-testid="button-export-data"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Download Data
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Account Deletion - Required by Apple App Store & GDPR */}
+        <Card className="border-destructive/20" data-testid="card-delete-account">
+          <CardHeader>
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center">
+                <Trash2 className="w-5 h-5 text-destructive" />
+              </div>
+              <div>
+                <CardTitle className="text-lg text-destructive">Delete Account</CardTitle>
+                <CardDescription>Permanently delete your account and all data</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-start gap-2 p-3 rounded-md bg-destructive/5">
+              <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0" />
+              <p className="text-sm text-muted-foreground">
+                This action cannot be undone. All your data including streak, achievements, and game history will be permanently deleted.
+              </p>
+            </div>
+
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="destructive"
+                  className="w-full"
+                  disabled={deleteAccountMutation.isPending}
+                  data-testid="button-delete-account"
+                >
+                  {deleteAccountMutation.isPending ? (
+                    "Deleting..."
+                  ) : (
+                    <>
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete My Account
+                    </>
+                  )}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription className="space-y-3">
+                    <p>
+                      This will permanently delete your account and remove your data from our servers.
+                    </p>
+                    <div className="space-y-2 text-sm">
+                      <p className="font-medium text-foreground">You will lose:</p>
+                      <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                        <li>Your {user?.streak || 0} day streak</li>
+                        <li>All {user?.gamesPlayed || 0} games played</li>
+                        <li>{user?.badges?.length || 0} achievements earned</li>
+                        <li>Friends, leagues, and challenges</li>
+                        <li>Purchase history (if applicable)</li>
+                      </ul>
+                    </div>
+                    <p className="text-destructive font-medium">
+                      This action cannot be undone.
+                    </p>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel data-testid="button-cancel-delete">Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => deleteAccountMutation.mutate()}
+                    className="bg-destructive hover:bg-destructive/90"
+                    data-testid="button-confirm-delete"
+                  >
+                    Delete Account
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </CardContent>
+        </Card>
       </main>
     </div>
   );

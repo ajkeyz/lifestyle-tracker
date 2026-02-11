@@ -38,6 +38,8 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { League, User } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import { isFeatureEnabled } from "@/lib/feature-flags";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -85,11 +87,14 @@ export default function Leagues() {
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [selectedLeagueId, setSelectedLeagueId] = useState<string | null>(null);
   const [copiedCode, setCopiedCode] = useState(false);
-  
+
   const [newLeagueName, setNewLeagueName] = useState("");
   const [newLeagueIcon, setNewLeagueIcon] = useState("trophy");
   const [newLeaguePrivacy, setNewLeaguePrivacy] = useState<"public" | "private">("private");
   const [joinCode, setJoinCode] = useState("");
+
+  // Check if beta social features are enabled
+  const isBetaFeaturesEnabled = isFeatureEnabled("beta_social_features");
 
   const { data: user } = useQuery<User>({
     queryKey: ["/api/user"],
@@ -200,7 +205,14 @@ export default function Leagues() {
           </Button>
         )}
         <AppLogo size="sm" />
-        <span className="font-bold text-lg" data-testid="text-app-title">Friend Leagues</span>
+        <span className="font-bold text-lg flex items-center gap-2" data-testid="text-app-title">
+          Friend Leagues
+          {isBetaFeaturesEnabled && (
+            <Badge variant="outline" className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20 text-xs">
+              Beta
+            </Badge>
+          )}
+        </span>
       </div>
       <ThemeToggle />
     </header>
@@ -268,6 +280,32 @@ export default function Leagues() {
               </Select>
             </div>
           </Card>
+
+          {isBetaFeaturesEnabled && (
+            <Card className="p-4 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border-purple-500/20">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                <span className="font-semibold text-sm text-purple-600 dark:text-purple-400">Beta Features Active</span>
+                <Badge variant="outline" className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20 text-xs">
+                  New
+                </Badge>
+              </div>
+              <ul className="space-y-1 text-xs text-muted-foreground">
+                <li className="flex items-center gap-1">
+                  <Diamond className="w-3 h-3 text-purple-600 dark:text-purple-400" />
+                  Season rewards & badges
+                </li>
+                <li className="flex items-center gap-1">
+                  <Zap className="w-3 h-3 text-purple-600 dark:text-purple-400" />
+                  Win streak bonuses
+                </li>
+                <li className="flex items-center gap-1">
+                  <Rocket className="w-3 h-3 text-purple-600 dark:text-purple-400" />
+                  Power-ups (coming soon)
+                </li>
+              </ul>
+            </Card>
+          )}
 
           <Card className="p-4 bg-muted/30">
             <p className="text-sm text-center text-muted-foreground" data-testid="text-weekly-reset">
@@ -467,6 +505,41 @@ export default function Leagues() {
               ))}
             </div>
           </Card>
+
+          {isBetaFeaturesEnabled && (
+            <Card className="p-4 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border-purple-500/20">
+              <div className="flex items-center gap-2 flex-wrap mb-3">
+                <Sparkles className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                <h3 className="font-semibold text-purple-600 dark:text-purple-400">Season Rewards</h3>
+                <Badge variant="outline" className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20 text-xs">
+                  Beta
+                </Badge>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2 p-2 rounded-md bg-background/50">
+                  <div className="flex items-center gap-2">
+                    <Diamond className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                    <span className="text-sm">Top 3 get badges</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">Monthly</span>
+                </div>
+                <div className="flex items-center justify-between gap-2 p-2 rounded-md bg-background/50">
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                    <span className="text-sm">Win streak bonuses</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">Weekly</span>
+                </div>
+                <div className="flex items-center justify-between gap-2 p-2 rounded-md bg-background/50">
+                  <div className="flex items-center gap-2">
+                    <Rocket className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                    <span className="text-sm">Power-ups unlock</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">Coming Soon</span>
+                </div>
+              </div>
+            </Card>
+          )}
 
           {selectedLeague.previousWeekWinner && (
             <Card className="p-4">

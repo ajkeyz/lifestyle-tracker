@@ -30,6 +30,15 @@ import { AppLogo } from "@/components/app-logo";
 import { EmptyState } from "@/components/empty-state";
 import type { User, Challenge, ChallengeType } from "@shared/schema";
 import { CHALLENGE_TYPES, TRASH_TALK_PRESETS, CHALLENGE_BADGES } from "@shared/schema";
+import { isFeatureEnabled } from "@/lib/feature-flags";
+import { Badge } from "@/components/ui/badge";
+
+// Beta challenge types (experimental)
+const BETA_CHALLENGE_TYPES = [
+  { id: "perfect_week", label: "Perfect Week", icon: "trophy" },
+  { id: "speed_master", label: "Speed Master", icon: "target" },
+  { id: "comeback_king", label: "Comeback Challenge", icon: "swords" },
+];
 
 type ViewMode = "list" | "create" | "detail";
 
@@ -89,6 +98,9 @@ export default function Challenges() {
   const [selectedTrashTalk, setSelectedTrashTalk] = useState<string>(TRASH_TALK_PRESETS[0]);
   const [customMessage, setCustomMessage] = useState<string>("");
   const [selectedChallengeId, setSelectedChallengeId] = useState<string | null>(null);
+
+  // Check if beta social features are enabled
+  const isBetaFeaturesEnabled = isFeatureEnabled("beta_social_features");
 
   const { data: user } = useQuery<User>({
     queryKey: ["/api/user"],
@@ -196,8 +208,13 @@ export default function Challenges() {
         <div className="w-8 h-8 rounded-md bg-gradient-to-br from-primary to-accent flex items-center justify-center">
           <Swords className="w-4 h-4 text-primary-foreground" />
         </div>
-        <h1 className="text-lg font-semibold">
+        <h1 className="text-lg font-semibold flex items-center gap-2">
           {viewMode === "create" ? "New Challenge" : viewMode === "detail" ? "Challenge" : "Challenges"}
+          {isBetaFeaturesEnabled && (
+            <Badge variant="outline" className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20 text-xs">
+              Beta
+            </Badge>
+          )}
         </h1>
       </div>
       <ThemeToggle />
@@ -282,6 +299,41 @@ export default function Challenges() {
                   )}
                 </div>
               ))}
+
+              {isBetaFeaturesEnabled && (
+                <>
+                  <div className="flex items-center gap-2 mt-4 mb-2">
+                    <div className="flex-1 h-px bg-border" />
+                    <Badge variant="outline" className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20 text-xs">
+                      Beta Challenges
+                    </Badge>
+                    <div className="flex-1 h-px bg-border" />
+                  </div>
+                  {BETA_CHALLENGE_TYPES.map((cType) => (
+                    <div
+                      key={cType.id}
+                      className={`flex items-center justify-between gap-3 flex-wrap p-3 rounded-md cursor-pointer ${
+                        selectedChallengeType === cType.id ? "bg-purple-500/10 border border-purple-500/20" : "bg-muted/50"
+                      }`}
+                      onClick={() => setSelectedChallengeType(cType.id as ChallengeType)}
+                      data-testid={`option-challenge-${cType.id}`}
+                    >
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center">
+                          <ChallengeIcon type={cType.icon} className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                        </div>
+                        <div>
+                          <p className="font-medium">{cType.label}</p>
+                          <p className="text-xs text-purple-600 dark:text-purple-400">Experimental</p>
+                        </div>
+                      </div>
+                      {selectedChallengeType === cType.id && (
+                        <Check className="w-5 h-5 text-purple-600" />
+                      )}
+                    </div>
+                  ))}
+                </>
+              )}
             </div>
           </Card>
 

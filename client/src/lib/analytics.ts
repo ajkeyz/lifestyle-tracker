@@ -3,6 +3,7 @@
 // Privacy-first: No PII, anonymized IDs, GDPR compliant
 
 import type { User, DailyDrop, Scenario } from "@shared/schema";
+import { isFeatureEnabled } from "./feature-flags";
 
 // Analytics provider interface
 interface AnalyticsProvider {
@@ -102,12 +103,31 @@ class Analytics {
 
   // Track event with enrichment
   track(event: string, properties?: Record<string, any>) {
-    const enriched = {
+    const baseEnriched = {
       ...properties,
       session_id: this.sessionId,
       timestamp: new Date().toISOString(),
       session_duration_ms: Date.now() - this.sessionStart,
     };
+
+    // Add advanced analytics data if flag is enabled
+    const enriched = isFeatureEnabled("advanced_analytics")
+      ? {
+          ...baseEnriched,
+          // Extra context for debugging/optimization
+          viewport_width: window.innerWidth,
+          viewport_height: window.innerHeight,
+          device_type: this.getDeviceType(),
+          platform: this.getPlatform(),
+          connection_type: (navigator as any).connection?.effectiveType || "unknown",
+          memory_gb: (navigator as any).deviceMemory || null,
+          cpu_cores: navigator.hardwareConcurrency || null,
+          is_online: navigator.onLine,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          language: navigator.language,
+        }
+      : baseEnriched;
+
     this.provider.track(event, enriched);
   }
 

@@ -72,6 +72,8 @@ function getFlagsFromStorage(): Record<string, boolean> {
 function saveFlagsToStorage(flags: Record<string, boolean>): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(flags));
+    // Dispatch custom event for same-window reactivity
+    window.dispatchEvent(new CustomEvent("feature-flags-changed"));
   } catch (error) {
     console.error("Failed to save feature flags:", error);
   }
