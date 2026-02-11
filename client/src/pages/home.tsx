@@ -245,9 +245,16 @@ export default function Home() {
         <span className="font-display font-semibold text-sm tracking-[-0.02em]" data-testid="text-daily-drop-header">
           {(() => {
             const hour = new Date().getHours();
-            const greeting = hour < 12 ? "Morning" : hour < 17 ? "Afternoon" : "Evening";
-            return `${greeting}, ${user?.username || authUser?.username || "there"}`;
-          })()}
+            return hour < 12 ? "Morning," : hour < 17 ? "Afternoon," : "Evening,";
+          })()}{" "}
+          <motion.span
+            initial={{ opacity: 0, filter: "blur(4px)" }}
+            animate={{ opacity: 1, filter: "blur(0px)" }}
+            transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
+            className="text-primary"
+          >
+            {user?.username || authUser?.username || "there"}
+          </motion.span>
         </span>
         <div className="flex items-center gap-2">
           {authUser && (
