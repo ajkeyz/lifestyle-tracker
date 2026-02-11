@@ -255,7 +255,7 @@ export default function Home() {
               <Link href="/profile" data-testid="link-profile">
                 <AnimatedAvatar 
                   avatarId={user?.avatar || "cosmic-cat"} 
-                  size="sm" 
+                  size="xs" 
                   isAnimated={false}
                 />
               </Link>

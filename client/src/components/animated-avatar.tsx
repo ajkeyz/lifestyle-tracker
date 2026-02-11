@@ -42,7 +42,7 @@ export function getAvatarConfig(id: string): AvatarConfig {
 
 interface AnimatedAvatarProps {
   avatarId: string;
-  size?: "sm" | "md" | "lg" | "xl";
+  size?: "xs" | "sm" | "md" | "lg" | "xl";
   showRing?: boolean;
   isAnimated?: boolean;
   onClick?: () => void;
@@ -51,6 +51,7 @@ interface AnimatedAvatarProps {
 }
 
 const sizeClasses = {
+  xs: "w-8 h-8",
   sm: "w-10 h-10",
   md: "w-16 h-16",
   lg: "w-24 h-24",
@@ -58,6 +59,7 @@ const sizeClasses = {
 };
 
 const iconSizes = {
+  xs: "w-4 h-4",
   sm: "w-5 h-5",
   md: "w-8 h-8",
   lg: "w-12 h-12",
