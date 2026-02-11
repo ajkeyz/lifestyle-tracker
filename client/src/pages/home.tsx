@@ -243,11 +243,8 @@ export default function Home() {
       <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 relative">
       <AmbientBackground variant="default" />
       <header className="flex items-center justify-between gap-2 p-4 border-b bg-card/80 backdrop-blur-xl sticky top-0 z-50 border-white/10">
-        <div className="flex items-center gap-2">
-          <div onClick={handleTap} className="cursor-pointer">
-            <AppLogo size="sm" />
-          </div>
-          <span className="font-display font-semibold text-lg tracking-[-0.02em]" data-testid="text-app-title">Lifestyle Creep</span>
+        <div onClick={handleTap} className="cursor-pointer">
+          <AppLogo size="sm" />
         </div>
         <div className="flex items-center gap-2">
           {authUser && (
