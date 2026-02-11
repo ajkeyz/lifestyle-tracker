@@ -6,7 +6,6 @@ import { StatBarGrid } from "@/components/stat-bar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { StreakCalendar } from "@/components/streak-calendar";
 import { Onboarding } from "@/components/onboarding";
-import { AppLogo } from "@/components/app-logo";
 import { QuickStatsBar } from "@/components/quick-stats-bar";
 import { StreakUrgencyBanner } from "@/components/streak-urgency-banner";
 import { SocialProofCounter } from "@/components/social-proof-counter";
@@ -243,9 +242,13 @@ export default function Home() {
       <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 relative">
       <AmbientBackground variant="default" />
       <header className="flex items-center justify-between gap-2 p-4 border-b bg-card/80 backdrop-blur-xl sticky top-0 z-50 border-white/10">
-        <div onClick={handleTap} className="cursor-pointer">
-          <AppLogo size="sm" />
-        </div>
+        <span className="font-display font-semibold text-sm tracking-[-0.02em] text-muted-foreground" data-testid="text-header-context">
+          {hasPlayedToday
+            ? `Day ${dailyDrop?.dropNumber || "..."} — Pattern Spotting`
+            : user?.gamesPlayed === 0
+              ? "Your First Decisions"
+              : `Day ${dailyDrop?.dropNumber || "..."} — Today's Decisions`}
+        </span>
         <div className="flex items-center gap-2">
           {authUser && (
             <div className="flex items-center gap-2">
