@@ -15,7 +15,6 @@ import { useSound } from "@/hooks/use-sound";
 import { useHaptic } from "@/hooks/use-haptic";
 import { useConfetti } from "@/components/confetti";
 import {
-  getTimerMessage,
   getMicroAffirmation,
   getPostAnswerReflection,
   getCounterfactual,
@@ -56,25 +55,6 @@ export default function Game() {
     };
   }, []);
 
-  // Warn user before leaving page during active quiz
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      // Only show warning if quiz is in progress (not all questions answered)
-      if (!allAnswered && scenarios.length > 0) {
-        e.preventDefault();
-        // Modern browsers ignore custom messages, but we still need to set returnValue
-        e.returnValue = "You haven't finished the quiz yet. Are you sure you want to leave?";
-        return e.returnValue;
-      }
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
-  }, [allAnswered, scenarios.length]);
-
   const { data: dailyDrop, isLoading, isError, error, refetch } = useQuery<DailyDrop>({
     queryKey: ["/api/daily-drop"],
     retry: 1,
@@ -113,10 +93,6 @@ export default function Game() {
   const hasAnswered = currentScenario && showResults[currentScenario.id];
   const selectedLabel = currentScenario ? answers[currentScenario.id] || null : null;
   const didTimeOut = currentScenario ? timedOut[currentScenario.id] || false : false;
-
-  const timerMessage = useMemo(() => {
-    return getTimerMessage(timeRemaining, TIMER_DURATION);
-  }, [timeRemaining]);
 
   const microAffirmation = useMemo(() => {
     if (!hasAnswered || !selectedLabel || didTimeOut) return null;
@@ -219,6 +195,23 @@ export default function Game() {
     return scenarios.length > 0 && scenarios.every((s) => showResults[s.id] === true);
   }, [scenarios, showResults]);
 
+  // Warn user before leaving page during active quiz
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!allAnswered && scenarios.length > 0) {
+        e.preventDefault();
+        e.returnValue = "You haven't finished the quiz yet. Are you sure you want to leave?";
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [allAnswered, scenarios.length]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
@@ -320,29 +313,22 @@ export default function Game() {
               <Progress
                 value={(timeRemaining / TIMER_DURATION) * 100}
                 className={cn(
-                  "flex-1 h-1 transition-all",
+                  "flex-1 h-1.5 transition-all",
                   timeRemaining <= 5 && "animate-pulse"
                 )}
                 aria-label={`Time remaining: ${timeRemaining} seconds`}
                 data-testid="timer-bar"
               />
-              <AnimatePresence mode="wait">
-                <motion.span
-                  key={timerMessage}
-                  initial={{ opacity: 0, y: -4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 4 }}
-                  transition={{ duration: 0.25 }}
-                  className={cn(
-                    "text-xs font-medium whitespace-nowrap tabular-nums",
-                    timeRemaining <= 5 ? "text-destructive" : "text-muted-foreground"
-                  )}
-                  aria-live="polite"
-                  data-testid="timer-text"
-                >
-                  {timerMessage}
-                </motion.span>
-              </AnimatePresence>
+              <span
+                className={cn(
+                  "text-xs font-semibold whitespace-nowrap tabular-nums min-w-[2ch] text-right",
+                  timeRemaining <= 5 ? "text-destructive" : "text-muted-foreground"
+                )}
+                aria-live="polite"
+                data-testid="timer-text"
+              >
+                {timeRemaining}s
+              </span>
             </motion.div>
           )}
         </div>
