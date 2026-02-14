@@ -170,23 +170,13 @@ export default function Home() {
   const [showDebugScreen, setShowDebugScreen] = useState(false);
   const { handleTap } = useDebugGesture(() => setShowDebugScreen(true));
 
-  // P1: Optimize countdown timer - update every second only in last hour, otherwise every minute
   useEffect(() => {
-    const updateCountdown = () => {
-      const newCountdown = getTimeUntilMidnightUTC();
-      setCountdown(newCountdown);
-      return newCountdown;
-    };
-
-    // Initial update
-    const initialCountdown = updateCountdown();
-
-    // Update more frequently in the last hour for urgency
-    const interval = initialCountdown.hours === 0 ? 1000 : 60000;
-    const timer = setInterval(updateCountdown, interval);
+    const timer = setInterval(() => {
+      setCountdown(getTimeUntilMidnightUTC());
+    }, 1000);
 
     return () => clearInterval(timer);
-  }, [countdown.hours]); // Re-run when hours change to switch from 60s to 1s updates
+  }, []);
 
   const { data: user, isLoading: userLoading } = useQuery<UserType>({
     queryKey: ["/api/user"],
