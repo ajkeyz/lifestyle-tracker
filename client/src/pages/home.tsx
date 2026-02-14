@@ -21,7 +21,6 @@ import {
   Trophy, 
   TrendingUp, 
   Sparkles, 
-  LogOut, 
   Clock, 
   Share2,
   Lightbulb,
@@ -164,7 +163,7 @@ function getTodaysTip(): string {
 
 export default function Home() {
   const [, navigate] = useLocation();
-  const { user: authUser, logout } = useAuth();
+  const { user: authUser } = useAuth();
   const [countdown, setCountdown] = useState(getTimeUntilMidnightUTC());
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showDebugScreen, setShowDebugScreen] = useState(false);
@@ -272,9 +271,6 @@ export default function Home() {
               </Button>
               <Button variant="ghost" size="icon" onClick={() => navigate("/settings")} data-testid="button-settings" aria-label="Open settings">
                 <Settings className="w-4 h-4" />
-              </Button>
-              <Button variant="ghost" size="icon" onClick={() => logout()} data-testid="button-logout" aria-label="Log out">
-                <LogOut className="w-4 h-4" />
               </Button>
             </div>
           )}

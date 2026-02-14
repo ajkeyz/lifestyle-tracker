@@ -35,7 +35,8 @@ import {
   Sparkles,
   Trash2,
   AlertTriangle,
-  Download
+  Download,
+  LogOut
 } from "lucide-react";
 import { useSound } from "@/hooks/use-sound";
 import { useAuth } from "@/hooks/use-auth";
@@ -417,6 +418,29 @@ export default function Settings() {
               Download Data
             </Button>
           </CardContent>
+        </Card>
+
+        <Card data-testid="card-logout">
+          <CardHeader>
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                  <LogOut className="w-5 h-5 text-muted-foreground" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">Log Out</CardTitle>
+                  <CardDescription>Sign out of your account</CardDescription>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => logout()}
+                data-testid="button-logout"
+              >
+                Log Out
+              </Button>
+            </div>
+          </CardHeader>
         </Card>
 
         {/* Account Deletion - Required by Apple App Store & GDPR */}
