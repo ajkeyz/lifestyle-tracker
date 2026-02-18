@@ -16,6 +16,7 @@ import { AnimatedCounter } from "@/components/animated-counter";
 import { AnimatedAvatar } from "@/components/animated-avatar";
 import { DebugScreen, useDebugGesture } from "@/components/debug-screen";
 import { AmbientBackground } from "@/components/ambient-background";
+import { Mascot, getMascotMoodForStreak } from "@/components/mascot";
 import { 
   Play, 
   Trophy, 
@@ -382,25 +383,34 @@ export default function Home() {
                     <ChevronRight className="w-4 h-4" />
                   </Button>
                 </div>
-                <button
-                  onClick={() => {
-                    if (hasPlayedToday) {
-                      navigate("/results");
-                    } else if (!user.mode) {
-                      navigate("/setup");
-                    } else {
-                      navigate("/play");
-                    }
-                  }}
-                  className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center flex-shrink-0 glow-primary cursor-pointer transition-transform hover:scale-105 active:scale-95"
-                  data-testid="button-play-icon"
-                >
-                  {hasPlayedToday ? (
-                    <Trophy className="w-10 h-10 text-white" />
-                  ) : (
-                    <Play className="w-10 h-10 text-white" />
-                  )}
-                </button>
+                <div className="flex flex-col items-center gap-2 flex-shrink-0">
+                  <div data-testid="mascot-home">
+                    <Mascot
+                      mood={getMascotMoodForStreak(user.streak, hasPlayedToday)}
+                      size="md"
+                      showBubble={!hasPlayedToday}
+                    />
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (hasPlayedToday) {
+                        navigate("/results");
+                      } else if (!user.mode) {
+                        navigate("/setup");
+                      } else {
+                        navigate("/play");
+                      }
+                    }}
+                    className="w-14 h-14 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center flex-shrink-0 glow-primary cursor-pointer transition-transform hover:scale-105 active:scale-95"
+                    data-testid="button-play-icon"
+                  >
+                    {hasPlayedToday ? (
+                      <Trophy className="w-7 h-7 text-white" />
+                    ) : (
+                      <Play className="w-7 h-7 text-white" />
+                    )}
+                  </button>
+                </div>
               </div>
             </Card>
             </motion.div>

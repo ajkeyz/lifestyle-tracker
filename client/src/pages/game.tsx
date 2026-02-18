@@ -23,6 +23,7 @@ import {
 import type { DailyDrop, User, SubmitGame } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { MascotInline } from "@/components/mascot";
 
 const TIMER_DURATION = 20;
 
@@ -407,6 +408,22 @@ export default function Game() {
                       Many people also considered: &ldquo;{counterfactual}&rdquo;
                     </motion.p>
                   )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Mascot reaction after answer */}
+            <AnimatePresence>
+              {hasAnswered && currentScenario && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.4, delay: 0.5 }}
+                >
+                  <MascotInline
+                    mood={currentScenario.choices.find(c => c.label === answers[currentScenario.id])?.isCorrect ? "happy" : "encouraging"}
+                  />
                 </motion.div>
               )}
             </AnimatePresence>

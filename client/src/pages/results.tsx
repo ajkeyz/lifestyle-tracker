@@ -11,6 +11,7 @@ import { useSound } from "@/hooks/use-sound";
 import { QuickWinsPopup } from "@/components/quick-wins-popup";
 import { ArrowLeft, Home, Trophy, Calendar, Share2, BookOpen, Sparkles, Flame, Brain } from "lucide-react";
 import { AppLogo } from "@/components/app-logo";
+import { Mascot, getMascotMoodForScore, getMascotScoreMessage } from "@/components/mascot";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import type { User, DailyDrop, LeaderboardEntry } from "@shared/schema";
@@ -164,11 +165,21 @@ export default function Results() {
               transition={{ duration: 0.4, ease: "easeOut" }}
               className="text-center py-4"
             >
+              <div className="flex justify-center mb-3" data-testid="mascot-results">
+                <Mascot
+                  mood={getMascotMoodForScore(result.score)}
+                  size="xl"
+                  message={getMascotScoreMessage(result.score)}
+                  showBubble={true}
+                />
+              </div>
               <div className="inline-flex items-center gap-2 text-accent mb-2">
                 <Trophy className="w-6 h-6" />
                 <span className="text-sm font-medium" data-testid="text-drop-complete">Drop Complete</span>
               </div>
-              <h1 className="text-2xl font-semibold tracking-[-0.02em]" data-testid="text-great-job">Great job!</h1>
+              <h1 className="text-2xl font-semibold tracking-[-0.02em]" data-testid="text-great-job">
+                {result.score >= 400 ? "Amazing!" : result.score >= 250 ? "Nice work!" : "Keep growing!"}
+              </h1>
               <p className="text-muted-foreground text-sm mt-1" data-testid="text-come-back">
                 Come back tomorrow for a new challenge
               </p>

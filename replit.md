@@ -54,6 +54,18 @@ Preferred communication style: Simple, everyday language.
 - `animated-icons.tsx` - Animated icons (check, trophy, star, heart, zap, crown, award, target, trending)
 - `progress-ring.tsx` - Circular progress indicators (ProgressRing, MultiProgressRing, ScoreRing, TimerRing)
 
+**Stage 4.5 - Character Mascot System:**
+- `mascot.tsx` - "Cleo" the animated SVG mascot with 10 emotional states (idle, happy, celebrating, thinking, sad, encouraging, sleeping, shocked, proud, waving)
+  - SVG-based with Framer Motion animations (breathing, blinking, bouncing, sprout wiggle)
+  - Speech bubble system with contextual dialogue (6+ categories of randomized lines)
+  - Color-shifting body based on mood (emerald=default, gold=celebrating, indigo=thinking, gray=sad)
+  - Interactive tap responses with random dialogue cycling
+  - Sprout leaf on head that responds to mood (perky when happy, droopy when sad)
+  - Celebration particles, sleep Zzz effects, waving arm animations
+  - Helper functions: getMascotMoodForScore(), getMascotMoodForStreak(), getMascotScoreMessage()
+  - Two variants: Mascot (standalone with bubble) and MascotInline (compact card format)
+  - Integrated on: Home (CTA card), Results (score reaction), Game (post-answer feedback)
+
 **Stage 5 - Social Features:**
 - `live-players.tsx` - LivePlayers count with pulse animation, RecentPlayerActivity feed
 - `leaderboard-animations.tsx` - AnimatedLeaderboard with rank changes, LeaderboardPodium
