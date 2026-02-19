@@ -422,7 +422,13 @@ export default function Game() {
                   transition={{ duration: 0.4, delay: 0.5 }}
                 >
                   <MascotInline
-                    mood={currentScenario.choices.find(c => c.label === answers[currentScenario.id])?.isCorrect ? "happy" : "encouraging"}
+                    mood={
+                      timedOut[currentScenario.id]
+                        ? "shocked"
+                        : currentScenario.choices.find(c => c.label === answers[currentScenario.id])?.isCorrect
+                          ? timeRemaining > 14 ? "smug" : "happy"
+                          : "sad"
+                    }
                   />
                 </motion.div>
               )}

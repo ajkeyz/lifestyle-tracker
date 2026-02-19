@@ -389,6 +389,8 @@ export default function Home() {
                       mood={getMascotMoodForStreak(user.streak, hasPlayedToday)}
                       size="md"
                       showBubble={!hasPlayedToday}
+                      streakCount={user.streak}
+                      showStreakFlame={user.streak >= 3}
                     />
                   </div>
                   <button

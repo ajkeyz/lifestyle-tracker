@@ -1,6 +1,13 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { motion, AnimatePresence, useReducedMotion, useSpring, useMotionValue } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { useHaptic } from "@/hooks/use-haptic";
+
+// ============================================================
+// CLEO — Financial Mascot for Lifestyle Creep
+// Personality: Snarky, Gen-Z, unapologetically smart.
+// Knows money, knows people, knows when to chirp.
+// ============================================================
 
 export type MascotMood =
   | "idle"
@@ -12,7 +19,10 @@ export type MascotMood =
   | "sleeping"
   | "shocked"
   | "proud"
-  | "waving";
+  | "waving"
+  | "fire"       // Streak on fire (30+ days)
+  | "smug"       // Nailed a hard question
+  | "hyped";     // XP multiplier / milestone
 
 interface MascotProps {
   mood?: MascotMood;
@@ -22,491 +32,480 @@ interface MascotProps {
   className?: string;
   onClick?: () => void;
   animate?: boolean;
+  streakCount?: number;
+  showStreakFlame?: boolean;
 }
 
-const SIZE_MAP = {
-  xs: 48,
-  sm: 64,
-  md: 96,
-  lg: 128,
-  xl: 160,
-};
+const SIZE_MAP = { xs: 48, sm: 64, md: 96, lg: 128, xl: 160 };
 
-const EYE_STATES: Record<MascotMood, { left: string; right: string; pupilScale: number }> = {
-  idle: { left: "open", right: "open", pupilScale: 1 },
-  happy: { left: "happy", right: "happy", pupilScale: 1.1 },
-  celebrating: { left: "star", right: "star", pupilScale: 1.3 },
-  thinking: { left: "look-up", right: "look-up", pupilScale: 0.9 },
-  sad: { left: "sad", right: "sad", pupilScale: 0.8 },
-  encouraging: { left: "wink", right: "open", pupilScale: 1 },
-  sleeping: { left: "closed", right: "closed", pupilScale: 0 },
-  shocked: { left: "wide", right: "wide", pupilScale: 1.4 },
-  proud: { left: "smug", right: "smug", pupilScale: 1 },
-  waving: { left: "open", right: "happy", pupilScale: 1.1 },
+const BODY_COLORS: Record<MascotMood, { main: string; highlight: string; shadow: string; glow: string }> = {
+  idle:        { main: "#10b981", highlight: "#34d399", shadow: "#059669", glow: "#10b98133" },
+  happy:       { main: "#10b981", highlight: "#6ee7b7", shadow: "#059669", glow: "#10b98155" },
+  celebrating: { main: "#f59e0b", highlight: "#fcd34d", shadow: "#d97706", glow: "#f59e0b88" },
+  thinking:    { main: "#6366f1", highlight: "#818cf8", shadow: "#4f46e5", glow: "#6366f155" },
+  sad:         { main: "#6b7280", highlight: "#9ca3af", shadow: "#4b5563", glow: "#6b728033" },
+  encouraging: { main: "#10b981", highlight: "#34d399", shadow: "#059669", glow: "#10b98144" },
+  sleeping:    { main: "#1e3a5f", highlight: "#2d5a8e", shadow: "#0f2640", glow: "#1e3a5f44" },
+  shocked:     { main: "#ef4444", highlight: "#f87171", shadow: "#dc2626", glow: "#ef444466" },
+  proud:       { main: "#8b5cf6", highlight: "#a78bfa", shadow: "#7c3aed", glow: "#8b5cf666" },
+  waving:      { main: "#10b981", highlight: "#34d399", shadow: "#059669", glow: "#10b98144" },
+  fire:        { main: "#f97316", highlight: "#fb923c", shadow: "#ea580c", glow: "#f97316aa" },
+  smug:        { main: "#10b981", highlight: "#34d399", shadow: "#059669", glow: "#10b98155" },
+  hyped:       { main: "#ec4899", highlight: "#f472b6", shadow: "#db2777", glow: "#ec489988" },
 };
 
 const MOUTH_PATHS: Record<MascotMood, string> = {
-  idle: "M 38 62 Q 50 68 62 62",
-  happy: "M 35 60 Q 50 72 65 60",
+  idle:        "M 38 62 Q 50 68 62 62",
+  happy:       "M 35 60 Q 50 72 65 60",
   celebrating: "M 35 58 Q 50 75 65 58",
-  thinking: "M 42 63 Q 50 60 58 63",
-  sad: "M 38 66 Q 50 60 62 66",
+  thinking:    "M 42 63 Q 50 60 58 63",
+  sad:         "M 38 66 Q 50 60 62 66",
   encouraging: "M 36 60 Q 50 70 64 60",
-  sleeping: "M 42 64 Q 50 66 58 64",
-  shocked: "M 42 60 Q 50 68 58 60",
-  proud: "M 36 60 Q 50 70 64 60",
-  waving: "M 36 60 Q 50 70 64 60",
+  sleeping:    "M 42 64 Q 50 66 58 64",
+  shocked:     "M 44 62 Q 50 70 56 62",
+  proud:       "M 36 59 Q 50 72 64 59",
+  waving:      "M 36 60 Q 50 70 64 60",
+  fire:        "M 34 58 Q 50 76 66 58",
+  smug:        "M 38 62 Q 52 58 62 64",
+  hyped:       "M 34 57 Q 50 76 66 57",
 };
 
-const BODY_COLORS: Record<MascotMood, { main: string; highlight: string; shadow: string }> = {
-  idle: { main: "#10b981", highlight: "#34d399", shadow: "#059669" },
-  happy: { main: "#10b981", highlight: "#6ee7b7", shadow: "#059669" },
-  celebrating: { main: "#f59e0b", highlight: "#fbbf24", shadow: "#d97706" },
-  thinking: { main: "#6366f1", highlight: "#818cf8", shadow: "#4f46e5" },
-  sad: { main: "#6b7280", highlight: "#9ca3af", shadow: "#4b5563" },
-  encouraging: { main: "#10b981", highlight: "#34d399", shadow: "#059669" },
-  sleeping: { main: "#1e3a5f", highlight: "#2d5a8e", shadow: "#0f2640" },
-  shocked: { main: "#ef4444", highlight: "#f87171", shadow: "#dc2626" },
-  proud: { main: "#10b981", highlight: "#6ee7b7", shadow: "#059669" },
-  waving: { main: "#10b981", highlight: "#34d399", shadow: "#059669" },
-};
+// ============================================================
+// EYE RENDERING
+// ============================================================
 
-function MascotEye({ type, x, y, scale }: { type: string; x: number; y: number; scale: number }) {
-  const eyeSize = 8;
+type EyeType = "open" | "happy" | "star" | "wink" | "sad" | "wide" | "look-up" | "smug" | "closed" | "fire" | "smug-left";
 
-  if (type === "closed" || type === "sleeping") {
+function MascotEye({ type, x, y }: { type: EyeType; x: number; y: number }) {
+  if (type === "closed") {
     return (
       <motion.path
         d={`M ${x - 5} ${y} Q ${x} ${y + 3} ${x + 5} ${y}`}
-        stroke="white"
-        strokeWidth="2"
-        strokeLinecap="round"
-        fill="none"
-        initial={false}
-        animate={{ pathLength: 1 }}
+        stroke="white" strokeWidth="2" strokeLinecap="round" fill="none"
       />
     );
   }
-
   if (type === "happy") {
     return (
       <motion.path
         d={`M ${x - 5} ${y + 2} Q ${x} ${y - 4} ${x + 5} ${y + 2}`}
-        stroke="white"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        fill="none"
+        stroke="white" strokeWidth="2.5" strokeLinecap="round" fill="none"
       />
     );
   }
-
   if (type === "star") {
-    const starPath = `M ${x} ${y - 5} L ${x + 1.5} ${y - 1.5} L ${x + 5} ${y - 1} L ${x + 2.5} ${y + 1.5} L ${x + 3} ${y + 5} L ${x} ${y + 3} L ${x - 3} ${y + 5} L ${x - 2.5} ${y + 1.5} L ${x - 5} ${y - 1} L ${x - 1.5} ${y - 1.5} Z`;
     return (
-      <motion.g
-        animate={{ rotate: [0, 15, -15, 0], scale: [1, 1.2, 1] }}
-        transition={{ duration: 0.8, repeat: Infinity, ease: "easeInOut" }}
-        style={{ transformOrigin: `${x}px ${y}px` }}
-      >
-        <circle cx={x} cy={y} r={eyeSize * scale * 0.6} fill="white" />
-        <motion.path
-          d={starPath}
-          fill="hsl(var(--accent))"
-          stroke="none"
-        />
-      </motion.g>
+      <g>
+        <text x={x - 5} y={y + 4} fontSize="10" fill="#fbbf24" textAnchor="middle">★</text>
+      </g>
     );
   }
-
   if (type === "wink") {
     return (
       <motion.path
-        d={`M ${x - 4} ${y} L ${x + 4} ${y}`}
-        stroke="white"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        fill="none"
+        d={`M ${x - 5} ${y + 1} Q ${x} ${y - 3} ${x + 5} ${y + 1}`}
+        stroke="white" strokeWidth="2.5" strokeLinecap="round" fill="none"
+        animate={{ scaleY: [1, 0.1, 1] }}
+        transition={{ duration: 0.3, delay: 0.5 }}
       />
     );
   }
-
   if (type === "sad") {
     return (
       <g>
-        <circle cx={x} cy={y} r={eyeSize * scale * 0.55} fill="white" />
-        <motion.circle
-          cx={x}
-          cy={y}
-          r={3 * scale}
-          fill="#1a1a2e"
-          animate={{ cy: [y, y + 1, y] }}
-          transition={{ duration: 2, repeat: Infinity }}
+        <motion.path
+          d={`M ${x - 5} ${y - 2} Q ${x} ${y + 4} ${x + 5} ${y - 2}`}
+          stroke="white" strokeWidth="2" strokeLinecap="round" fill="none"
         />
-        <motion.ellipse
-          cx={x}
-          cy={y + 10}
-          rx={2}
-          ry={3}
-          fill="#60a5fa"
-          opacity={0.6}
-          animate={{ cy: [y + 10, y + 14], opacity: [0.6, 0] }}
-          transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 2 }}
+        <motion.circle cx={x} cy={y + 7} r={1.5} fill="white" opacity={0.5}
+          animate={{ y: [0, 6], opacity: [0.5, 0] }}
+          transition={{ duration: 1.2, repeat: Infinity, ease: "easeIn" }}
         />
       </g>
     );
   }
-
   if (type === "wide") {
     return (
       <g>
-        <motion.circle
-          cx={x}
-          cy={y}
-          r={eyeSize * scale * 0.7}
-          fill="white"
-          animate={{ r: [eyeSize * scale * 0.7, eyeSize * scale * 0.8, eyeSize * scale * 0.7] }}
-          transition={{ duration: 0.3, repeat: Infinity }}
-        />
-        <circle cx={x} cy={y} r={2.5 * scale} fill="#1a1a2e" />
+        <circle cx={x} cy={y} r={6} fill="white" />
+        <circle cx={x} cy={y} r={3.5} fill="#1a1a2e" />
+        <circle cx={x + 1.5} cy={y - 1.5} r={1.2} fill="white" />
       </g>
     );
   }
-
   if (type === "look-up") {
     return (
       <g>
-        <circle cx={x} cy={y} r={eyeSize * scale * 0.55} fill="white" />
-        <motion.circle
-          cx={x}
-          cy={y - 2}
-          r={3 * scale}
-          fill="#1a1a2e"
-          animate={{ cx: [x, x + 2, x], cy: [y - 2, y - 3, y - 2] }}
-          transition={{ duration: 3, repeat: Infinity }}
-        />
+        <circle cx={x} cy={y} r={5} fill="white" opacity={0.9} />
+        <circle cx={x} cy={y - 2} r={3} fill="#1a1a2e" />
+        <circle cx={x + 1} cy={y - 3} r={1} fill="white" />
       </g>
     );
   }
-
   if (type === "smug") {
     return (
+      <motion.path
+        d={`M ${x - 5} ${y + 1} Q ${x} ${y - 5} ${x + 5} ${y + 1}`}
+        stroke="white" strokeWidth="2.5" strokeLinecap="round" fill="none"
+      />
+    );
+  }
+  if (type === "fire") {
+    return (
       <g>
-        <circle cx={x} cy={y} r={eyeSize * scale * 0.5} fill="white" />
-        <circle cx={x + 1} cy={y - 1} r={2.5 * scale} fill="#1a1a2e" />
-        <motion.path
-          d={`M ${x - 5} ${y - 5} L ${x + 5} ${y - 5}`}
-          stroke="white"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          fill="none"
-          opacity={0.7}
+        <circle cx={x} cy={y} r={5.5} fill="white" opacity={0.95} />
+        <circle cx={x} cy={y} r={3.5} fill="#7c2d12" />
+        <motion.circle cx={x} cy={y} r={2}
+          fill="#f97316"
+          animate={{ scale: [1, 1.2, 1] }}
+          transition={{ duration: 0.5, repeat: Infinity }}
         />
       </g>
     );
   }
-
+  // Default open eye
   return (
     <g>
-      <circle cx={x} cy={y} r={eyeSize * scale * 0.55} fill="white" />
-      <motion.circle
-        cx={x}
-        cy={y}
-        r={3 * scale}
-        fill="#1a1a2e"
-        animate={{ cx: [x, x + 1, x - 1, x] }}
-        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <circle cx={x + 1} cy={y - 1} r={1} fill="white" opacity={0.8} />
+      <circle cx={x} cy={y} r={5} fill="white" opacity={0.9} />
+      <circle cx={x} cy={y} r={3} fill="#1a1a2e" />
+      <circle cx={x + 1} cy={y - 1} r={1} fill="white" />
     </g>
   );
 }
 
-function MascotBlink({ children, mood }: { children: React.ReactNode; mood: MascotMood }) {
+const EYE_CONFIGS: Record<MascotMood, { left: EyeType; right: EyeType }> = {
+  idle:        { left: "open",   right: "open"  },
+  happy:       { left: "happy",  right: "happy" },
+  celebrating: { left: "star",   right: "star"  },
+  thinking:    { left: "look-up",right: "look-up"},
+  sad:         { left: "sad",    right: "sad"   },
+  encouraging: { left: "wink",   right: "open"  },
+  sleeping:    { left: "closed", right: "closed"},
+  shocked:     { left: "wide",   right: "wide"  },
+  proud:       { left: "smug",   right: "smug"  },
+  waving:      { left: "open",   right: "happy" },
+  fire:        { left: "fire",   right: "fire"  },
+  smug:        { left: "smug",   right: "wink"  },
+  hyped:       { left: "star",   right: "star"  },
+};
+
+// ============================================================
+// AUTO BLINK
+// ============================================================
+
+function AutoBlink({ mood, children }: { mood: MascotMood; children: React.ReactNode }) {
   const [blinking, setBlinking] = useState(false);
+  const noBlinkMoods: MascotMood[] = ["sleeping", "celebrating", "shocked", "hyped"];
 
   useEffect(() => {
-    if (mood === "sleeping" || mood === "celebrating") return;
-    const interval = setInterval(() => {
-      setBlinking(true);
-      setTimeout(() => setBlinking(false), 150);
-    }, 3000 + Math.random() * 2000);
-    return () => clearInterval(interval);
+    if (noBlinkMoods.includes(mood)) return;
+    const schedule = () => {
+      const delay = 3000 + Math.random() * 4000;
+      return setTimeout(() => {
+        setBlinking(true);
+        setTimeout(() => {
+          setBlinking(false);
+          schedule();
+        }, 120);
+      }, delay);
+    };
+    const t = schedule();
+    return () => clearTimeout(t);
   }, [mood]);
 
-  if (blinking && mood !== "sleeping" && mood !== "celebrating") {
+  if (blinking) {
     return (
       <g>
-        <motion.path
-          d="M 33 46 Q 38 49 43 46"
-          stroke="white"
-          strokeWidth="2"
-          strokeLinecap="round"
-          fill="none"
-        />
-        <motion.path
-          d="M 57 46 Q 62 49 67 46"
-          stroke="white"
-          strokeWidth="2"
-          strokeLinecap="round"
-          fill="none"
-        />
+        <line x1="33" y1="46" x2="43" y2="46" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+        <line x1="57" y1="46" x2="67" y2="46" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
       </g>
     );
   }
-
   return <>{children}</>;
 }
 
+// ============================================================
+// SPROUT (head decoration)
+// ============================================================
+
 function Sprout({ mood }: { mood: MascotMood }) {
-  const isHappy = mood === "happy" || mood === "celebrating" || mood === "proud";
+  const isHappy = ["happy", "celebrating", "proud", "waving", "fire", "hyped"].includes(mood);
   const isSad = mood === "sad";
+  const isSleeping = mood === "sleeping";
 
   return (
     <motion.g
-      animate={
-        isHappy
-          ? { rotate: [-5, 5, -5], y: [0, -2, 0] }
-          : isSad
-            ? { rotate: [-2, 0, -2], y: [0, 1, 0] }
-            : { rotate: [-3, 3, -3] }
+      animate={isHappy
+        ? { rotate: [-3, 3, -3], y: [0, -1, 0] }
+        : isSad
+        ? { rotate: [0], y: [2, 3, 2] }
+        : isSleeping
+        ? { y: [0, 1, 0] }
+        : { rotate: [0, 1, 0] }
       }
-      transition={{
-        duration: isHappy ? 0.6 : 2,
-        repeat: Infinity,
-        ease: "easeInOut",
-      }}
+      transition={{ duration: isHappy ? 1.2 : 2.5, repeat: Infinity, ease: "easeInOut" }}
       style={{ transformOrigin: "50px 20px" }}
     >
-      <path
-        d="M 50 28 Q 50 18 50 14"
-        stroke={isSad ? "#6b7280" : "#059669"}
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        fill="none"
-      />
-      <motion.ellipse
-        cx={46}
-        cy={14}
-        rx={6}
-        ry={4}
-        fill={isSad ? "#6b7280" : "#10b981"}
-        transform="rotate(-30, 46, 14)"
-        animate={isHappy ? { rx: [6, 7, 6], ry: [4, 5, 4] } : {}}
-        transition={{ duration: 0.8, repeat: Infinity }}
-      />
-      <motion.ellipse
-        cx={54}
-        cy={14}
-        rx={6}
-        ry={4}
-        fill={isSad ? "#6b7280" : "#34d399"}
-        transform="rotate(30, 54, 14)"
-        animate={isHappy ? { rx: [6, 7, 6], ry: [4, 5, 4] } : {}}
-        transition={{ duration: 0.8, repeat: Infinity, delay: 0.2 }}
-      />
+      <path d="M 50 22 C 50 22 50 15 56 12 C 62 9 64 14 60 18 C 56 22 50 22 50 22" fill="#22c55e" />
+      <path d="M 50 22 C 50 22 50 15 44 12 C 38 9 36 14 40 18 C 44 22 50 22 50 22" fill="#16a34a" />
+      {mood === "fire" && (
+        <motion.path
+          d="M 50 16 C 52 12 56 10 54 6 C 58 8 60 12 57 16"
+          fill="#f97316"
+          animate={{ opacity: [0.8, 1, 0.8], scale: [0.9, 1.1, 0.9] }}
+          transition={{ duration: 0.6, repeat: Infinity }}
+          style={{ transformOrigin: "54px 11px" }}
+        />
+      )}
+      {mood === "hyped" && (
+        <>
+          <motion.circle cx={48} cy={10} r={1.5} fill="#fbbf24"
+            animate={{ y: [-2, -6, -2], opacity: [1, 0, 1] }}
+            transition={{ duration: 0.8, repeat: Infinity, delay: 0 }}
+          />
+          <motion.circle cx={52} cy={8} r={1} fill="#f472b6"
+            animate={{ y: [-2, -5, -2], opacity: [1, 0, 1] }}
+            transition={{ duration: 0.8, repeat: Infinity, delay: 0.2 }}
+          />
+        </>
+      )}
     </motion.g>
   );
 }
 
-function CelebrationParticles() {
-  const particles = useMemo(
-    () =>
-      Array.from({ length: 6 }, (_, i) => ({
-        id: i,
-        x: 50 + Math.cos((i * Math.PI * 2) / 6) * 45,
-        y: 50 + Math.sin((i * Math.PI * 2) / 6) * 45,
-        color: ["#f59e0b", "#10b981", "#6366f1", "#ef4444", "#ec4899", "#8b5cf6"][i],
-        size: 3 + Math.random() * 2,
-      })),
-    []
-  );
+// ============================================================
+// CELEBRATION PARTICLES (SVG-level)
+// ============================================================
 
+const PARTICLE_COLORS = ["#fbbf24", "#f472b6", "#34d399", "#60a5fa", "#a78bfa", "#fb7185"];
+
+function CelebrationParticles() {
   return (
     <g>
-      {particles.map((p) => (
-        <motion.circle
-          key={p.id}
-          cx={p.x}
-          cy={p.y}
-          r={p.size}
-          fill={p.color}
-          initial={{ opacity: 0, scale: 0 }}
-          animate={{
-            opacity: [0, 1, 0],
-            scale: [0, 1.5, 0],
-            cx: [50, p.x],
-            cy: [50, p.y],
-          }}
-          transition={{
-            duration: 1.2,
-            repeat: Infinity,
-            delay: p.id * 0.15,
-            ease: "easeOut",
-          }}
-        />
-      ))}
+      {PARTICLE_COLORS.map((color, i) => {
+        const angle = (i / PARTICLE_COLORS.length) * 360;
+        const rad = (angle * Math.PI) / 180;
+        const tx = 50 + Math.cos(rad) * 40;
+        const ty = 50 + Math.sin(rad) * 40;
+        return (
+          <motion.circle
+            key={i}
+            cx={50} cy={50} r={3}
+            fill={color}
+            animate={{ cx: [50, tx, tx + Math.cos(rad) * 10], cy: [50, ty, ty + Math.sin(rad) * 10], opacity: [1, 0.8, 0], scale: [1, 1.5, 0] }}
+            transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.08, ease: "easeOut" }}
+          />
+        );
+      })}
     </g>
   );
 }
+
+// ============================================================
+// SLEEP ZZZs
+// ============================================================
 
 function SleepZzz() {
-  const zPaths = [
-    { x: 72, y: 32, s: 4 },
-    { x: 78, y: 22, s: 5 },
-    { x: 84, y: 12, s: 6 },
-  ];
   return (
     <g>
-      {zPaths.map((z, i) => (
-        <motion.path
+      {["z", "Z", "z"].map((z, i) => (
+        <motion.text
           key={i}
-          d={`M ${z.x - z.s} ${z.y - z.s} L ${z.x + z.s} ${z.y - z.s} L ${z.x - z.s} ${z.y + z.s} L ${z.x + z.s} ${z.y + z.s}`}
-          stroke="hsl(var(--muted-foreground))"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          fill="none"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{
-            opacity: [0, 0.5, 0],
-            y: [10, -5],
-          }}
-          transition={{
-            duration: 2.5,
-            repeat: Infinity,
-            delay: i * 0.7,
-            ease: "easeOut",
-          }}
-        />
+          x={65 + i * 6} y={30 - i * 6}
+          fontSize={8 + i * 3}
+          fill="#93c5fd"
+          opacity={0}
+          fontWeight="bold"
+          animate={{ y: [30 - i * 6, 10 - i * 6], opacity: [0, 0.8, 0] }}
+          transition={{ duration: 2, repeat: Infinity, delay: i * 0.5, ease: "easeOut" }}
+        >
+          {z}
+        </motion.text>
       ))}
     </g>
   );
 }
+
+// ============================================================
+// WAVING ARM
+// ============================================================
 
 function WavingArm() {
   return (
-    <motion.g
-      animate={{ rotate: [-10, 25, -10] }}
-      transition={{ duration: 0.5, repeat: 5, ease: "easeInOut" }}
-      style={{ transformOrigin: "72px 50px" }}
-    >
-      <path
-        d="M 70 50 Q 78 42 82 38"
-        stroke="#059669"
-        strokeWidth="4"
-        strokeLinecap="round"
-        fill="none"
-      />
-      <circle cx={82} cy={36} r={4} fill="#34d399" />
-    </motion.g>
+    <motion.ellipse
+      cx={72} cy={58} rx={7} ry={4}
+      fill="currentColor"
+      animate={{ rotate: [-20, 20, -20], x: [0, 3, 0] }}
+      transition={{ duration: 0.7, repeat: Infinity, ease: "easeInOut" }}
+      style={{ transformOrigin: "68px 58px" }}
+    />
   );
 }
 
+// ============================================================
+// STREAK FLAME BADGE
+// ============================================================
+
+function StreakFlame({ count, size }: { count: number; size: number }) {
+  const intensity = Math.min(count / 30, 1);
+  const flameColor = intensity > 0.7 ? "#ef4444" : intensity > 0.4 ? "#f97316" : "#f59e0b";
+  const badgeSize = size * 0.32;
+
+  return (
+    <motion.div
+      className="absolute -top-1 -right-1 flex flex-col items-center"
+      initial={{ scale: 0 }}
+      animate={{ scale: 1 }}
+      transition={{ type: "spring", stiffness: 400, damping: 20 }}
+    >
+      <motion.div
+        className="rounded-full flex items-center justify-center shadow-lg"
+        style={{
+          width: badgeSize,
+          height: badgeSize,
+          background: `radial-gradient(circle, ${flameColor}dd, ${flameColor}88)`,
+          boxShadow: `0 0 ${6 + intensity * 8}px ${flameColor}`,
+        }}
+        animate={{ scale: [1, 1.08, 1], boxShadow: [`0 0 ${6}px ${flameColor}`, `0 0 ${12}px ${flameColor}`, `0 0 ${6}px ${flameColor}`] }}
+        transition={{ duration: 0.8 + intensity * 0.4, repeat: Infinity, ease: "easeInOut" }}
+      >
+        <span style={{ fontSize: badgeSize * 0.45 }}>🔥</span>
+      </motion.div>
+      {count >= 3 && (
+        <motion.span
+          className="text-center font-black leading-none"
+          style={{ fontSize: badgeSize * 0.35, color: flameColor }}
+          animate={{ opacity: [0.8, 1, 0.8] }}
+          transition={{ duration: 1, repeat: Infinity }}
+        >
+          {count}
+        </motion.span>
+      )}
+    </motion.div>
+  );
+}
+
+// ============================================================
+// MAIN MASCOT SVG
+// ============================================================
+
 function MascotSVG({ mood, size }: { mood: MascotMood; size: number }) {
-  const eyes = EYE_STATES[mood];
+  const eyes = EYE_CONFIGS[mood];
   const mouthPath = MOUTH_PATHS[mood];
   const colors = BODY_COLORS[mood];
 
   const bodyAnimation = useMemo(() => {
     switch (mood) {
       case "celebrating":
-        return { y: [0, -6, 0], scale: [1, 1.05, 1], rotate: [0, -3, 3, 0] };
+      case "hyped":
+        return { y: [0, -8, 2, -8, 0], scale: [1, 1.06, 0.98, 1.06, 1], rotate: [0, -4, 4, -4, 0] };
       case "happy":
-        return { y: [0, -3, 0], scale: [1, 1.02, 1] };
+      case "proud":
+        return { y: [0, -4, 0], scale: [1, 1.02, 1] };
+      case "fire":
+        return { y: [0, -5, 0], scale: [1, 1.03, 1], rotate: [0, -2, 2, 0] };
       case "sad":
-        return { y: [0, 2, 0], scale: [1, 0.98, 1] };
+        return { y: [0, 3, 0], scale: [1, 0.97, 1] };
       case "sleeping":
-        return { y: [0, 2, 0], scale: [1, 1.01, 1] };
+        return { y: [0, 3, 0], scale: [1, 1.02, 1], rotate: [0, 1, 0] };
       case "shocked":
-        return { y: [0, -4, 0], scale: [1, 1.04, 1] };
-      case "waving":
-        return { y: [0, -2, 0] };
-      case "thinking":
-        return { y: [0, -1, 0], rotate: [0, 2, 0] };
+        return { y: [0, -5, 1, -5, 0], scale: [1, 1.05, 0.98, 1.05, 1] };
+      case "smug":
+        return { y: [0, -2, 0], rotate: [0, -3, 0] };
       default:
-        return { y: [0, -2, 0], scale: [1, 1.01, 1] };
+        return { y: [0, -3, 0], scale: [1, 1.01, 1] };
     }
   }, [mood]);
 
-  const bodySpeed = mood === "celebrating" ? 0.6 : mood === "sleeping" ? 3 : 2;
+  const bodySpeed = mood === "celebrating" || mood === "hyped" ? 0.5 : mood === "sleeping" ? 3.5 : mood === "shocked" ? 0.4 : 2;
+
+  const glowId = `glow-${mood}`;
+  const gradId = `grad-${mood}`;
 
   return (
-    <svg
-      viewBox="0 0 100 100"
-      width={size}
-      height={size}
-      style={{ overflow: "visible" }}
-    >
+    <svg viewBox="0 0 100 100" width={size} height={size} style={{ overflow: "visible" }}>
       <defs>
-        <radialGradient id={`body-grad-${mood}`} cx="40%" cy="35%" r="60%">
+        <radialGradient id={gradId} cx="38%" cy="32%" r="65%">
           <stop offset="0%" stopColor={colors.highlight} />
-          <stop offset="70%" stopColor={colors.main} />
+          <stop offset="65%" stopColor={colors.main} />
           <stop offset="100%" stopColor={colors.shadow} />
         </radialGradient>
-        <filter id="mascot-glow">
-          <feGaussianBlur stdDeviation="3" result="blur" />
-          <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        <filter id={glowId} x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur" />
+          <feColorMatrix in="blur" type="matrix"
+            values={`1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 ${mood === "fire" || mood === "hyped" ? "2" : "1.2"} 0`}
+            result="coloredBlur"
+          />
+          <feMerge><feMergeNode in="coloredBlur" /><feMergeNode in="SourceGraphic" /></feMerge>
         </filter>
       </defs>
 
-      {mood === "celebrating" && <CelebrationParticles />}
+      {(mood === "celebrating" || mood === "hyped") && <CelebrationParticles />}
       {mood === "sleeping" && <SleepZzz />}
 
       <Sprout mood={mood} />
 
+      {/* Drop shadow */}
+      <motion.ellipse
+        cx={50} cy={82} rx={16} ry={4}
+        fill="black" opacity={0.1}
+        animate={{ scaleX: bodyAnimation.scale ? [1, 1.05, 1] : [1] }}
+        transition={{ duration: bodySpeed, repeat: Infinity, ease: "easeInOut" }}
+      />
+
       <motion.g
         animate={bodyAnimation}
-        transition={{
-          duration: bodySpeed,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
+        transition={{ duration: bodySpeed, repeat: Infinity, ease: "easeInOut" }}
       >
-        <ellipse
-          cx={50}
-          cy={80}
-          rx={16}
-          ry={5}
-          fill="black"
-          opacity={0.08}
-        />
-
+        {/* Body */}
         <circle
-          cx={50}
-          cy={50}
-          r={28}
-          fill={`url(#body-grad-${mood})`}
-          filter="url(#mascot-glow)"
+          cx={50} cy={52} r={28}
+          fill={`url(#${gradId})`}
+          filter={`url(#${glowId})`}
         />
 
-        <ellipse cx={36} cy={40} rx={5} ry={3} fill="white" opacity={0.15} transform="rotate(-20, 36, 40)" />
+        {/* Shine */}
+        <ellipse cx={37} cy={40} rx={5} ry={3} fill="white" opacity={0.18} transform="rotate(-20,37,40)" />
 
-        <MascotBlink mood={mood}>
-          <MascotEye type={eyes.left} x={38} y={46} scale={eyes.pupilScale} />
-          <MascotEye type={eyes.right} x={62} y={46} scale={eyes.pupilScale} />
-        </MascotBlink>
+        {/* Eyes */}
+        <AutoBlink mood={mood}>
+          <MascotEye type={eyes.left} x={38} y={46} />
+          <MascotEye type={eyes.right} x={62} y={46} />
+        </AutoBlink>
 
-        {mood === "encouraging" && (
-          <circle cx={32} cy={54} rx={4} ry={2} fill="#f9a8d4" opacity={0.4} />
-        )}
-        {mood === "happy" && (
+        {/* Blush cheeks */}
+        {(mood === "encouraging" || mood === "waving") && (
           <>
-            <ellipse cx={30} cy={54} rx={4} ry={2} fill="#fca5a5" opacity={0.3} />
-            <ellipse cx={70} cy={54} rx={4} ry={2} fill="#fca5a5" opacity={0.3} />
+            <ellipse cx={29} cy={55} rx={4} ry={2.5} fill="#fca5a5" opacity={0.35} />
+            <ellipse cx={71} cy={55} rx={4} ry={2.5} fill="#fca5a5" opacity={0.35} />
+          </>
+        )}
+        {(mood === "happy" || mood === "proud" || mood === "fire") && (
+          <>
+            <ellipse cx={29} cy={56} rx={4.5} ry={2.5} fill="#fca5a5" opacity={0.3} />
+            <ellipse cx={71} cy={56} rx={4.5} ry={2.5} fill="#fca5a5" opacity={0.3} />
           </>
         )}
 
+        {/* Mouth */}
         <motion.path
           d={mouthPath}
           stroke="white"
           strokeWidth="2.5"
           strokeLinecap="round"
-          fill={mood === "celebrating" || mood === "shocked" ? "white" : "none"}
-          fillOpacity={0.3}
-          initial={false}
+          fill={["celebrating", "shocked", "hyped"].includes(mood) ? "white" : "none"}
+          fillOpacity={0.25}
           animate={{ d: mouthPath }}
-          transition={{ duration: 0.3 }}
+          transition={{ duration: 0.4, ease: "easeInOut" }}
         />
+
+        {/* Teeth for big smiles */}
+        {(mood === "celebrating" || mood === "hyped") && (
+          <g opacity={0.6}>
+            <rect x={44} y={61} width={5} height={4} rx={1} fill="white" />
+            <rect x={50} y={61} width={5} height={4} rx={1} fill="white" />
+          </g>
+        )}
 
         {mood === "waving" && <WavingArm />}
       </motion.g>
@@ -514,130 +513,268 @@ function MascotSVG({ mood, size }: { mood: MascotMood; size: number }) {
   );
 }
 
-const SMART_DECISION_LINES = [
-  "Big brain energy right there.",
-  "Your future self just high-fived you.",
-  "That's how you build wealth.",
-  "Compound interest approves.",
-  "Smart. Very smart.",
-  "Financial flex unlocked.",
-];
+// ============================================================
+// DIALOGUE — Cleo's voice: sharp, warm, occasionally snarky
+// ============================================================
 
-const CREEP_DECISION_LINES = [
-  "We've all been there...",
-  "Tomorrow's a new day.",
-  "It's a learning moment.",
-  "Your wallet felt that one.",
-  "Plot twist! But you'll bounce back.",
-  "Even pros miss sometimes.",
-];
+const DIALOGUE: Record<MascotMood, string[]> = {
+  idle: [
+    "Ready when you are.",
+    "Your daily drop just dropped. 👀",
+    "Today's scenarios are fresh off the press.",
+    "Let's make some money moves.",
+    "2 minutes. That's all it takes.",
+    "Your future self is watching.",
+    "Got 2 minutes and a functioning brain? Let's go.",
+    "Zero prep needed. Just vibes and financial instincts.",
+  ],
+  happy: [
+    "Big brain energy right there. 🧠",
+    "Your future self just high-fived you.",
+    "That's how wealth is built — one smart call at a time.",
+    "Compound interest is blushing.",
+    "Financial flex unlocked. 💪",
+    "That's a W. Straight up.",
+    "Chef's kiss. Money kiss. Same thing.",
+    "The finance girlies would be proud.",
+  ],
+  celebrating: [
+    "PERFECT SCORE. You're built different.",
+    "Are you a financial advisor?? Because WOW.",
+    "That was insane. I need to sit down.",
+    "New level unlocked. Cleo is shook.",
+    "Your bank account called. It said 'thank you.'",
+    "Nobody does it like you do. Nobody.",
+    "Full marks. Full facts. Full send. 🚀",
+  ],
+  thinking: [
+    "No rush. Think it through.",
+    "Trust your gut on this one.",
+    "You know this. I believe in you.",
+    "What would your financially-sorted self do?",
+    "Take your time — this one's spicy.",
+    "Bigger picture. What's the play?",
+    "You've got this. I can feel it.",
+  ],
+  sad: [
+    "We've all been there. Literally all of us.",
+    "Plot twist! But you'll bounce back.",
+    "Even the pros fumble. This is growth.",
+    "Your wallet felt that... but it forgives you.",
+    "Lifestyle creep wins this round. Not the war.",
+    "One wrong turn doesn't reroute the whole journey.",
+    "Tomorrow's another shot. Take it.",
+  ],
+  encouraging: [
+    "Look at you — showing up every day. 🔥",
+    "Consistency is your superpower.",
+    "The streak lives on!",
+    "Day after day. Absolute legend behavior.",
+    "Reliable, smart, and kind of unstoppable?",
+    "You're building something real here.",
+    "Your future is watching you show up. 👏",
+  ],
+  sleeping: [
+    "Oh! You're back! I may have napped.",
+    "The prodigal player returns!",
+    "Welcome back. Your money skills missed you.",
+    "We were worried. Cleo was worried.",
+    "Ready to pick up where you left off?",
+    "Day one again — or day better-than-before.",
+  ],
+  shocked: [
+    "Streaks can be rebuilt! This is not a drill.",
+    "Don't sweat it. Fresh start energy.",
+    "The comeback arc starts NOW.",
+    "Every champion has off days. Every. Single. One.",
+    "Shake it off. You've totally got this.",
+    "Streaks end. Dedication doesn't.",
+  ],
+  proud: [
+    "Look at you go. 🔥",
+    "Weeks of showing up. That's real.",
+    "You're in rare company right now.",
+    "This isn't luck. This is discipline.",
+    "Cleo is genuinely impressed. No notes.",
+    "Consistent. Smart. Slightly intimidating.",
+  ],
+  waving: [
+    "HEY! You're back! 👋",
+    "Long time no see — let's catch up.",
+    "Miss me? I missed you.",
+    "Back in action. Let's go!",
+    "Life happens. Let's pick it back up.",
+  ],
+  fire: [
+    "YOU'RE ON FIRE. Don't stop. 🔥🔥🔥",
+    "Streak goals. Actual streak goals.",
+    "What are you even MADE of?",
+    "The IRS wishes they had your consistency.",
+    "Not even a long weekend could stop you.",
+    "Certified streak machine. It's a lifestyle.",
+  ],
+  smug: [
+    "Already knew you'd get that one.",
+    "That wasn't even hard for you, was it.",
+    "Barely broke a sweat. Classic.",
+    "Look at the big brain on you. 👀",
+    "Called it before you clicked it.",
+  ],
+  hyped: [
+    "LET'S GO. THIS IS THE MOMENT. 🚀",
+    "MILESTONE UNLOCKED. CLEO IS SCREAMING.",
+    "You just leveled up your entire financial life.",
+    "THIS IS HUGE. Do not downplay this.",
+    "Achievement unlocked: Being completely unstoppable.",
+    "XP multiplied. Cleo multiplied. WE'RE ALL GROWING.",
+  ],
+};
 
-const STREAK_MAINTAINED_LINES = [
-  "Look at you, unstoppable!",
-  "Consistency is your superpower.",
-  "The streak lives on!",
-  "Day after day. Legend behavior.",
-  "Your dedication is inspiring.",
-];
-
-const STREAK_LOST_LINES = [
-  "Streaks can be rebuilt!",
-  "Don't sweat it. Fresh start.",
-  "The comeback starts now.",
-  "Every champion has off days.",
-  "Shake it off. You've got this.",
-];
-
-const RETURN_LINES = [
-  "Look who's back! Missed you.",
-  "The prodigal player returns!",
-  "Welcome back, champion!",
-  "Your money skills waited for you.",
-  "Ready to pick up where you left off?",
-];
-
-const LEVEL_UP_LINES = [
-  "LEVEL UP! You're evolving!",
-  "New level unlocked! Keep climbing.",
-  "Higher and higher!",
-  "Your financial IQ just jumped!",
-];
-
-const IDLE_LINES = [
-  "Ready when you are!",
-  "Got 2 minutes? Let's play.",
-  "Your daily drop awaits...",
-  "Today's scenarios are fresh!",
-  "Let's make some money moves.",
-];
-
-const ENCOURAGING_LINES = [
-  "You've totally got this!",
-  "Trust your instincts.",
-  "Think it through. No rush.",
-  "Stay focused, stay smart.",
-  "Take your time with this one.",
-];
+// Time-of-day aware dialogue overlay
+function getTimeAwareOverride(): string | null {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 9)  return "Morning grind hitting different. ☀️";
+  if (hour >= 22 || hour < 2) return "Late night money check-in? Respect.";
+  if (hour >= 13 && hour < 15) return "Post-lunch brain is the sharpest brain.";
+  return null;
+}
 
 function getRandomLine(lines: string[]): string {
   return lines[Math.floor(Math.random() * lines.length)];
 }
 
-export function getMascotDialogue(mood: MascotMood): string {
-  switch (mood) {
-    case "happy":
-      return getRandomLine(SMART_DECISION_LINES);
-    case "celebrating":
-      return getRandomLine(LEVEL_UP_LINES);
-    case "thinking":
-      return getRandomLine(ENCOURAGING_LINES);
-    case "sad":
-      return getRandomLine(CREEP_DECISION_LINES);
-    case "encouraging":
-      return getRandomLine(STREAK_MAINTAINED_LINES);
-    case "sleeping":
-      return getRandomLine(RETURN_LINES);
-    case "shocked":
-      return getRandomLine(STREAK_LOST_LINES);
-    case "proud":
-      return getRandomLine(STREAK_MAINTAINED_LINES);
-    case "waving":
-      return getRandomLine(RETURN_LINES);
-    default:
-      return getRandomLine(IDLE_LINES);
+export function getMascotDialogue(mood: MascotMood, timeAware = false): string {
+  if (timeAware) {
+    const override = getTimeAwareOverride();
+    if (override && Math.random() < 0.25) return override;
   }
+  return getRandomLine(DIALOGUE[mood] || DIALOGUE.idle);
 }
 
-function SpeechBubble({ message, position = "right" }: { message: string; position?: "right" | "top" | "bottom" }) {
-  const positionClasses = {
-    right: "left-full ml-2 top-1/2 -translate-y-1/2",
-    top: "bottom-full mb-2 left-1/2 -translate-x-1/2",
-    bottom: "top-full mt-2 left-1/2 -translate-x-1/2",
-  };
+// ============================================================
+// EASTER EGG DIALOGUES
+// ============================================================
 
-  const tailClasses = {
-    right: "absolute -left-1.5 top-1/2 -translate-y-1/2 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-r-[6px] border-r-[hsl(var(--card))]",
-    top: "absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-[hsl(var(--card))]",
-    bottom: "absolute -top-1.5 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[6px] border-b-[hsl(var(--card))]",
-  };
+const EASTER_EGGS = [
+  "Did you just tap me 5 times? We're best friends now.",
+  "Okay okay, I can take a hint. Let's get hyped! 🎉",
+  "You found a secret. Cleo approves of your curiosity.",
+  "5 taps = certified Cleo fan. Here's a hug. 🤗",
+  "THE PEOPLE DEMAND CLEO. And Cleo delivers.",
+];
+
+const LONG_PRESS_SECRETS = [
+  "Pssst. The #1 rule? Spend less than you earn. That's it.",
+  "Secret tip: 20% off your next impulse buy — just wait 24 hours.",
+  "You didn't hear this from me: index funds beat most hedge funds.",
+  "Ultra-secret: automating savings > willpower. Every time.",
+  "The real lifestyle creep is thinking you need more stuff to be happy.",
+];
+
+// ============================================================
+// PREMIUM SPEECH BUBBLE
+// ============================================================
+
+function SpeechBubble({ message, position = "right", mood }: {
+  message: string;
+  position?: "right" | "top" | "bottom";
+  mood?: MascotMood;
+}) {
+  const [displayed, setDisplayed] = useState("");
+  const [done, setDone] = useState(false);
+  const accentColor = mood ? BODY_COLORS[mood].main : "#10b981";
+
+  // Typewriter effect
+  useEffect(() => {
+    setDisplayed("");
+    setDone(false);
+    if (!message) return;
+    let i = 0;
+    const interval = setInterval(() => {
+      if (i >= message.length) { setDone(true); clearInterval(interval); return; }
+      setDisplayed(message.slice(0, i + 1));
+      i++;
+    }, 22);
+    return () => clearInterval(interval);
+  }, [message]);
+
+  const posClass = {
+    right:  "left-full ml-3 top-1/2 -translate-y-1/2",
+    top:    "bottom-full mb-3 left-1/2 -translate-x-1/2",
+    bottom: "top-full mt-3 left-1/2 -translate-x-1/2",
+  }[position];
+
+  const tailEl = {
+    right: (
+      <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0 border-t-[7px] border-t-transparent border-b-[7px] border-b-transparent border-r-[8px]"
+        style={{ borderRightColor: accentColor + "40" }} />
+    ),
+    top: (
+      <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[7px] border-l-transparent border-r-[7px] border-r-transparent border-t-[8px]"
+        style={{ borderTopColor: accentColor + "40" }} />
+    ),
+    bottom: (
+      <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[7px] border-l-transparent border-r-[7px] border-r-transparent border-b-[8px]"
+        style={{ borderBottomColor: accentColor + "40" }} />
+    ),
+  }[position];
 
   return (
     <motion.div
-      className={cn("absolute z-10 pointer-events-none", positionClasses[position])}
-      initial={{ opacity: 0, scale: 0.8 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.8 }}
-      transition={{ duration: 0.25, ease: "easeOut" }}
+      className={cn("absolute z-20 pointer-events-none", posClass)}
+      initial={{ opacity: 0, scale: 0.85, y: position === "top" ? 4 : position === "bottom" ? -4 : 0 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.85 }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
     >
       <div className="relative">
-        <div className={tailClasses[position]} />
-        <div className="bg-card border border-border rounded-lg px-3 py-2 shadow-lg max-w-[180px] min-w-[120px]">
-          <p className="text-xs font-medium text-foreground leading-snug">{message}</p>
+        {tailEl}
+        <div
+          className="rounded-xl px-3 py-2 shadow-xl max-w-[200px] min-w-[130px] backdrop-blur-sm"
+          style={{
+            background: "hsl(var(--card))",
+            border: `1.5px solid ${accentColor}40`,
+            boxShadow: `0 4px 20px ${accentColor}22`,
+          }}
+        >
+          <p className="text-xs font-semibold text-foreground leading-snug">
+            {displayed}
+            {!done && <span className="inline-block w-[2px] h-[10px] bg-current ml-0.5 animate-pulse align-middle" />}
+          </p>
         </div>
       </div>
     </motion.div>
   );
 }
+
+// ============================================================
+// MOOD-BASED GLOW RING
+// ============================================================
+
+function GlowRing({ mood, size }: { mood: MascotMood; size: number }) {
+  const color = BODY_COLORS[mood].glow;
+  const glowMoods: MascotMood[] = ["celebrating", "fire", "hyped", "proud"];
+  if (!glowMoods.includes(mood)) return null;
+
+  return (
+    <motion.div
+      className="absolute inset-0 rounded-full pointer-events-none"
+      style={{
+        width: size + 16,
+        height: size + 16,
+        left: -8, top: -8,
+        borderRadius: "50%",
+        boxShadow: `0 0 20px 8px ${color}, 0 0 40px 16px ${color}66`,
+      }}
+      animate={{ opacity: [0.6, 1, 0.6], scale: [0.97, 1.03, 0.97] }}
+      transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+    />
+  );
+}
+
+// ============================================================
+// MAIN MASCOT COMPONENT
+// ============================================================
 
 export function Mascot({
   mood = "idle",
@@ -646,67 +783,131 @@ export function Mascot({
   showBubble = true,
   className,
   onClick,
-  animate = true,
+  animate: shouldAnimateProp = true,
+  streakCount,
+  showStreakFlame = false,
 }: MascotProps) {
   const prefersReducedMotion = useReducedMotion();
-  const shouldAnimate = animate && !prefersReducedMotion;
-  const [currentMessage, setCurrentMessage] = useState(message || getMascotDialogue(mood));
+  const shouldAnimate = shouldAnimateProp && !prefersReducedMotion;
+  const { vibrateLight, vibrateMedium, vibrateMilestone, vibrateSuccess, vibrateError } = useHaptic();
+
+  const [currentMessage, setCurrentMessage] = useState(message || getMascotDialogue(mood, true));
   const [bubbleVisible, setBubbleVisible] = useState(showBubble);
-  const [tapped, setTapped] = useState(false);
+  const [tapCount, setTapCount] = useState(0);
+  const [isEasterEgg, setIsEasterEgg] = useState(false);
+  const [currentMood, setCurrentMood] = useState<MascotMood>(mood);
+
+  const tapResetRef = useRef<ReturnType<typeof setTimeout>>();
+  const longPressRef = useRef<ReturnType<typeof setTimeout>>();
   const pixelSize = SIZE_MAP[size];
 
+  // Sync mood from props
   useEffect(() => {
+    setCurrentMood(mood);
     if (message) {
       setCurrentMessage(message);
       setBubbleVisible(true);
     } else {
-      setCurrentMessage(getMascotDialogue(mood));
+      setCurrentMessage(getMascotDialogue(mood, true));
       setBubbleVisible(showBubble);
     }
   }, [mood, message, showBubble]);
 
+  // Auto-dismiss bubble
   useEffect(() => {
     if (!bubbleVisible) return;
-    const timer = setTimeout(() => {
-      setBubbleVisible(false);
-    }, 5000);
-    return () => clearTimeout(timer);
+    const t = setTimeout(() => setBubbleVisible(false), 6000);
+    return () => clearTimeout(t);
   }, [bubbleVisible, currentMessage]);
 
-  const handleTap = useCallback(() => {
-    setTapped(true);
-    setCurrentMessage(getMascotDialogue(mood));
-    setBubbleVisible(true);
-    setTimeout(() => setTapped(false), 300);
-    onClick?.();
-  }, [mood, onClick]);
+  // Haptic feedback on mood change
+  useEffect(() => {
+    if (mood === "celebrating" || mood === "hyped") vibrateMilestone?.();
+    else if (mood === "happy" || mood === "fire") vibrateSuccess?.();
+    else if (mood === "sad" || mood === "shocked") vibrateError?.();
+    else if (mood === "proud") vibrateMedium?.();
+  }, [mood]);
 
-  const bubblePosition = size === "xs" || size === "sm" ? "top" : "right";
+  const handleTap = useCallback(() => {
+    vibrateLight?.();
+    const next = tapCount + 1;
+    setTapCount(next);
+
+    if (tapResetRef.current) clearTimeout(tapResetRef.current);
+    tapResetRef.current = setTimeout(() => setTapCount(0), 1500);
+
+    // Easter egg: 5 taps
+    if (next >= 5) {
+      setIsEasterEgg(true);
+      setCurrentMood("hyped");
+      setCurrentMessage(getRandomLine(EASTER_EGGS));
+      setBubbleVisible(true);
+      vibrateMilestone?.();
+      setTapCount(0);
+      setTimeout(() => {
+        setIsEasterEgg(false);
+        setCurrentMood(mood);
+      }, 3000);
+      return;
+    }
+
+    setCurrentMessage(getMascotDialogue(currentMood));
+    setBubbleVisible(true);
+    onClick?.();
+  }, [tapCount, currentMood, mood, onClick, vibrateLight, vibrateMilestone]);
+
+  const handlePointerDown = useCallback(() => {
+    longPressRef.current = setTimeout(() => {
+      vibrateMilestone?.();
+      setCurrentMessage(getRandomLine(LONG_PRESS_SECRETS));
+      setBubbleVisible(true);
+    }, 700);
+  }, [vibrateMilestone]);
+
+  const handlePointerUp = useCallback(() => {
+    if (longPressRef.current) clearTimeout(longPressRef.current);
+  }, []);
+
+  const bubblePos = size === "xs" || size === "sm" ? "top" : "right";
 
   return (
-    <div
-      className={cn("relative inline-flex items-center", className)}
-      data-testid="mascot"
-    >
+    <div className={cn("relative inline-flex items-center", className)}>
+      {/* Glow ring for special moods */}
+      {shouldAnimate && <GlowRing mood={currentMood} size={pixelSize} />}
+
       <motion.div
-        className="cursor-pointer select-none"
-        whileTap={{ scale: 0.9 }}
-        animate={tapped ? { rotate: [0, -10, 10, 0] } : {}}
-        transition={{ duration: 0.3 }}
+        className="relative cursor-pointer select-none"
+        whileTap={shouldAnimate ? { scale: 0.88 } : {}}
+        animate={isEasterEgg && shouldAnimate ? { rotate: [0, -15, 15, -10, 10, 0], y: [0, -8, 0] } : {}}
+        transition={{ duration: 0.5 }}
         onClick={handleTap}
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        onPointerLeave={handlePointerUp}
         data-testid="mascot-character"
+        role="img"
+        aria-label={`Cleo is ${currentMood}`}
       >
-        <MascotSVG mood={mood} size={pixelSize} />
+        <MascotSVG mood={currentMood} size={pixelSize} />
+
+        {/* Streak flame badge */}
+        {showStreakFlame && streakCount && streakCount > 0 && (
+          <StreakFlame count={streakCount} size={pixelSize} />
+        )}
       </motion.div>
 
       <AnimatePresence>
         {bubbleVisible && currentMessage && (
-          <SpeechBubble message={currentMessage} position={bubblePosition} />
+          <SpeechBubble message={currentMessage} position={bubblePos} mood={currentMood} />
         )}
       </AnimatePresence>
     </div>
   );
 }
+
+// ============================================================
+// INLINE MASCOT (game page, post-answer)
+// ============================================================
 
 export function MascotInline({
   mood = "idle",
@@ -717,50 +918,123 @@ export function MascotInline({
   message?: string;
   className?: string;
 }) {
+  const { vibrateLight } = useHaptic();
+  const colors = BODY_COLORS[mood];
   const displayMessage = message || getMascotDialogue(mood);
+
+  useEffect(() => {
+    if (mood === "happy" || mood === "celebrating") vibrateLight?.();
+  }, [mood]);
 
   return (
     <motion.div
-      className={cn(
-        "flex items-center gap-3 px-3 py-2 rounded-lg bg-card/60 border border-border/50",
-        className
-      )}
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
+      className={cn("flex items-center gap-3 px-4 py-2.5 rounded-xl overflow-hidden", className)}
+      style={{
+        background: `${colors.main}12`,
+        border: `1px solid ${colors.main}30`,
+        boxShadow: `0 2px 12px ${colors.main}15`,
+      }}
+      initial={{ opacity: 0, x: -12 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.35, ease: "easeOut" }}
       data-testid="mascot-inline"
     >
-      <div className="flex-shrink-0">
+      <motion.div
+        className="flex-shrink-0"
+        animate={{ y: [0, -2, 0] }}
+        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+      >
         <MascotSVG mood={mood} size={36} />
-      </div>
-      <p className="text-xs font-medium text-muted-foreground leading-snug flex-1">{displayMessage}</p>
+      </motion.div>
+      <TypewriterText text={displayMessage} className="text-xs font-semibold text-foreground/90 leading-snug flex-1" />
     </motion.div>
   );
 }
 
+// ============================================================
+// TYPEWRITER TEXT (standalone utility)
+// ============================================================
+
+function TypewriterText({ text, className }: { text: string; className?: string }) {
+  const [displayed, setDisplayed] = useState("");
+
+  useEffect(() => {
+    setDisplayed("");
+    let i = 0;
+    const t = setInterval(() => {
+      if (i >= text.length) { clearInterval(t); return; }
+      setDisplayed(text.slice(0, i + 1));
+      i++;
+    }, 20);
+    return () => clearInterval(t);
+  }, [text]);
+
+  return <span className={className}>{displayed}</span>;
+}
+
+// ============================================================
+// SCORE-BASED CELEBRATION (full-page moment)
+// ============================================================
+
+const CONFETTI_COLORS = ["#fbbf24", "#f472b6", "#34d399", "#60a5fa", "#a78bfa", "#fb7185", "#10b981"];
+
+export function CelebrationBurst({ trigger }: { trigger: boolean }) {
+  if (!trigger) return null;
+  return (
+    <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
+      {Array.from({ length: 24 }).map((_, i) => {
+        const color = CONFETTI_COLORS[i % CONFETTI_COLORS.length];
+        const x = Math.random() * 100;
+        const delay = Math.random() * 0.5;
+        const size = 6 + Math.random() * 8;
+        const rotate = Math.random() * 360;
+        return (
+          <motion.div
+            key={i}
+            className="absolute top-0 rounded-sm"
+            style={{ left: `${x}%`, width: size, height: size * 0.5, background: color, rotate }}
+            animate={{ y: ["0vh", "110vh"], rotate: [rotate, rotate + 360 * (Math.random() > 0.5 ? 1 : -1)], opacity: [1, 1, 0] }}
+            transition={{ duration: 2 + Math.random(), delay, ease: "easeIn" }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+// ============================================================
+// HELPERS (exported)
+// ============================================================
+
 export function getMascotMoodForScore(score: number): MascotMood {
-  if (score >= 450) return "celebrating";
-  if (score >= 350) return "happy";
-  if (score >= 250) return "encouraging";
-  if (score >= 100) return "thinking";
+  if (score >= 480) return "celebrating";
+  if (score >= 380) return "happy";
+  if (score >= 260) return "encouraging";
+  if (score >= 120) return "thinking";
   return "sad";
 }
 
-export function getMascotMoodForStreak(streak: number, hasPlayedToday: boolean, daysInactive?: number): MascotMood {
+export function getMascotMoodForStreak(
+  streak: number,
+  hasPlayedToday: boolean,
+  daysInactive?: number
+): MascotMood {
   if (daysInactive && daysInactive >= 7) return "waving";
   if (daysInactive && daysInactive >= 3) return "sleeping";
+  if (streak === 0 && !hasPlayedToday) return "idle";
   if (!hasPlayedToday && streak > 0) return "encouraging";
-  if (streak >= 30) return "celebrating";
-  if (streak >= 7) return "proud";
+  if (streak >= 30) return "fire";
+  if (streak >= 14) return "proud";
+  if (streak >= 7) return "happy";
   if (streak > 0) return "happy";
   return "idle";
 }
 
 export function getMascotScoreMessage(score: number): string {
-  if (score >= 500) return "PERFECT SCORE! You're a financial genius!";
-  if (score >= 450) return "So close to perfect! Incredible run!";
-  if (score >= 350) return "Solid decisions today. Your wallet thanks you.";
-  if (score >= 250) return "Not bad! Room to grow, and grow you will.";
-  if (score >= 100) return "Every game makes you sharper. Keep at it!";
-  return "Tough round, but showing up is half the battle.";
+  if (score >= 500) return "PERFECT SCORE. You're an absolute unit.";
+  if (score >= 450) return "So close to perfect! That was elite.";
+  if (score >= 350) return "Solid moves. Your wallet is grateful.";
+  if (score >= 250) return "Room to grow, and grow you absolutely will.";
+  if (score >= 100) return "Every game sharpens you. Keep showing up.";
+  return "Rough round. But rough rounds build champions.";
 }
