@@ -194,7 +194,7 @@ export default function Achievements() {
   const closestDef = closestToUnlock ? BADGE_DEFINITIONS.find(d => d.id === closestToUnlock.badgeId) : null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
       <header className="flex items-center gap-4 p-4 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <Button 
           variant="ghost" 

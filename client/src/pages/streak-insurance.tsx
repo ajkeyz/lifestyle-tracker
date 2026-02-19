@@ -104,7 +104,7 @@ export default function StreakInsurance() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 p-4">
+      <div className="min-h-screen bg-gradient-to-b from-background via-background to-purple-950/20 p-4">
         <Skeleton className="h-12 w-full mb-4" />
         <Skeleton className="h-64 w-full" />
       </div>

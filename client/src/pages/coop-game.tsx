@@ -9,6 +9,8 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { TimerProgress } from "@/components/animated-progress";
 import { AppLogo } from "@/components/app-logo";
 import { ArrowRight, Clock, Check, Loader2, Wifi, WifiOff } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { MascotInline, type MascotContext } from "@/components/mascot";
 import { useLocation, useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -263,7 +265,7 @@ export default function CoopGame() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
         <div className="container flex h-14 items-center justify-between px-4">
           <div className="flex items-center gap-3">
@@ -328,34 +330,94 @@ export default function CoopGame() {
           </div>
         </div>
 
-        <div className="space-y-1 mb-4">
+        <div className="space-y-1 mb-2">
           <div className="flex justify-between text-sm text-muted-foreground">
             <span>Question {currentIndex + 1} of {totalScenarios}</span>
-            <span className="flex items-center gap-1">
-              <Clock className="h-4 w-4" />
-              {timeRemaining}s
-            </span>
           </div>
-          <Progress value={progress} className="h-2" />
+          <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
+            <motion.div
+              className="h-full rounded-full bg-primary"
+              initial={{ width: 0 }}
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+            />
+          </div>
         </div>
 
-        <div className="mb-4">
-          <TimerProgress
-            maxTime={TIMER_DURATION}
-            timeLeft={timeRemaining}
-            warning={timeRemaining <= 10}
-            danger={timeRemaining <= 5}
-          />
-        </div>
+        <motion.div
+          className={cn(
+            "mb-4 flex items-center gap-2.5 p-2 rounded-lg transition-colors duration-700",
+            timeRemaining <= 5
+              ? "bg-destructive/8"
+              : timeRemaining <= 10
+                ? "bg-amber-500/5"
+                : ""
+          )}
+          animate={
+            timerRunning && !localAnswered && timeRemaining <= 5
+              ? { x: [-2, 2, -2, 2, -1, 1, 0] }
+              : { x: 0 }
+          }
+          transition={
+            timeRemaining <= 5
+              ? { duration: 0.45, repeat: Infinity, repeatDelay: 0.55 }
+              : { duration: 0.1 }
+          }
+        >
+          <motion.div
+            animate={timeRemaining <= 5 ? { scale: [1, 1.25, 1] } : { scale: 1 }}
+            transition={timeRemaining <= 5 ? { duration: 0.5, repeat: Infinity } : {}}
+            className="flex-shrink-0"
+          >
+            <Clock className={cn(
+              "h-3.5 w-3.5 transition-colors duration-700",
+              timeRemaining <= 5 ? "text-destructive" : timeRemaining <= 10 ? "text-amber-500" : "text-muted-foreground"
+            )} />
+          </motion.div>
+          <div className="timer-bar-track flex-1">
+            <div
+              className={cn(
+                "timer-bar-fill",
+                timeRemaining <= 5 ? "state-critical" : timeRemaining <= 10 ? "state-warning" : "state-normal"
+              )}
+              style={{ width: `${(timeRemaining / TIMER_DURATION) * 100}%` }}
+            />
+          </div>
+          <motion.span
+            key={timeRemaining}
+            initial={timeRemaining <= 5 ? { scale: 1.4, opacity: 0.6 } : { scale: 1 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className={cn(
+              "text-xs font-bold tabular-nums min-w-[2.5ch] text-right leading-none transition-colors duration-500",
+              timeRemaining <= 5 ? "text-destructive" : timeRemaining <= 10 ? "text-amber-500" : "text-muted-foreground"
+            )}
+          >
+            {timeRemaining}s
+          </motion.span>
+        </motion.div>
+
+        {/* Critical vignette for coop timer */}
+        <AnimatePresence>
+          {!localAnswered && timeRemaining <= 5 && timerRunning && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="vignette-critical"
+              aria-hidden="true"
+            />
+          )}
+        </AnimatePresence>
 
         <AnimatePresence mode="wait">
           {currentScenario && (
             <motion.div
               key={currentScenario.id}
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-              transition={{ duration: 0.3 }}
+              initial={{ opacity: 0, x: 28, scale: 0.97 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: -28, scale: 0.97 }}
+              transition={{ type: "spring", stiffness: 320, damping: 28 }}
             >
               <ScenarioCard
                 scenario={currentScenario}
@@ -366,6 +428,31 @@ export default function CoopGame() {
                 totalQuestions={totalScenarios}
                 timeRemaining={timeRemaining}
               />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Cleo mascot reaction after local player answers */}
+        <AnimatePresence>
+          {effectiveLocalAnswered && currentScenario && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.4, delay: 0.5 }}
+            >
+              {(() => {
+                const isTimeout = !currentPlayer?.answers[currentScenario.id];
+                const isCorrect = !isTimeout && (currentScenario.choices.find(c => c.label === currentPlayer?.answers[currentScenario.id])?.isCorrect ?? false);
+                const mood = isTimeout ? "shocked" : isCorrect ? "happy" : "sad";
+                const ctx: MascotContext = {
+                  screen: "game",
+                  wasCorrect: isCorrect,
+                  wasTimeout: isTimeout,
+                  questionIndex: currentIndex,
+                };
+                return <MascotInline mood={mood} context={ctx} />;
+              })()}
             </motion.div>
           )}
         </AnimatePresence>
@@ -382,7 +469,10 @@ export default function CoopGame() {
                 <Button
                   onClick={handleNext}
                   disabled={nextQuestionMutation.isPending}
-                  className="w-full"
+                  className={cn(
+                    "w-full border-0",
+                    currentIndex < totalScenarios - 1 ? "btn-premium" : "btn-gold"
+                  )}
                   data-testid="button-next-question"
                 >
                   {nextQuestionMutation.isPending ? (

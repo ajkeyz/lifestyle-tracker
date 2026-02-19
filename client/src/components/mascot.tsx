@@ -24,6 +24,28 @@ export type MascotMood =
   | "smug"       // Nailed a hard question
   | "hyped";     // XP multiplier / milestone
 
+// Rich context passed to mascot for context-aware dialogue
+export interface MascotContext {
+  screen?: "home" | "game" | "results";
+  // Game context
+  wasCorrect?: boolean;
+  wasTimeout?: boolean;
+  timeRemainingOnAnswer?: number; // seconds left when answered
+  questionIndex?: number;
+  // Results context
+  score?: number;
+  iq?: number;
+  moneyHealth?: number;
+  streakGained?: boolean;     // streak increased this session
+  streakBroken?: boolean;     // streak dropped to 0
+  isStreakMilestone?: boolean; // 7, 14, 30, 60, 100
+  percentile?: number;         // 0-100, % of players beaten
+  // User personalization
+  username?: string;
+  streak?: number;
+  daysInactive?: number;
+}
+
 interface MascotProps {
   mood?: MascotMood;
   size?: "xs" | "sm" | "md" | "lg" | "xl";
@@ -34,6 +56,7 @@ interface MascotProps {
   animate?: boolean;
   streakCount?: number;
   showStreakFlame?: boolean;
+  context?: MascotContext;
 }
 
 const SIZE_MAP = { xs: 48, sm: 64, md: 96, lg: 128, xl: 160 };
@@ -630,6 +653,158 @@ const DIALOGUE: Record<MascotMood, string[]> = {
   ],
 };
 
+// ============================================================
+// CONTEXT-SPECIFIC DIALOGUE POOLS
+// Tokens: {name} {streak} {streak_plus_one} {iq} {health} {percentile}
+// ============================================================
+
+const CONTEXT_DIALOGUE: Record<string, string[]> = {
+  // ── Results screen ──────────────────────────────────────────
+  results_strong: [
+    "{name}, that was sharp. 💚",
+    "Top {percentile}%? Yeah, you belong here.",
+    "IQ {iq} — quiet confidence. Love to see it.",
+    "Health {health}? You're out here winning for real.",
+    "Correct calls stack up. Your future thanks you.",
+    "Not everyone gets to {percentile}% club. You did.",
+    "{name}, that's what financial fluency looks like.",
+  ],
+  results_weak: [
+    "Rough round, {name}. But you showed up — that counts.",
+    "Every wrong answer is paid tuition for your future self.",
+    "IQ {iq} this round — that number climbs from here.",
+    "Health {health}. Room to build. And build you absolutely will.",
+    "The comeback arc starts right now. No drama.",
+    "One off day doesn't define the habit.",
+    "{name}, showing up when it's hard? That's the whole thing.",
+  ],
+  results_streak_gained: [
+    "Day {streak}. The streak lives. 🔥",
+    "{streak} days straight — that's a habit forming.",
+    "Another day, another notch. Streak: {streak}.",
+    "{name}, {streak} days of showing up. That's not luck, that's you.",
+    "Consistency is your edge. {streak} days proves it.",
+    "Day {streak} done. Day {streak_plus_one} is already set up.",
+  ],
+  results_streak_milestone: [
+    "{streak} DAYS. That's genuinely rare, {name}.",
+    "Milestone hit. {streak} days of financial sharpening.",
+    "{name}, {streak} days straight. Let's be honest — you're built different.",
+    "A {streak}-day streak? The top 1% is in your sights.",
+    "Hall of fame behavior. {streak} days, no excuses.",
+  ],
+  results_streak_broken: [
+    "Streak snapped. Your knowledge didn't.",
+    "{name}, today restarts a new sequence. Fresh energy.",
+    "Records exist to be broken — including this comeback.",
+    "Every legend has a reset point. This is yours.",
+    "Tomorrow is Day 1 again. Clean slate. Let's go.",
+    "The streak ends. The grind doesn't.",
+  ],
+  results_perfect: [
+    "PERFECT. Cleo needs to sit down.",
+    "500 points. Are you even real?",
+    "{name}. FIVE. HUNDRED. POINTS.",
+    "Flawless. The definition of financially locked in.",
+    "Not a single one wrong. That's elite-tier thinking.",
+  ],
+
+  // ── Game screen ─────────────────────────────────────────────
+  quiz_correct: [
+    "That's the play. 🧠",
+    "Money IQ keeps climbing.",
+    "Your instincts are dialed in.",
+    "Right call. Every right call matters.",
+    "That's how wealth accumulates — one good call at a time.",
+    "Clean decision. No hesitation.",
+  ],
+  quiz_correct_fast: [
+    "Barely thought about it. 😏",
+    "Snapped. Zero hesitation.",
+    "First instinct, best instinct.",
+    "You already knew that one cold.",
+    "Automatic. That's mastery.",
+    "Didn't even need the full clock.",
+  ],
+  quiz_wrong: [
+    "Spicy choice. Different than expected.",
+    "Not the play — but now you know why.",
+    "Learning disguised as an L.",
+    "The trap got you this time. Won't next time.",
+    "Filed. Won't happen again.",
+    "Every wrong answer sharpens the next right one.",
+  ],
+  quiz_timeout: [
+    "Timer wins this round. It happens.",
+    "Decision paralysis is expensive — in life too.",
+    "Took too long — classic overthink.",
+    "Next time trust your first read.",
+    "The clock doesn't wait. Neither does real life.",
+    "Hesitation has a price. File it.",
+  ],
+
+  // ── Home screen ─────────────────────────────────────────────
+  home_inactive: [
+    "You came back. That's what matters. 👋",
+    "{name}! Real talk — missed you around here.",
+    "Long break. Zero judgment. Ready to rebuild?",
+    "Life gets busy. Money doesn't wait.",
+    "Picking up exactly where you left off.",
+    "The streak reset. The knowledge didn't.",
+  ],
+  home_streak_reminder: [
+    "Your {streak}-day streak is on the line today.",
+    "Day {streak} is waiting for you, {name}.",
+    "Don't let that {streak}-day streak slip.",
+    "{name}, your streak is too good to waste today.",
+    "{streak} days. Let's make it {streak_plus_one}.",
+    "One more day and {streak} becomes {streak_plus_one}. Easy math.",
+  ],
+  home_first_time: [
+    "Hey {name}! First drop. No pressure — just vibes and instincts.",
+    "Welcome. Cleo's been waiting. Let's see what you've got.",
+    "New here? Perfect time. First drop's a warm-up.",
+    "{name}, your financial era starts today.",
+    "First drop unlocked. Let's find out what your money IQ is.",
+  ],
+};
+
+// ============================================================
+// ANTI-REPEAT DIALOGUE MEMORY
+// ============================================================
+
+const _dialogueHistory: string[] = [];
+
+function getWithoutRepeat(lines: string[]): string {
+  const recentCount = Math.min(3, lines.length - 1);
+  const recent = _dialogueHistory.slice(-recentCount);
+  const available = lines.filter(l => !recent.includes(l));
+  const pool = available.length > 0 ? available : lines;
+  const chosen = pool[Math.floor(Math.random() * pool.length)];
+  _dialogueHistory.push(chosen);
+  if (_dialogueHistory.length > 12) _dialogueHistory.shift();
+  return chosen;
+}
+
+// ============================================================
+// PERSONALIZATION TEMPLATE ENGINE
+// ============================================================
+
+function personalizeDialogue(template: string, ctx?: MascotContext): string {
+  if (!ctx) return template;
+  return template
+    .replace(/\{name\}/g, ctx.username ? ctx.username.split(" ")[0] : "hey")
+    .replace(/\{streak\}/g, String(ctx.streak ?? 0))
+    .replace(/\{streak_plus_one\}/g, String((ctx.streak ?? 0) + 1))
+    .replace(/\{iq\}/g, String(ctx.iq ?? 0))
+    .replace(/\{health\}/g, String(ctx.moneyHealth ?? 0))
+    .replace(/\{percentile\}/g, String(ctx.percentile ?? 0));
+}
+
+// ============================================================
+// MAIN DIALOGUE RESOLVER
+// ============================================================
+
 // Time-of-day aware dialogue overlay
 function getTimeAwareOverride(): string | null {
   const hour = new Date().getHours();
@@ -643,12 +818,52 @@ function getRandomLine(lines: string[]): string {
   return lines[Math.floor(Math.random() * lines.length)];
 }
 
+// Derive the best context key from rich context
+function resolveContextKey(ctx: MascotContext): string | null {
+  const { screen, wasCorrect, wasTimeout, timeRemainingOnAnswer, score,
+          streakGained, streakBroken, isStreakMilestone, daysInactive,
+          streak } = ctx;
+
+  if (screen === "results") {
+    if (score !== undefined && score >= 480) return "results_perfect";
+    if (isStreakMilestone) return "results_streak_milestone";
+    if (streakBroken) return "results_streak_broken";
+    if (streakGained) return "results_streak_gained";
+    if (score !== undefined && score >= 320) return "results_strong";
+    return "results_weak";
+  }
+
+  if (screen === "game") {
+    if (wasTimeout) return "quiz_timeout";
+    if (wasCorrect && (timeRemainingOnAnswer ?? 99) >= 14) return "quiz_correct_fast";
+    if (wasCorrect) return "quiz_correct";
+    if (wasCorrect === false) return "quiz_wrong";
+  }
+
+  if (screen === "home") {
+    if (daysInactive && daysInactive >= 7) return "home_inactive";
+    if (streak && streak > 0) return "home_streak_reminder";
+    if (streak === 0) return "home_first_time";
+  }
+
+  return null;
+}
+
+export function getMascotContextDialogue(ctx: MascotContext): string {
+  const key = resolveContextKey(ctx);
+  if (key && CONTEXT_DIALOGUE[key]) {
+    const raw = getWithoutRepeat(CONTEXT_DIALOGUE[key]);
+    return personalizeDialogue(raw, ctx);
+  }
+  return "";
+}
+
 export function getMascotDialogue(mood: MascotMood, timeAware = false): string {
   if (timeAware) {
     const override = getTimeAwareOverride();
     if (override && Math.random() < 0.25) return override;
   }
-  return getRandomLine(DIALOGUE[mood] || DIALOGUE.idle);
+  return getWithoutRepeat(DIALOGUE[mood] || DIALOGUE.idle);
 }
 
 // ============================================================
@@ -675,16 +890,18 @@ const LONG_PRESS_SECRETS = [
 // PREMIUM SPEECH BUBBLE
 // ============================================================
 
+type BubbleSide = "right" | "left" | "top" | "bottom";
+
 function SpeechBubble({ message, position = "right", mood }: {
   message: string;
-  position?: "right" | "top" | "bottom";
+  position?: BubbleSide;
   mood?: MascotMood;
 }) {
   const [displayed, setDisplayed] = useState("");
   const [done, setDone] = useState(false);
-  const accentColor = mood ? BODY_COLORS[mood].main : "#10b981";
+  const accentColor = mood ? BODY_COLORS[mood].main : "#34a874";
 
-  // Typewriter effect
+  // Fast typewriter — premium feel, not distracting
   useEffect(() => {
     setDisplayed("");
     setDone(false);
@@ -694,54 +911,104 @@ function SpeechBubble({ message, position = "right", mood }: {
       if (i >= message.length) { setDone(true); clearInterval(interval); return; }
       setDisplayed(message.slice(0, i + 1));
       i++;
-    }, 22);
+    }, 18); // Slightly faster than before
     return () => clearInterval(interval);
   }, [message]);
 
-  const posClass = {
+  // Position classes — supports all 4 directions with 16px min padding
+  const posClass: Record<BubbleSide, string> = {
     right:  "left-full ml-3 top-1/2 -translate-y-1/2",
+    left:   "right-full mr-3 top-1/2 -translate-y-1/2",
     top:    "bottom-full mb-3 left-1/2 -translate-x-1/2",
     bottom: "top-full mt-3 left-1/2 -translate-x-1/2",
-  }[position];
+  };
 
-  const tailEl = {
+  // Tail triangles pointing back to the character
+  const tailEl: Record<BubbleSide, React.ReactNode> = {
     right: (
-      <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0 border-t-[7px] border-t-transparent border-b-[7px] border-b-transparent border-r-[8px]"
-        style={{ borderRightColor: accentColor + "40" }} />
+      <div
+        className="absolute -left-[7px] top-1/2 -translate-y-1/2 w-0 h-0"
+        style={{
+          borderTop: "6px solid transparent",
+          borderBottom: "6px solid transparent",
+          borderRight: `7px solid ${accentColor}35`,
+        }}
+      />
+    ),
+    left: (
+      <div
+        className="absolute -right-[7px] top-1/2 -translate-y-1/2 w-0 h-0"
+        style={{
+          borderTop: "6px solid transparent",
+          borderBottom: "6px solid transparent",
+          borderLeft: `7px solid ${accentColor}35`,
+        }}
+      />
     ),
     top: (
-      <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[7px] border-l-transparent border-r-[7px] border-r-transparent border-t-[8px]"
-        style={{ borderTopColor: accentColor + "40" }} />
+      <div
+        className="absolute -bottom-[7px] left-1/2 -translate-x-1/2 w-0 h-0"
+        style={{
+          borderLeft: "6px solid transparent",
+          borderRight: "6px solid transparent",
+          borderTop: `7px solid ${accentColor}35`,
+        }}
+      />
     ),
     bottom: (
-      <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[7px] border-l-transparent border-r-[7px] border-r-transparent border-b-[8px]"
-        style={{ borderBottomColor: accentColor + "40" }} />
+      <div
+        className="absolute -top-[7px] left-1/2 -translate-x-1/2 w-0 h-0"
+        style={{
+          borderLeft: "6px solid transparent",
+          borderRight: "6px solid transparent",
+          borderBottom: `7px solid ${accentColor}35`,
+        }}
+      />
     ),
+  };
+
+  // Directional entrance animation
+  const enterFrom = {
+    right:  { opacity: 0, scale: 0.82, x: -6, y: 0 },
+    left:   { opacity: 0, scale: 0.82, x: 6,  y: 0 },
+    top:    { opacity: 0, scale: 0.82, x: 0,  y: 5 },
+    bottom: { opacity: 0, scale: 0.82, x: 0,  y: -5 },
   }[position];
 
   return (
     <motion.div
-      className={cn("absolute z-20 pointer-events-none", posClass)}
-      initial={{ opacity: 0, scale: 0.85, y: position === "top" ? 4 : position === "bottom" ? -4 : 0 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.85 }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
+      className={cn("absolute z-20 pointer-events-none", posClass[position])}
+      initial={enterFrom}
+      animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
+      exit={{ opacity: 0, scale: 0.8 }}
+      transition={{ type: "spring", stiffness: 400, damping: 28 }}
     >
       <div className="relative">
-        {tailEl}
-        <div
-          className="rounded-xl px-3 py-2 shadow-xl max-w-[200px] min-w-[130px] backdrop-blur-sm"
+        {tailEl[position]}
+        <motion.div
+          className="rounded-xl px-3.5 py-2.5 max-w-[210px] min-w-[140px] backdrop-blur-md"
           style={{
-            background: "hsl(var(--card))",
-            border: `1.5px solid ${accentColor}40`,
-            boxShadow: `0 4px 20px ${accentColor}22`,
+            background: "hsl(var(--card) / 0.96)",
+            border: `1.5px solid ${accentColor}35`,
+            boxShadow: `0 4px 24px ${accentColor}25, 0 0 0 1px ${accentColor}12, inset 0 1px 0 rgba(255,255,255,0.06)`,
           }}
+          animate={{ boxShadow: [
+            `0 4px 24px ${accentColor}20, 0 0 0 1px ${accentColor}10, inset 0 1px 0 rgba(255,255,255,0.06)`,
+            `0 4px 32px ${accentColor}35, 0 0 0 1px ${accentColor}20, inset 0 1px 0 rgba(255,255,255,0.08)`,
+            `0 4px 24px ${accentColor}20, 0 0 0 1px ${accentColor}10, inset 0 1px 0 rgba(255,255,255,0.06)`,
+          ]}}
+          transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
         >
-          <p className="text-xs font-semibold text-foreground leading-snug">
+          <p className="text-xs font-semibold text-foreground leading-snug tracking-[-0.01em]">
             {displayed}
-            {!done && <span className="inline-block w-[2px] h-[10px] bg-current ml-0.5 animate-pulse align-middle" />}
+            {!done && (
+              <span
+                className="inline-block w-[1.5px] h-[10px] bg-current ml-0.5 align-middle"
+                style={{ opacity: 0.7, animation: "pulse 0.7s ease-in-out infinite" }}
+              />
+            )}
           </p>
-        </div>
+        </motion.div>
       </div>
     </motion.div>
   );
@@ -786,37 +1053,70 @@ export function Mascot({
   animate: shouldAnimateProp = true,
   streakCount,
   showStreakFlame = false,
+  context,
 }: MascotProps) {
   const prefersReducedMotion = useReducedMotion();
   const shouldAnimate = shouldAnimateProp && !prefersReducedMotion;
   const { vibrateLight, vibrateMedium, vibrateMilestone, vibrateSuccess, vibrateError } = useHaptic();
 
-  const [currentMessage, setCurrentMessage] = useState(message || getMascotDialogue(mood, true));
+  // Compute initial message: context-aware > explicit message > mood-based
+  const computeInitialMessage = useCallback(() => {
+    if (message) return message;
+    if (context) {
+      const ctxMsg = getMascotContextDialogue(context);
+      if (ctxMsg) return ctxMsg;
+    }
+    return getMascotDialogue(mood, true);
+  }, [message, context, mood]);
+
+  const [currentMessage, setCurrentMessage] = useState(computeInitialMessage);
   const [bubbleVisible, setBubbleVisible] = useState(showBubble);
   const [tapCount, setTapCount] = useState(0);
   const [isEasterEgg, setIsEasterEgg] = useState(false);
   const [currentMood, setCurrentMood] = useState<MascotMood>(mood);
+  const [isSpeaking, setIsSpeaking] = useState(showBubble);
 
+  const containerRef = useRef<HTMLDivElement>(null);
   const tapResetRef = useRef<ReturnType<typeof setTimeout>>();
   const longPressRef = useRef<ReturnType<typeof setTimeout>>();
   const pixelSize = SIZE_MAP[size];
 
-  // Sync mood from props
+  // ── Smart bubble side detection ─────────────────────────────
+  const [bubbleSide, setBubbleSide] = useState<BubbleSide>(
+    size === "xs" || size === "sm" ? "top" : "right"
+  );
+
+  const detectBubbleSide = useCallback(() => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const BUBBLE_WIDTH = 230;
+    const MIN_PAD = 16;
+    const hasRight = rect.right + BUBBLE_WIDTH + 12 < vw - MIN_PAD;
+    const hasLeft  = rect.left  - BUBBLE_WIDTH - 12 > MIN_PAD;
+    if (hasRight) setBubbleSide("right");
+    else if (hasLeft) setBubbleSide("left");
+    else setBubbleSide("top");
+  }, []);
+
+  // ── Sync mood + message when props change ──────────────────
   useEffect(() => {
     setCurrentMood(mood);
-    if (message) {
-      setCurrentMessage(message);
-      setBubbleVisible(true);
-    } else {
-      setCurrentMessage(getMascotDialogue(mood, true));
-      setBubbleVisible(showBubble);
-    }
-  }, [mood, message, showBubble]);
+    const msg = computeInitialMessage();
+    setCurrentMessage(msg);
+    setBubbleVisible(showBubble);
+    setIsSpeaking(showBubble);
+  }, [mood, message, showBubble, context]);
 
-  // Auto-dismiss bubble
   useEffect(() => {
-    if (!bubbleVisible) return;
-    const t = setTimeout(() => setBubbleVisible(false), 6000);
+    if (bubbleVisible) detectBubbleSide();
+  }, [bubbleVisible]);
+
+  // Auto-dismiss bubble after 6s
+  useEffect(() => {
+    if (!bubbleVisible) { setIsSpeaking(false); return; }
+    setIsSpeaking(true);
+    const t = setTimeout(() => { setBubbleVisible(false); setIsSpeaking(false); }, 6000);
     return () => clearTimeout(t);
   }, [bubbleVisible, currentMessage]);
 
@@ -851,10 +1151,14 @@ export function Mascot({
       return;
     }
 
-    setCurrentMessage(getMascotDialogue(currentMood));
+    // On tap, show context-aware message if context provided, else mood dialogue
+    const tapMsg = context
+      ? (getMascotContextDialogue(context) || getMascotDialogue(currentMood))
+      : getMascotDialogue(currentMood);
+    setCurrentMessage(tapMsg);
     setBubbleVisible(true);
     onClick?.();
-  }, [tapCount, currentMood, mood, onClick, vibrateLight, vibrateMilestone]);
+  }, [tapCount, currentMood, mood, context, onClick, vibrateLight, vibrateMilestone]);
 
   const handlePointerDown = useCallback(() => {
     longPressRef.current = setTimeout(() => {
@@ -868,18 +1172,23 @@ export function Mascot({
     if (longPressRef.current) clearTimeout(longPressRef.current);
   }, []);
 
-  const bubblePos = size === "xs" || size === "sm" ? "top" : "right";
-
   return (
-    <div className={cn("relative inline-flex items-center", className)}>
+    <div ref={containerRef} className={cn("relative inline-flex items-center", className)}>
       {/* Glow ring for special moods */}
       {shouldAnimate && <GlowRing mood={currentMood} size={pixelSize} />}
 
       <motion.div
         className="relative cursor-pointer select-none"
         whileTap={shouldAnimate ? { scale: 0.88 } : {}}
-        animate={isEasterEgg && shouldAnimate ? { rotate: [0, -15, 15, -10, 10, 0], y: [0, -8, 0] } : {}}
-        transition={{ duration: 0.5 }}
+        // Micro-tilt when speaking — shows the character is "talking"
+        animate={
+          isEasterEgg && shouldAnimate
+            ? { rotate: [0, -15, 15, -10, 10, 0], y: [0, -8, 0] }
+            : isSpeaking && shouldAnimate
+              ? { rotate: [-1.5, 1.5, -1.5], transition: { duration: 0.8, repeat: Infinity, ease: "easeInOut" } }
+              : {}
+        }
+        transition={isEasterEgg ? { duration: 0.5 } : { duration: 0.8 }}
         onClick={handleTap}
         onPointerDown={handlePointerDown}
         onPointerUp={handlePointerUp}
@@ -898,7 +1207,11 @@ export function Mascot({
 
       <AnimatePresence>
         {bubbleVisible && currentMessage && (
-          <SpeechBubble message={currentMessage} position={bubblePos} mood={currentMood} />
+          <SpeechBubble
+            message={currentMessage}
+            position={bubbleSide}
+            mood={currentMood}
+          />
         )}
       </AnimatePresence>
     </div>
@@ -913,36 +1226,60 @@ export function MascotInline({
   mood = "idle",
   message,
   className,
+  context,
 }: {
   mood?: MascotMood;
   message?: string;
   className?: string;
+  context?: MascotContext;
 }) {
   const { vibrateLight } = useHaptic();
   const colors = BODY_COLORS[mood];
-  const displayMessage = message || getMascotDialogue(mood);
+
+  // Resolve display message: explicit > context > mood
+  const displayMessage = useMemo(() => {
+    if (message) return message;
+    if (context) {
+      const ctxMsg = getMascotContextDialogue(context);
+      if (ctxMsg) return ctxMsg;
+    }
+    return getMascotDialogue(mood);
+  }, [message, context, mood]);
+
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
   useEffect(() => {
     if (mood === "happy" || mood === "celebrating") vibrateLight?.();
-  }, [mood]);
+    setIsSpeaking(true);
+    const t = setTimeout(() => setIsSpeaking(false), 2500);
+    return () => clearTimeout(t);
+  }, [mood, displayMessage]);
 
   return (
     <motion.div
-      className={cn("flex items-center gap-3 px-4 py-2.5 rounded-xl overflow-hidden", className)}
+      className={cn("flex items-center gap-3 px-4 py-3 rounded-xl overflow-hidden", className)}
       style={{
-        background: `${colors.main}12`,
-        border: `1px solid ${colors.main}30`,
-        boxShadow: `0 2px 12px ${colors.main}15`,
+        background: `${colors.main}10`,
+        border: `1px solid ${colors.main}28`,
+        boxShadow: `0 2px 16px ${colors.main}18`,
       }}
-      initial={{ opacity: 0, x: -12 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.35, ease: "easeOut" }}
+      initial={{ opacity: 0, x: -16, scale: 0.97 }}
+      animate={{ opacity: 1, x: 0, scale: 1 }}
+      transition={{ type: "spring", stiffness: 380, damping: 28 }}
       data-testid="mascot-inline"
     >
       <motion.div
         className="flex-shrink-0"
-        animate={{ y: [0, -2, 0] }}
-        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+        animate={
+          isSpeaking
+            ? { y: [0, -2, 0], rotate: [-1.5, 1.5, -1.5] }
+            : { y: [0, -2, 0] }
+        }
+        transition={{
+          duration: isSpeaking ? 0.8 : 2,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
       >
         <MascotSVG mood={mood} size={36} />
       </motion.div>

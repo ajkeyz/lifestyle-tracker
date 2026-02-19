@@ -20,7 +20,7 @@ export default function Leaderboard() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
       <header className="flex items-center justify-between gap-2 p-4 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="flex items-center gap-2 flex-wrap">
           <Button
@@ -39,7 +39,7 @@ export default function Leaderboard() {
 
       <main className="container max-w-4xl mx-auto p-4">
         <div className="mb-6">
-          <h1 className="text-2xl font-semibold tracking-[-0.02em]" data-testid="text-leaderboards-title">Leaderboards</h1>
+          <h1 className="text-2xl font-semibold tracking-[-0.02em] bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text" data-testid="text-leaderboards-title">Leaderboards</h1>
           <p className="text-muted-foreground" data-testid="text-leaderboards-subtitle">
             Compete with friends and climb the ranks
           </p>

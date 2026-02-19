@@ -19,6 +19,7 @@ import type { DailyDrop, ArcadeStatus, SubmitArcadeGame } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { isFeatureEnabled } from "@/lib/feature-flags";
+import { MascotInline, type MascotContext } from "@/components/mascot";
 
 // Experimental game modes: faster timer, speed bonuses
 const TIMER_DURATION = 20;
@@ -234,7 +235,7 @@ export default function Arcade() {
 
   if (!gameStarted) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20">
+      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
         <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur-sm">
           <div className="container max-w-3xl mx-auto px-4 py-3">
             <div className="flex items-center justify-between gap-4">
@@ -305,7 +306,7 @@ export default function Arcade() {
                 {arcadeStatus.canPlay ? (
                   <Button
                     size="lg"
-                    className="h-14 px-8 text-base font-semibold"
+                    className="h-14 px-8 text-base font-semibold btn-premium border-0"
                     onClick={startGame}
                     disabled={dropLoading}
                     data-testid="button-start-arcade"
@@ -375,7 +376,7 @@ export default function Arcade() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
       {/* Sticky top bar: logo + progress pill */}
       <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur-sm">
         <div className="container max-w-2xl mx-auto px-4 py-2.5">
@@ -417,53 +418,119 @@ export default function Arcade() {
         </div>
       </header>
 
-      {/* Sticky progress + timer zone */}
-      <div className="sticky top-[57px] z-40 bg-background/95 backdrop-blur-sm border-b">
-        <div className="container max-w-2xl mx-auto px-4 py-2">
-          <Progress
-            value={progress}
-            className="h-1.5 bg-secondary"
-            aria-label={`Progress: ${currentIndex + 1} of ${totalScenarios} questions`}
-            data-testid="progress-bar"
+      {/* Critical timer vignette overlay */}
+      <AnimatePresence>
+        {currentScenario && !showResults[currentScenario.id] && timeRemaining <= 5 && timerRunning && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="vignette-critical"
+            aria-hidden="true"
           />
+        )}
+      </AnimatePresence>
 
-          {currentScenario && !showResults[currentScenario.id] && (
+      {/* Sticky progress + timer zone */}
+      <motion.div
+        className={cn(
+          "sticky top-[57px] z-40 backdrop-blur-sm border-b transition-colors duration-700",
+          currentScenario && !showResults[currentScenario.id] && timeRemaining <= 5
+            ? "bg-destructive/8 border-destructive/25"
+            : currentScenario && !showResults[currentScenario.id] && timeRemaining <= 10
+              ? "bg-amber-500/5 border-amber-500/20"
+              : "bg-background/95"
+        )}
+        animate={
+          currentScenario && !showResults[currentScenario.id] && timerRunning && timeRemaining <= 5
+            ? { x: [-3, 3, -3, 3, -2, 2, 0] }
+            : { x: 0 }
+        }
+        transition={
+          timeRemaining <= 5
+            ? { duration: 0.45, repeat: Infinity, repeatDelay: 0.55 }
+            : { duration: 0.1 }
+        }
+      >
+        <div className="container max-w-2xl mx-auto px-4 py-2">
+          <div className="h-1.5 rounded-full bg-secondary overflow-hidden" aria-hidden="true">
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex items-center gap-2 mt-1.5"
-            >
-              <Clock className={cn(
-                "w-3.5 h-3.5 flex-shrink-0",
-                timeRemaining <= (isExperimentalMode ? 4 : 5) ? "text-destructive" : "text-muted-foreground"
-              )} />
-              <Progress
-                value={(timeRemaining / timerDuration) * 100}
-                className={cn(
-                  "flex-1 h-1 transition-all",
-                  timeRemaining <= (isExperimentalMode ? 4 : 5) && "animate-pulse"
-                )}
-                aria-label={`Time remaining: ${timeRemaining} seconds`}
-                data-testid="timer-bar"
-              />
-              <motion.span
-                key={timeRemaining}
-                initial={{ scale: 0.9 }}
-                animate={{ scale: timeRemaining <= (isExperimentalMode ? 4 : 5) ? [1, 1.1, 1] : 1 }}
-                transition={{ duration: 0.2 }}
-                className={cn(
-                  "font-mono text-xs font-medium tabular-nums",
-                  timeRemaining <= (isExperimentalMode ? 4 : 5) ? "text-destructive" : "text-muted-foreground"
-                )}
-                aria-live="polite"
-                data-testid="timer-text"
+              className="h-full rounded-full bg-primary"
+              initial={{ width: 0 }}
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+            />
+          </div>
+          <div className="sr-only" role="status">
+            Question {currentIndex + 1} of {totalScenarios}
+          </div>
+
+          <AnimatePresence initial={false}>
+            {currentScenario && !showResults[currentScenario.id] && (
+              <motion.div
+                key="timer"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.25 }}
+                className="flex items-center gap-2.5 mt-1.5"
               >
-                {timeRemaining}s
-              </motion.span>
-            </motion.div>
-          )}
+                <motion.div
+                  animate={timeRemaining <= 5 ? { scale: [1, 1.25, 1] } : { scale: 1 }}
+                  transition={timeRemaining <= 5 ? { duration: 0.5, repeat: Infinity } : {}}
+                  className="flex-shrink-0"
+                >
+                  <Clock className={cn(
+                    "w-3.5 h-3.5 transition-colors duration-700",
+                    timeRemaining <= 5
+                      ? "text-destructive"
+                      : timeRemaining <= 10
+                        ? "text-amber-500"
+                        : "text-muted-foreground"
+                  )} />
+                </motion.div>
+
+                <div
+                  className="timer-bar-track flex-1"
+                  aria-label={`Time remaining: ${timeRemaining} seconds`}
+                  data-testid="timer-bar"
+                >
+                  <div
+                    className={cn(
+                      "timer-bar-fill",
+                      timeRemaining <= (isExperimentalMode ? 4 : 5)
+                        ? "state-critical"
+                        : timeRemaining <= (isExperimentalMode ? 8 : 10)
+                          ? "state-warning"
+                          : "state-normal"
+                    )}
+                    style={{ width: `${(timeRemaining / timerDuration) * 100}%` }}
+                  />
+                </div>
+
+                <motion.span
+                  key={timeRemaining}
+                  initial={timeRemaining <= 5 ? { scale: 1.4, opacity: 0.6 } : { scale: 1 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                  className={cn(
+                    "text-xs font-bold tabular-nums min-w-[2.5ch] text-right leading-none transition-colors duration-500",
+                    timeRemaining <= (isExperimentalMode ? 4 : 5)
+                      ? "text-destructive"
+                      : timeRemaining <= (isExperimentalMode ? 8 : 10)
+                        ? "text-amber-500"
+                        : "text-muted-foreground"
+                  )}
+                  aria-live="polite"
+                  data-testid="timer-text"
+                >
+                  {timeRemaining}s
+                </motion.span>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
-      </div>
+      </motion.div>
 
       {/* Main quiz grid */}
       <main className="container max-w-2xl mx-auto px-4 py-5 md:py-6">
@@ -488,7 +555,7 @@ export default function Arcade() {
                 initial={{ opacity: 0, x: 20, scale: 0.98 }}
                 animate={{ opacity: 1, x: 0, scale: 1 }}
                 exit={{ opacity: 0, x: -20, scale: 0.98 }}
-                transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+                transition={{ type: "spring", stiffness: 320, damping: 28 }}
               >
                 <ScenarioCard
                   scenario={currentScenario}
@@ -499,6 +566,32 @@ export default function Arcade() {
                   totalQuestions={totalScenarios}
                 />
               </motion.div>
+            </AnimatePresence>
+
+            {/* Cleo mascot reaction after answer */}
+            <AnimatePresence>
+              {showResults[currentScenario.id] && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.4, delay: 0.5 }}
+                >
+                  {(() => {
+                    const isTimeout = !answers[currentScenario.id];
+                    const isCorrect = !isTimeout && (currentScenario.choices.find(c => c.label === answers[currentScenario.id])?.isCorrect ?? false);
+                    const mood = isTimeout ? "shocked" : isCorrect ? "happy" : "sad";
+                    const ctx: MascotContext = {
+                      screen: "game",
+                      wasCorrect: isCorrect,
+                      wasTimeout: isTimeout,
+                      timeRemainingOnAnswer: timeRemaining,
+                      questionIndex: currentIndex,
+                    };
+                    return <MascotInline mood={mood} context={ctx} />;
+                  })()}
+                </motion.div>
+              )}
             </AnimatePresence>
 
             {/* Zone D: Action */}
@@ -513,7 +606,10 @@ export default function Arcade() {
                   onClick={handleNext}
                   disabled={!showResults[currentScenario.id]}
                   size="lg"
-                  className="w-full text-base font-semibold"
+                  className={cn(
+                    "w-full text-base font-semibold btn-premium border-0",
+                    !showResults[currentScenario.id] && "opacity-50"
+                  )}
                   aria-label="Continue to next question"
                   data-testid="button-next"
                 >
@@ -525,7 +621,10 @@ export default function Arcade() {
                   onClick={handleSubmit}
                   disabled={!allAnswered || submitMutation.isPending}
                   size="lg"
-                  className="w-full text-base font-semibold"
+                  className={cn(
+                    "w-full text-base font-bold btn-gold border-0",
+                    (!allAnswered || submitMutation.isPending) && "opacity-60"
+                  )}
                   aria-label="Submit your answers"
                   data-testid="button-submit-arcade"
                 >

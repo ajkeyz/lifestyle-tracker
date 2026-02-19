@@ -88,7 +88,7 @@ function ScenarioCard({
   
   return (
     <Card
-      className="cursor-pointer transition-colors"
+      className="cursor-pointer transition-all duration-200 hover:shadow-md hover:border-primary/20 hover:-translate-y-0.5"
       onClick={onClick}
       data-testid={`card-scenario-${scenario.id}`}
     >
@@ -230,7 +230,7 @@ export default function Community() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
       <header className="flex items-center justify-between gap-4 p-4 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="flex items-center gap-3">
           <Button 
@@ -246,7 +246,8 @@ export default function Community() {
             <p className="text-xs text-muted-foreground">Real scenarios, real advice</p>
           </div>
         </div>
-        <Button 
+        <Button
+          className="btn-gold border-0 font-semibold"
           onClick={() => navigate("/community/submit")}
           data-testid="button-submit-scenario"
         >

@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -16,7 +17,7 @@ import { AnimatedCounter } from "@/components/animated-counter";
 import { AnimatedAvatar } from "@/components/animated-avatar";
 import { DebugScreen, useDebugGesture } from "@/components/debug-screen";
 import { AmbientBackground } from "@/components/ambient-background";
-import { Mascot, getMascotMoodForStreak } from "@/components/mascot";
+import { Mascot, getMascotMoodForStreak, type MascotContext } from "@/components/mascot";
 import { 
   Play, 
   Trophy, 
@@ -205,7 +206,7 @@ export default function Home() {
     },
   });
 
-  const hasPlayedToday = user?.todayResult !== null;
+  const hasPlayedToday = user?.todayResult != null; // loose inequality handles both null and undefined (avoids true while user is loading)
   const isInFirstWeek = user ? (user.gamesPlayed <= 7) : false;
   const firstWeekDay = user ? Math.min(user.gamesPlayed + 1, 7) : 1;
   const firstWeekNarrative = FIRST_WEEK_NARRATIVE[firstWeekDay];
@@ -240,7 +241,7 @@ export default function Home() {
       {showOnboarding && (
         <Onboarding onComplete={() => setShowOnboarding(false)} />
       )}
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 relative">
+      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50 relative">
       <AmbientBackground variant="default" />
       <header className="flex items-center justify-between gap-2 p-4 border-b bg-card/80 backdrop-blur-xl sticky top-0 z-50 border-white/10">
         <span className="font-display font-semibold text-sm tracking-[-0.02em]" data-testid="text-daily-drop-header">
@@ -260,7 +261,7 @@ export default function Home() {
         <div className="flex items-center gap-2">
           {authUser && (
             <div className="flex items-center gap-2">
-              <Link href="/profile" data-testid="link-profile" onClick={handleTap}>
+              <Link href="/profile" data-testid="link-profile">
                 <AnimatedAvatar
                   avatarId={user?.avatar || "cosmic-cat"}
                   size="xs"
@@ -331,10 +332,25 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, ease: "easeOut" }}
             >
-            <Card 
-              className="p-6 border-primary/30 bg-gradient-to-br from-primary/5 via-background to-accent/5 overflow-hidden relative shadow-sm"
+            <Card
+              className="p-6 border-primary/25 overflow-hidden relative shadow-lg hero-spotlight"
+              style={{
+                background: "linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--card)) 60%, hsl(var(--primary) / 0.06) 100%)",
+              }}
               data-testid="card-daily-drop-cta"
             >
+              {/* Ambient top-left glow orb */}
+              <div
+                className="pointer-events-none absolute -top-8 -left-8 w-48 h-48 rounded-full opacity-30 dark:opacity-20 ambient-orb"
+                style={{ background: "radial-gradient(circle, hsl(var(--primary) / 0.35) 0%, transparent 70%)" }}
+                aria-hidden="true"
+              />
+              {/* Accent corner glow */}
+              <div
+                className="pointer-events-none absolute -bottom-6 -right-6 w-36 h-36 rounded-full opacity-20 dark:opacity-15"
+                style={{ background: "radial-gradient(circle, hsl(var(--accent) / 0.4) 0%, transparent 70%)" }}
+                aria-hidden="true"
+              />
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -357,7 +373,10 @@ export default function Home() {
                   </div>
                   <Button
                     size="lg"
-                    className="gap-2"
+                    className={cn(
+                      "gap-2 relative overflow-hidden font-bold",
+                      hasPlayedToday ? "" : "btn-premium border-0"
+                    )}
                     onClick={() => {
                       if (hasPlayedToday) {
                         navigate("/results");
@@ -384,16 +403,22 @@ export default function Home() {
                   </Button>
                 </div>
                 <div className="flex flex-col items-center gap-2 flex-shrink-0">
-                  <div data-testid="mascot-home">
+                  <div data-testid="mascot-home" onClick={handleTap} style={{ cursor: "pointer" }}>
                     <Mascot
                       mood={getMascotMoodForStreak(user.streak, hasPlayedToday)}
                       size="md"
                       showBubble={!hasPlayedToday}
                       streakCount={user.streak}
                       showStreakFlame={user.streak >= 3}
+                      context={{
+                        screen: "home",
+                        username: user.username,
+                        streak: user.streak,
+                        daysInactive: undefined, // could pass from user data if available
+                      } satisfies MascotContext}
                     />
                   </div>
-                  <button
+                  <motion.button
                     onClick={() => {
                       if (hasPlayedToday) {
                         navigate("/results");
@@ -403,15 +428,23 @@ export default function Home() {
                         navigate("/play");
                       }
                     }}
-                    className="w-14 h-14 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center flex-shrink-0 glow-primary cursor-pointer transition-transform hover:scale-105 active:scale-95"
+                    whileHover={{ scale: 1.08 }}
+                    whileTap={{ scale: 0.93 }}
+                    className={cn(
+                      "w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 cursor-pointer relative overflow-hidden",
+                      hasPlayedToday
+                        ? "bg-gradient-to-br from-accent to-amber-500 glow-accent"
+                        : "bg-gradient-to-br from-primary to-emerald-400 dark:from-primary dark:to-emerald-300 glow-primary btn-premium border-0"
+                    )}
                     data-testid="button-play-icon"
+                    aria-label={hasPlayedToday ? "View Results" : "Play Now"}
                   >
                     {hasPlayedToday ? (
-                      <Trophy className="w-7 h-7 text-white" />
+                      <Trophy className="w-7 h-7 text-amber-900" />
                     ) : (
-                      <Play className="w-7 h-7 text-white" />
+                      <Play className="w-7 h-7 text-white ml-0.5" />
                     )}
-                  </button>
+                  </motion.button>
                 </div>
               </div>
             </Card>
@@ -453,16 +486,35 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.05, ease: "easeOut" }}
             >
-            <Card className={`p-3 ${isLastHour ? 'border-primary/30' : ''}`} data-testid="card-countdown">
+            <Card
+              className={cn(
+                "p-3 transition-colors duration-500",
+                isLastHour
+                  ? "border-primary/35 bg-primary/5"
+                  : "border-border/60"
+              )}
+              data-testid="card-countdown"
+            >
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <div className="flex items-center gap-2">
-                  <Clock className={`w-4 h-4 text-primary ${isLastHour ? 'animate-pulse' : ''}`} />
+                  <motion.div
+                    animate={isLastHour ? { scale: [1, 1.2, 1] } : { scale: 1 }}
+                    transition={isLastHour ? { duration: 1.2, repeat: Infinity } : {}}
+                  >
+                    <Clock className={cn("w-4 h-4", isLastHour ? "text-primary" : "text-muted-foreground")} />
+                  </motion.div>
                   <span className="text-sm text-muted-foreground">
                     {hasPlayedToday ? "Next decision test unlocks in..." : "Today's drop expires in..."}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className={`text-lg font-bold font-mono ${isLastHour ? 'text-primary' : ''}`} data-testid="text-countdown">
+                  <div
+                    className={cn(
+                      "text-lg font-bold font-mono tabular-nums transition-colors duration-500",
+                      isLastHour ? "text-primary" : "text-foreground"
+                    )}
+                    data-testid="text-countdown"
+                  >
                     {String(countdown.hours).padStart(2, '0')}:{String(countdown.minutes).padStart(2, '0')}:{String(countdown.seconds).padStart(2, '0')}
                   </div>
                 </div>

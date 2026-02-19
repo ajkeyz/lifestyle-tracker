@@ -11,7 +11,7 @@ import { useSound } from "@/hooks/use-sound";
 import { QuickWinsPopup } from "@/components/quick-wins-popup";
 import { ArrowLeft, Home, Trophy, Calendar, Share2, BookOpen, Sparkles, Flame, Brain } from "lucide-react";
 import { AppLogo } from "@/components/app-logo";
-import { Mascot, getMascotMoodForScore, getMascotScoreMessage, CelebrationBurst } from "@/components/mascot";
+import { Mascot, getMascotMoodForScore, getMascotScoreMessage, CelebrationBurst, type MascotContext } from "@/components/mascot";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import type { User, DailyDrop, LeaderboardEntry } from "@shared/schema";
@@ -124,6 +124,24 @@ export default function Results() {
     return analyzeAnswerPatterns(scenarios, result.answers);
   }, [scenarios, result.answers]);
 
+  // Rich context for the mascot — makes Cleo contextually aware on results page
+  const STREAK_MILESTONES = [7, 14, 30, 60, 100];
+  const mascotContext: MascotContext = useMemo(() => ({
+    screen: "results",
+    score: result.score,
+    iq: result.iq,
+    moneyHealth: result.moneyHealth,
+    streakGained: user.streak > 0,
+    streakBroken: user.streak === 0 && user.highestStreak > 0,
+    isStreakMilestone: STREAK_MILESTONES.includes(user.streak),
+    username: user.username,
+    streak: user.streak,
+    // Estimate percentile from leaderboard rank
+    percentile: leaderboard && leaderboard.length > 0
+      ? Math.round(((leaderboard.length - (leaderboard.findIndex(e => e.id === user.id) + 1)) / leaderboard.length) * 100)
+      : undefined,
+  }), [result, user, leaderboard]);
+
   return (
     <>
       {showQuickWins && (
@@ -134,8 +152,8 @@ export default function Results() {
           onClose={() => setShowQuickWins(false)}
         />
       )}
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
-        <header className="flex items-center justify-between gap-2 p-4 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
+        <header className="flex items-center justify-between gap-2 p-4 border-b bg-background/90 backdrop-blur-md sticky top-0 z-50">
         <div className="flex items-center gap-2 flex-wrap">
           <Button
             variant="ghost"
@@ -160,32 +178,55 @@ export default function Results() {
         ) : (
           <>
             <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
-              className="text-center py-4"
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ type: "spring", stiffness: 300, damping: 26 }}
+              className="text-center py-6 relative"
             >
+              {/* Ambient glow behind the hero section */}
+              <div
+                className="pointer-events-none absolute inset-0 opacity-40"
+                style={{
+                  background: `radial-gradient(ellipse 70% 50% at 50% 30%, hsl(var(--${result.score >= 400 ? "accent" : "primary"}) / 0.18) 0%, transparent 70%)`,
+                }}
+                aria-hidden="true"
+              />
+
               {/* Full-screen confetti for near-perfect or perfect scores */}
               <CelebrationBurst trigger={result.score >= 380} />
 
-              <div className="flex justify-center mb-3" data-testid="mascot-results">
+              <div className="flex justify-center mb-4 relative z-10" data-testid="mascot-results">
                 <Mascot
                   mood={getMascotMoodForScore(result.score)}
                   size="xl"
-                  message={getMascotScoreMessage(result.score)}
                   showBubble={true}
+                  context={mascotContext}
                 />
               </div>
-              <div className="inline-flex items-center gap-2 text-accent mb-2">
-                <Trophy className="w-6 h-6" />
-                <span className="text-sm font-medium" data-testid="text-drop-complete">Drop Complete</span>
-              </div>
-              <h1 className="text-2xl font-semibold tracking-[-0.02em]" data-testid="text-great-job">
-                {result.score >= 400 ? "Amazing!" : result.score >= 250 ? "Nice work!" : "Keep growing!"}
-              </h1>
-              <p className="text-muted-foreground text-sm mt-1" data-testid="text-come-back">
-                Come back tomorrow for a new challenge
-              </p>
+
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3, duration: 0.4 }}
+                className="relative z-10"
+              >
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent/15 border border-accent/30 text-accent mb-3">
+                  <Trophy className="w-4 h-4" />
+                  <span className="text-xs font-semibold tracking-wide uppercase" data-testid="text-drop-complete">Drop Complete</span>
+                </div>
+                <h1
+                  className={cn(
+                    "text-3xl font-bold tracking-[-0.03em] mb-1",
+                    result.score >= 400 ? "gradient-text" : ""
+                  )}
+                  data-testid="text-great-job"
+                >
+                  {result.score >= 400 ? "Amazing!" : result.score >= 250 ? "Nice work!" : "Keep growing!"}
+                </h1>
+                <p className="text-muted-foreground text-sm" data-testid="text-come-back">
+                  Come back tomorrow for a new challenge
+                </p>
+              </motion.div>
             </motion.div>
 
             <motion.div
@@ -213,7 +254,7 @@ export default function Results() {
                 score={result.score}
                 dropNumber={dailyDrop?.dropNumber}
                 trigger={
-                  <Button size="lg" className="gap-2">
+                  <Button size="lg" className="gap-2 btn-gold border-0 font-bold relative overflow-hidden">
                     <Share2 className="w-5 h-5" />
                     Share on Social Media
                   </Button>

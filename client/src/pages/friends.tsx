@@ -94,7 +94,7 @@ export default function Friends() {
 
   if (viewMode === "add-friend") {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
+      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
         <header className="flex items-center justify-between gap-2 p-4 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" onClick={() => setViewMode("main")} data-testid="button-back" aria-label="Go back">
@@ -180,7 +180,7 @@ export default function Friends() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
       <header className="flex items-center justify-between gap-2 p-4 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" onClick={() => navigate("/")} data-testid="button-back-home" aria-label="Back to home">
@@ -198,8 +198,8 @@ export default function Friends() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
         >
-          <Button 
-            className="w-full gap-2" 
+          <Button
+            className="w-full gap-2 btn-premium border-0"
             onClick={() => setViewMode("add-friend")}
             data-testid="button-add-new-friend"
           >

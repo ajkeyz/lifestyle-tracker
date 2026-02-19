@@ -7,6 +7,7 @@ import { Gamepad2, Home, RotateCcw, Trophy, Target, Zap } from "lucide-react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import type { ArcadeStatus } from "@shared/schema";
+import { Mascot, type MascotContext } from "@/components/mascot";
 
 export default function ArcadeResults() {
   const [, navigate] = useLocation();
@@ -37,8 +38,14 @@ export default function ArcadeResults() {
     gradeColor = "text-blue-500";
   }
 
+  const mascotContext: MascotContext = {
+    screen: "results",
+    score: percentage,
+    username: undefined,
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
       <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur-sm">
         <div className="container max-w-3xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between gap-4">
@@ -62,13 +69,30 @@ export default function ArcadeResults() {
           className="space-y-6"
         >
           <div className="text-center space-y-3">
+            {/* Ambient radial glow based on performance */}
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background: percentage >= 80
+                  ? "radial-gradient(ellipse 60% 40% at 50% 20%, hsl(38 88% 56% / 0.12) 0%, transparent 70%)"
+                  : percentage >= 60
+                    ? "radial-gradient(ellipse 60% 40% at 50% 20%, hsl(153 62% 32% / 0.10) 0%, transparent 70%)"
+                    : "transparent"
+              }}
+            />
+
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.2 }}
-              className="w-20 h-20 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mx-auto"
+              className="mx-auto"
             >
-              <Trophy className="w-10 h-10 text-white" />
+              <Mascot
+                mood={percentage >= 80 ? "celebrating" : percentage >= 60 ? "happy" : percentage >= 40 ? "encouraging" : "sad"}
+                size="md"
+                showBubble={true}
+                context={mascotContext}
+              />
             </motion.div>
 
             <motion.h1
@@ -132,7 +156,7 @@ export default function ArcadeResults() {
             {(arcadeStatus?.canPlay || remaining > 0) && (
               <Button
                 size="lg"
-                className="w-full h-14 text-base font-semibold"
+                className="w-full h-14 text-base font-semibold btn-premium border-0"
                 onClick={() => navigate("/arcade")}
                 data-testid="button-play-again"
               >

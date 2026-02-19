@@ -81,7 +81,7 @@ export default function Stats() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 p-4 relative">
+      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50 p-4 relative">
         <AmbientBackground variant="minimal" />
         <Skeleton className="h-12 w-full mb-4" />
         <div className="space-y-4">
@@ -126,7 +126,7 @@ export default function Stats() {
   }, [hasExtendedAccess, showAllHistory, user.gameHistory]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 relative">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50 relative">
       <AmbientBackground variant="default" />
       <header className="flex items-center gap-3 p-4 border-b bg-card/80 backdrop-blur-xl sticky top-0 z-50 border-white/10">
         <Button

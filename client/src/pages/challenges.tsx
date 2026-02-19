@@ -223,7 +223,7 @@ export default function Challenges() {
 
   if (viewMode === "create") {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
+      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
         {renderHeader()}
         <main className="container max-w-md mx-auto p-4 space-y-6">
           <div className="text-center py-2">
@@ -395,7 +395,7 @@ export default function Challenges() {
       : null;
 
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
+      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
         {renderHeader()}
         <main className="container max-w-md mx-auto p-4 space-y-4">
           <Card className="p-6 text-center">
@@ -547,7 +547,7 @@ export default function Challenges() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
       {renderHeader()}
       <main className="container max-w-md mx-auto p-4 space-y-6">
         <Button

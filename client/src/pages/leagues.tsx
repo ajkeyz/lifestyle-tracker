@@ -220,7 +220,7 @@ export default function Leagues() {
 
   if (viewMode === "create") {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
+      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
         {renderHeader()}
         <main className="container max-w-md mx-auto p-4 space-y-6">
           <div className="text-center py-4">
@@ -358,7 +358,7 @@ export default function Leagues() {
 
   if (viewMode === "join") {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
+      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
         {renderHeader()}
         <main className="container max-w-md mx-auto p-4 space-y-6">
           <div className="text-center py-4">
@@ -411,7 +411,7 @@ export default function Leagues() {
     const sortedMembers = [...selectedLeague.members].sort((a, b) => a.weeklyRank - b.weeklyRank);
 
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
+      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
         {renderHeader()}
         <main className="container max-w-md mx-auto p-4 space-y-4">
           <Card className="p-6 text-center">
@@ -570,7 +570,7 @@ export default function Leagues() {
 
   if (viewMode === "detail" && leagueLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
+      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
         {renderHeader()}
         <main className="container max-w-md mx-auto p-4 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -580,7 +580,7 @@ export default function Leagues() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
       {renderHeader()}
       <main className="container max-w-md mx-auto p-4 space-y-4">
         <div className="flex gap-3">

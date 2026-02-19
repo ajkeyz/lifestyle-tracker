@@ -43,7 +43,7 @@ export default function Insights() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 p-4">
+      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50 p-4">
         <Skeleton className="h-12 w-full mb-4" />
         <div className="space-y-4">
           <Skeleton className="h-64 w-full" />
@@ -61,7 +61,7 @@ export default function Insights() {
   // Check if user has Pro access
   if (!canAccess("pro")) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
+      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
         <header className="flex items-center gap-3 p-4 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
           <Button
             variant="ghost"
@@ -94,7 +94,7 @@ export default function Insights() {
   // Check if user has enough data
   if (user.gameHistory.length < 20) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
+      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
         <header className="flex items-center gap-3 p-4 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
           <Button
             variant="ghost"
@@ -138,7 +138,7 @@ export default function Insights() {
   const { archetype, dimensions, strengths, blindSpots, recommendations } = analysis;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
       <header className="flex items-center gap-3 p-4 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <Button
           variant="ghost"

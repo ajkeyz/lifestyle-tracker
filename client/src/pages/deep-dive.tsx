@@ -81,7 +81,7 @@ export default function DeepDive() {
 
   if (userLoading || dropLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 p-4">
+      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50 p-4">
         <Skeleton className="h-12 w-full mb-4" />
         <Skeleton className="h-96 w-full" />
       </div>
@@ -159,7 +159,7 @@ export default function DeepDive() {
 
   return (
     <div 
-      className="min-h-screen bg-gradient-to-b from-background to-muted/30"
+      className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50"
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}

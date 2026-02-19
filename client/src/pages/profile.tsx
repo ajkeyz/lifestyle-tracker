@@ -307,7 +307,7 @@ export default function Profile() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 p-4">
+      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50 p-4">
         <div className="max-w-md mx-auto space-y-6">
           <div className="flex items-center justify-between">
             <Skeleton className="h-10 w-10 rounded-lg" />
@@ -331,7 +331,7 @@ export default function Profile() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-muted/30">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
         <p className="text-muted-foreground">Unable to load profile</p>
       </div>
     );
@@ -343,7 +343,7 @@ export default function Profile() {
   const TrendIcon = healthInfo.trend === "up" ? TrendingUp : healthInfo.trend === "down" ? TrendingDown : Minus;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-sm border-b px-4 py-3">
         <div className="max-w-md mx-auto flex items-center justify-between gap-2">
           <Button
@@ -580,7 +580,7 @@ export default function Profile() {
             className="flex gap-3"
           >
             <Button
-              className="flex-1 gap-2"
+              className="flex-1 gap-2 btn-premium border-0"
               onClick={() => navigate("/challenges")}
               data-testid="button-challenge-user"
             >

@@ -11,6 +11,7 @@ import type { CoopGameResult, User } from "@shared/schema";
 import { useConfetti } from "@/components/confetti";
 import { useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Mascot, type MascotContext } from "@/components/mascot";
 
 export default function CoopResults() {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -75,8 +76,15 @@ export default function CoopResults() {
     );
   }
 
+  const mascotContext: MascotContext = {
+    screen: "results",
+    score: currentPlayerResult ? Math.round((currentPlayerResult.correctAnswers / result.totalQuestions) * 100) : 0,
+    streakGained: isWinner,
+    username: user?.username,
+  };
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
         <div className="container flex h-14 items-center gap-4 px-4">
           <AppLogo size="sm" />
@@ -96,23 +104,16 @@ export default function CoopResults() {
           transition={{ type: "spring", stiffness: 200, damping: 20 }}
         >
           <Card className="overflow-hidden">
-            <CardHeader className="text-center bg-gradient-to-b from-primary/10 to-transparent pb-8">
+            <CardHeader className="text-center bg-gradient-to-b from-primary/10 to-transparent pb-8 relative">
               <div className="mx-auto mb-4">
-                {isWinner ? (
-                  <motion.div
-                    initial={{ rotate: -10 }}
-                    animate={{ rotate: [0, -10, 10, -10, 0] }}
-                    transition={{ delay: 0.5, duration: 0.5 }}
-                  >
-                    <Crown className="h-16 w-16 text-yellow-500" />
-                  </motion.div>
-                ) : isTie ? (
-                  <Users className="h-16 w-16 text-primary" />
-                ) : (
-                  <Trophy className="h-16 w-16 text-muted-foreground" />
-                )}
+                <Mascot
+                  mood={isWinner ? "celebrating" : isTie ? "happy" : "encouraging"}
+                  size="md"
+                  showBubble={true}
+                  context={mascotContext}
+                />
               </div>
-              <CardTitle className="font-display text-3xl tracking-tight">
+              <CardTitle className={`font-display text-3xl tracking-tight ${isWinner ? "bg-gradient-to-r from-amber-400 to-amber-600 bg-clip-text text-transparent" : ""}`}>
                 {isWinner ? "You Win!" : isTie ? "It's a Tie!" : "Good Game!"}
               </CardTitle>
             </CardHeader>
@@ -222,7 +223,7 @@ export default function CoopResults() {
           className="space-y-3"
         >
           <Button
-            className="w-full h-12"
+            className="w-full h-12 btn-premium border-0"
             onClick={() => navigate("/coop-lobby")}
             data-testid="button-play-again"
           >

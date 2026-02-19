@@ -302,7 +302,7 @@ export default function CommunityDetail() {
 
   if (scenarioLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 p-4">
+      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50 p-4">
         <Skeleton className="h-12 w-full mb-4" />
         <Skeleton className="h-64 w-full mb-4" />
         <Skeleton className="h-32 w-full" />
@@ -312,7 +312,7 @@ export default function CommunityDetail() {
 
   if (!scenario) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 p-4">
+      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50 p-4">
         <Button variant="ghost" onClick={() => navigate("/community")}>
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
@@ -331,7 +331,7 @@ export default function CommunityDetail() {
   const regularComments = comments?.filter(c => !c.isAdvice) || [];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
       <header className="flex items-center gap-3 p-4 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <Button 
           variant="ghost" 

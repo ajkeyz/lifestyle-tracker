@@ -126,7 +126,7 @@ export default function CoopLobby() {
   const canStart = session && session.players.length >= 2 && isHost;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
         <div className="container flex h-14 items-center gap-4 px-4">
           <Button
