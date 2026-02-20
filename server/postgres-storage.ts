@@ -507,7 +507,7 @@ export class PostgresStorage implements IStorage {
       gamesPlayed: dbUser.gamesPlayed ?? 0,
       lastPlayedDate: dbUser.lastPlayedDate,
       stats: dbUser.stats || defaultStats,
-      todayResult: dbUser.todayResult,
+      todayResult: dbUser.lastPlayedDate === getTodayDateString() ? dbUser.todayResult : null,
       badges: dbUser.badges || createInitialBadges(),
       perfectGames: dbUser.perfectGames ?? 0,
       scamStreak: dbUser.scamStreak ?? 0,
