@@ -117,10 +117,16 @@ function MascotEye({ type, x, y }: { type: EyeType; x: number; y: number }) {
     );
   }
   if (type === "star") {
+    const s = 5;
+    const starD = `M ${x} ${y - s} L ${x + s * 0.22} ${y - s * 0.31} L ${x + s} ${y - s * 0.05} L ${x + s * 0.36} ${y + s * 0.25} L ${x + s * 0.59} ${y + s} L ${x} ${y + s * 0.55} L ${x - s * 0.59} ${y + s} L ${x - s * 0.36} ${y + s * 0.25} L ${x - s} ${y - s * 0.05} L ${x - s * 0.22} ${y - s * 0.31} Z`;
     return (
-      <g>
-        <text x={x - 5} y={y + 4} fontSize="10" fill="#fbbf24" textAnchor="middle">★</text>
-      </g>
+      <motion.g
+        animate={{ rotate: [0, 15, -15, 0], scale: [1, 1.2, 1] }}
+        transition={{ duration: 0.8, repeat: Infinity, ease: "easeInOut" }}
+        style={{ transformOrigin: `${x}px ${y}px` }}
+      >
+        <motion.path d={starD} fill="#fbbf24" stroke="none" />
+      </motion.g>
     );
   }
   if (type === "wink") {
@@ -1095,12 +1101,15 @@ export function Mascot({
     const rect = containerRef.current.getBoundingClientRect();
     const vw = window.innerWidth;
     const BUBBLE_WIDTH = 230;
+    const BUBBLE_HEIGHT = 100;
     const MIN_PAD = 16;
     const hasRight = rect.right + BUBBLE_WIDTH + 12 < vw - MIN_PAD;
     const hasLeft  = rect.left  - BUBBLE_WIDTH - 12 > MIN_PAD;
+    const hasTop   = rect.top - BUBBLE_HEIGHT - 12 > MIN_PAD;
     if (hasRight) setBubbleSide("right");
     else if (hasLeft) setBubbleSide("left");
-    else setBubbleSide("top");
+    else if (hasTop) setBubbleSide("top");
+    else setBubbleSide("bottom");
   }, []);
 
   // ── Sync mood + message when props change ──────────────────
