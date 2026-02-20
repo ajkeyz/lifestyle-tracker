@@ -333,7 +333,7 @@ export default function Home() {
               transition={{ duration: 0.4, ease: "easeOut" }}
             >
             <Card
-              className="p-6 border-primary/25 overflow-hidden relative shadow-lg hero-spotlight"
+              className="p-6 border-primary/25 overflow-visible relative shadow-lg hero-spotlight"
               style={{
                 background: "linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--card)) 60%, hsl(var(--primary) / 0.06) 100%)",
               }}

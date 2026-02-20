@@ -901,7 +901,6 @@ function SpeechBubble({ message, position = "right", mood }: {
   const [done, setDone] = useState(false);
   const accentColor = mood ? BODY_COLORS[mood].main : "#34a874";
 
-  // Fast typewriter — premium feel, not distracting
   useEffect(() => {
     setDisplayed("");
     setDone(false);
@@ -911,7 +910,7 @@ function SpeechBubble({ message, position = "right", mood }: {
       if (i >= message.length) { setDone(true); clearInterval(interval); return; }
       setDisplayed(message.slice(0, i + 1));
       i++;
-    }, 18); // Slightly faster than before
+    }, 38);
     return () => clearInterval(interval);
   }, [message]);
 
@@ -1112,11 +1111,11 @@ export function Mascot({
     if (bubbleVisible) detectBubbleSide();
   }, [bubbleVisible]);
 
-  // Auto-dismiss bubble after 6s
   useEffect(() => {
     if (!bubbleVisible) { setIsSpeaking(false); return; }
     setIsSpeaking(true);
-    const t = setTimeout(() => { setBubbleVisible(false); setIsSpeaking(false); }, 6000);
+    const readTime = Math.max(5000, (currentMessage?.length || 0) * 38 + 3000);
+    const t = setTimeout(() => { setBubbleVisible(false); setIsSpeaking(false); }, readTime);
     return () => clearTimeout(t);
   }, [bubbleVisible, currentMessage]);
 
@@ -1130,13 +1129,20 @@ export function Mascot({
 
   const handleTap = useCallback(() => {
     vibrateLight?.();
+
+    if (bubbleVisible) {
+      setBubbleVisible(false);
+      setIsSpeaking(false);
+      onClick?.();
+      return;
+    }
+
     const next = tapCount + 1;
     setTapCount(next);
 
     if (tapResetRef.current) clearTimeout(tapResetRef.current);
     tapResetRef.current = setTimeout(() => setTapCount(0), 1500);
 
-    // Easter egg: 5 taps
     if (next >= 5) {
       setIsEasterEgg(true);
       setCurrentMood("hyped");
@@ -1151,14 +1157,13 @@ export function Mascot({
       return;
     }
 
-    // On tap, show context-aware message if context provided, else mood dialogue
     const tapMsg = context
       ? (getMascotContextDialogue(context) || getMascotDialogue(currentMood))
       : getMascotDialogue(currentMood);
     setCurrentMessage(tapMsg);
     setBubbleVisible(true);
     onClick?.();
-  }, [tapCount, currentMood, mood, context, onClick, vibrateLight, vibrateMilestone]);
+  }, [tapCount, currentMood, mood, context, onClick, vibrateLight, vibrateMilestone, bubbleVisible]);
 
   const handlePointerDown = useCallback(() => {
     longPressRef.current = setTimeout(() => {
