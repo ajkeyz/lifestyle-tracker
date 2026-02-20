@@ -910,7 +910,7 @@ function SpeechBubble({ message, position = "right", mood }: {
       if (i >= message.length) { setDone(true); clearInterval(interval); return; }
       setDisplayed(message.slice(0, i + 1));
       i++;
-    }, 38);
+    }, 62);
     return () => clearInterval(interval);
   }, [message]);
 
@@ -976,7 +976,7 @@ function SpeechBubble({ message, position = "right", mood }: {
 
   return (
     <motion.div
-      className={cn("absolute z-20 pointer-events-none", posClass[position])}
+      className={cn("absolute z-20", posClass[position])}
       initial={enterFrom}
       animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
       exit={{ opacity: 0, scale: 0.8 }}
@@ -1069,7 +1069,12 @@ export function Mascot({
   }, [message, context, mood]);
 
   const [currentMessage, setCurrentMessage] = useState(computeInitialMessage);
-  const [bubbleVisible, setBubbleVisible] = useState(showBubble);
+  const [bubbleVisible, setBubbleVisibleRaw] = useState(showBubble);
+  const bubbleVisibleRef = useRef(showBubble);
+  const setBubbleVisible = useCallback((v: boolean) => {
+    bubbleVisibleRef.current = v;
+    setBubbleVisibleRaw(v);
+  }, []);
   const [tapCount, setTapCount] = useState(0);
   const [isEasterEgg, setIsEasterEgg] = useState(false);
   const [currentMood, setCurrentMood] = useState<MascotMood>(mood);
@@ -1101,11 +1106,16 @@ export function Mascot({
   // ── Sync mood + message when props change ──────────────────
   useEffect(() => {
     setCurrentMood(mood);
-    const msg = computeInitialMessage();
-    setCurrentMessage(msg);
+  }, [mood]);
+
+  useEffect(() => {
     setBubbleVisible(showBubble);
     setIsSpeaking(showBubble);
-  }, [mood, message, showBubble, context]);
+    if (showBubble) {
+      const msg = computeInitialMessage();
+      setCurrentMessage(msg);
+    }
+  }, [showBubble]);
 
   useEffect(() => {
     if (bubbleVisible) detectBubbleSide();
@@ -1114,7 +1124,7 @@ export function Mascot({
   useEffect(() => {
     if (!bubbleVisible) { setIsSpeaking(false); return; }
     setIsSpeaking(true);
-    const readTime = Math.max(5000, (currentMessage?.length || 0) * 38 + 3000);
+    const readTime = Math.max(6000, (currentMessage?.length || 0) * 62 + 3000);
     const t = setTimeout(() => { setBubbleVisible(false); setIsSpeaking(false); }, readTime);
     return () => clearTimeout(t);
   }, [bubbleVisible, currentMessage]);
@@ -1130,7 +1140,7 @@ export function Mascot({
   const handleTap = useCallback(() => {
     vibrateLight?.();
 
-    if (bubbleVisible) {
+    if (bubbleVisibleRef.current) {
       setBubbleVisible(false);
       setIsSpeaking(false);
       onClick?.();
@@ -1163,7 +1173,7 @@ export function Mascot({
     setCurrentMessage(tapMsg);
     setBubbleVisible(true);
     onClick?.();
-  }, [tapCount, currentMood, mood, context, onClick, vibrateLight, vibrateMilestone, bubbleVisible]);
+  }, [tapCount, currentMood, mood, context, onClick, vibrateLight, vibrateMilestone, setBubbleVisible]);
 
   const handlePointerDown = useCallback(() => {
     longPressRef.current = setTimeout(() => {
@@ -1178,14 +1188,22 @@ export function Mascot({
   }, []);
 
   return (
-    <div ref={containerRef} className={cn("relative inline-flex items-center", className)}>
-      {/* Glow ring for special moods */}
+    <div
+      ref={containerRef}
+      className={cn("relative inline-flex items-center cursor-pointer select-none", className)}
+      onClick={handleTap}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerLeave={handlePointerUp}
+      style={{ touchAction: "manipulation" }}
+      data-testid="mascot-character"
+      role="img"
+      aria-label={`Cleo is ${currentMood}`}
+    >
       {shouldAnimate && <GlowRing mood={currentMood} size={pixelSize} />}
 
       <motion.div
-        className="relative cursor-pointer select-none"
         whileTap={shouldAnimate ? { scale: 0.88 } : {}}
-        // Micro-tilt when speaking — shows the character is "talking"
         animate={
           isEasterEgg && shouldAnimate
             ? { rotate: [0, -15, 15, -10, 10, 0], y: [0, -8, 0] }
@@ -1194,17 +1212,9 @@ export function Mascot({
               : {}
         }
         transition={isEasterEgg ? { duration: 0.5 } : { duration: 0.8 }}
-        onClick={handleTap}
-        onPointerDown={handlePointerDown}
-        onPointerUp={handlePointerUp}
-        onPointerLeave={handlePointerUp}
-        data-testid="mascot-character"
-        role="img"
-        aria-label={`Cleo is ${currentMood}`}
       >
         <MascotSVG mood={currentMood} size={pixelSize} />
 
-        {/* Streak flame badge */}
         {showStreakFlame && streakCount && streakCount > 0 && (
           <StreakFlame count={streakCount} size={pixelSize} />
         )}
@@ -1307,7 +1317,7 @@ function TypewriterText({ text, className }: { text: string; className?: string 
       if (i >= text.length) { clearInterval(t); return; }
       setDisplayed(text.slice(0, i + 1));
       i++;
-    }, 20);
+    }, 62);
     return () => clearInterval(t);
   }, [text]);
 
