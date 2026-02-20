@@ -61,7 +61,7 @@ interface MascotProps {
 
 const SIZE_MAP = { xs: 48, sm: 64, md: 96, lg: 128, xl: 160 };
 
-const BODY_COLORS: Record<MascotMood, { main: string; highlight: string; shadow: string; glow: string }> = {
+export const BODY_COLORS: Record<MascotMood, { main: string; highlight: string; shadow: string; glow: string }> = {
   idle:        { main: "#10b981", highlight: "#34d399", shadow: "#059669", glow: "#10b98133" },
   happy:       { main: "#10b981", highlight: "#6ee7b7", shadow: "#059669", glow: "#10b98155" },
   celebrating: { main: "#f59e0b", highlight: "#fcd34d", shadow: "#d97706", glow: "#f59e0b88" },
@@ -117,15 +117,19 @@ function MascotEye({ type, x, y }: { type: EyeType; x: number; y: number }) {
     );
   }
   if (type === "star") {
-    const s = 5;
+    const s = 6;
     const starD = `M ${x} ${y - s} L ${x + s * 0.22} ${y - s * 0.31} L ${x + s} ${y - s * 0.05} L ${x + s * 0.36} ${y + s * 0.25} L ${x + s * 0.59} ${y + s} L ${x} ${y + s * 0.55} L ${x - s * 0.59} ${y + s} L ${x - s * 0.36} ${y + s * 0.25} L ${x - s} ${y - s * 0.05} L ${x - s * 0.22} ${y - s * 0.31} Z`;
     return (
       <motion.g
-        animate={{ rotate: [0, 15, -15, 0], scale: [1, 1.2, 1] }}
+        animate={{ rotate: [0, 15, -15, 0], scale: [1, 1.15, 1] }}
         transition={{ duration: 0.8, repeat: Infinity, ease: "easeInOut" }}
         style={{ transformOrigin: `${x}px ${y}px` }}
       >
-        <motion.path d={starD} fill="#fbbf24" stroke="none" />
+        <path d={starD} fill="white" stroke="none" />
+        <motion.path d={starD} fill="white" stroke="none"
+          animate={{ opacity: [1, 0.7, 1] }}
+          transition={{ duration: 0.6, repeat: Infinity }}
+        />
       </motion.g>
     );
   }
@@ -420,7 +424,7 @@ function StreakFlame({ count, size }: { count: number; size: number }) {
 
 function MascotSVG({ mood, size }: { mood: MascotMood; size: number }) {
   const eyes = EYE_CONFIGS[mood];
-  const mouthPath = MOUTH_PATHS[mood];
+  const mouthPath = MOUTH_PATHS[mood] || MOUTH_PATHS.idle;
   const colors = BODY_COLORS[mood];
 
   const bodyAnimation = useMemo(() => {

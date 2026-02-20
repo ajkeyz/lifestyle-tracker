@@ -11,7 +11,7 @@ import { useSound } from "@/hooks/use-sound";
 import { QuickWinsPopup } from "@/components/quick-wins-popup";
 import { ArrowLeft, Home, Trophy, Calendar, Share2, BookOpen, Sparkles, Flame, Brain } from "lucide-react";
 import { AppLogo } from "@/components/app-logo";
-import { Mascot, getMascotMoodForScore, getMascotScoreMessage, CelebrationBurst, type MascotContext } from "@/components/mascot";
+import { Mascot, getMascotMoodForScore, getMascotScoreMessage, getMascotContextDialogue, CelebrationBurst, BODY_COLORS, type MascotContext } from "@/components/mascot";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import type { User, DailyDrop, LeaderboardEntry } from "@shared/schema";
@@ -19,6 +19,53 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { trackStreakUpdated, trackShareClicked } from "@/lib/analytics";
 import { analyzeAnswerPatterns, toneColors } from "@/lib/game-insights";
 import { cn } from "@/lib/utils";
+
+function ResultsBubble({ mood, context }: { mood: import("@/components/mascot").MascotMood; context: MascotContext }) {
+  const [displayed, setDisplayed] = useState("");
+  const [done, setDone] = useState(false);
+  const colors = BODY_COLORS[mood];
+  const message = useMemo(() => getMascotContextDialogue(context) || getMascotScoreMessage(context.score || 0), [context]);
+
+  useEffect(() => {
+    setDisplayed("");
+    setDone(false);
+    if (!message) return;
+    let i = 0;
+    const interval = setInterval(() => {
+      if (i >= message.length) { setDone(true); clearInterval(interval); return; }
+      setDisplayed(message.slice(0, i + 1));
+      i++;
+    }, 62);
+    return () => clearInterval(interval);
+  }, [message]);
+
+  return (
+    <motion.div
+      className="mt-2 rounded-xl px-4 py-2.5 max-w-[260px] text-center backdrop-blur-md"
+      style={{
+        background: `${colors.main}18`,
+        border: `1px solid ${colors.main}30`,
+        boxShadow: `0 2px 12px ${colors.main}15`,
+      }}
+      initial={{ opacity: 0, y: -6, scale: 0.9 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ type: "spring", stiffness: 400, damping: 28, delay: 0.5 }}
+      data-testid="results-mascot-bubble"
+    >
+      <p className="text-[13px] font-medium leading-snug text-foreground/90">
+        {displayed}
+        {!done && (
+          <motion.span
+            className="inline-block w-[2px] h-[14px] ml-0.5 align-middle rounded-full"
+            style={{ background: colors.main }}
+            animate={{ opacity: [1, 0] }}
+            transition={{ duration: 0.5, repeat: Infinity }}
+          />
+        )}
+      </p>
+    </motion.div>
+  );
+}
 
 export default function Results() {
   const [, navigate] = useLocation();
@@ -195,13 +242,14 @@ export default function Results() {
               {/* Full-screen confetti for near-perfect or perfect scores */}
               <CelebrationBurst trigger={result.score >= 380} />
 
-              <div className="flex justify-center mb-4 relative z-10" data-testid="mascot-results">
+              <div className="flex flex-col items-center mb-4 relative z-10" data-testid="mascot-results">
                 <Mascot
                   mood={getMascotMoodForScore(result.score)}
                   size="xl"
-                  showBubble={true}
+                  showBubble={false}
                   context={mascotContext}
                 />
+                <ResultsBubble mood={getMascotMoodForScore(result.score)} context={mascotContext} />
               </div>
 
               <motion.div
