@@ -51,6 +51,7 @@ interface MascotProps {
   size?: "xs" | "sm" | "md" | "lg" | "xl";
   message?: string;
   showBubble?: boolean;
+  disableTapBubble?: boolean;
   className?: string;
   onClick?: () => void;
   animate?: boolean;
@@ -1057,6 +1058,7 @@ export function Mascot({
   size = "md",
   message,
   showBubble = true,
+  disableTapBubble = false,
   className,
   onClick,
   animate: shouldAnimateProp = true,
@@ -1153,6 +1155,11 @@ export function Mascot({
   const handleTap = useCallback(() => {
     vibrateLight?.();
 
+    if (disableTapBubble) {
+      onClick?.();
+      return;
+    }
+
     if (bubbleVisibleRef.current) {
       setBubbleVisible(false);
       setIsSpeaking(false);
@@ -1186,7 +1193,7 @@ export function Mascot({
     setCurrentMessage(tapMsg);
     setBubbleVisible(true);
     onClick?.();
-  }, [tapCount, currentMood, mood, context, onClick, vibrateLight, vibrateMilestone, setBubbleVisible]);
+  }, [tapCount, currentMood, mood, context, onClick, vibrateLight, vibrateMilestone, setBubbleVisible, disableTapBubble]);
 
   const handlePointerDown = useCallback(() => {
     longPressRef.current = setTimeout(() => {

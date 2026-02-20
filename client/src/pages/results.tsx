@@ -247,6 +247,7 @@ export default function Results() {
                   mood={getMascotMoodForScore(result.score)}
                   size="xl"
                   showBubble={false}
+                  disableTapBubble={true}
                   context={mascotContext}
                 />
                 <ResultsBubble mood={getMascotMoodForScore(result.score)} context={mascotContext} />
