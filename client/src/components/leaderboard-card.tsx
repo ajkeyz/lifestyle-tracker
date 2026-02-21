@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Crown, Shield, Zap, Target, Skull, Trophy } from "lucide-react";
+import { RankBadge, TierProgressBar } from "@/components/rank-badge";
 import type { LeaderboardEntry } from "@shared/schema";
 
 const leaderboardCategories = [
@@ -53,10 +54,16 @@ export function LeaderboardCard({ entries, currentUserId, category = "wealth" }:
               {index + 1}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="font-medium truncate" data-testid={`username-${entry.id}`}>{entry.username}</div>
+              <div className="flex items-center gap-1.5">
+                <span className="font-medium truncate" data-testid={`username-${entry.id}`}>{entry.username}</span>
+                <RankBadge moneyHealth={entry.moneyHealth} size="sm" />
+              </div>
               <div className="text-xs text-muted-foreground" data-testid={`health-${entry.id}`}>
                 Money Health: {entry.moneyHealth}
               </div>
+              {entry.id === currentUserId && (
+                <TierProgressBar moneyHealth={entry.moneyHealth} className="mt-1" />
+              )}
             </div>
             {entry.streak > 0 && (
               <Badge variant="secondary" className="text-xs" data-testid={`streak-badge-${entry.id}`}>
@@ -120,8 +127,9 @@ export function FriendLeague({
               <span className="w-6 text-center font-bold text-muted-foreground" data-testid={`friend-rank-${entry.id}`}>
                 {index + 1}.
               </span>
-              <span className={`flex-1 ${isCurrentUser ? "font-semibold" : ""}`} data-testid={`friend-username-${entry.id}`}>
+              <span className={`flex-1 flex items-center gap-1.5 ${isCurrentUser ? "font-semibold" : ""}`} data-testid={`friend-username-${entry.id}`}>
                 {isCurrentUser ? "You" : entry.username}
+                <RankBadge moneyHealth={entry.moneyHealth} size="sm" />
               </span>
               <Badge variant={isCurrentUser ? "default" : "secondary"} data-testid={`friend-health-${entry.id}`}>
                 {entry.moneyHealth}

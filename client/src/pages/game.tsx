@@ -5,7 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { ScenarioCard } from "@/components/scenario-card-improved";
 import { ProgressPill } from "@/components/progress-pill";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { ArrowRight, Clock } from "lucide-react";
+import { ArrowRight, Clock, BookOpen } from "lucide-react";
 import { AppLogo } from "@/components/app-logo";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -24,6 +24,9 @@ import type { DailyDrop, User, SubmitGame } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { MascotInline, type MascotContext } from "@/components/mascot";
+import { DidYouKnowCard } from "@/components/did-you-know-card";
+import { StoryIntroCard } from "@/components/story-intro-card";
+import { LivePlayerIndicator } from "@/components/live-player-indicator";
 
 const TIMER_DURATION = 20;
 
@@ -37,8 +40,9 @@ export default function Game() {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [showResults, setShowResults] = useState<Record<string, boolean>>({});
   const [timeRemaining, setTimeRemaining] = useState(TIMER_DURATION);
-  const [timerRunning, setTimerRunning] = useState(true);
+  const [timerRunning, setTimerRunning] = useState(false);
   const [timedOut, setTimedOut] = useState<Record<string, boolean>>({});
+  const [storyIntroDismissed, setStoryIntroDismissed] = useState(false);
   const playedWarnings = useRef<Set<number>>(new Set());
   const timerStartTime = useRef<number>(Date.now());
 
@@ -279,6 +283,7 @@ export default function Game() {
             </div>
 
             <div className="flex items-center gap-2.5">
+              <LivePlayerIndicator />
               {!isLoading && currentScenario && (
                 <ProgressPill
                   current={currentIndex + 1}
@@ -433,6 +438,18 @@ export default function Game() {
               Try Again
             </Button>
           </div>
+        ) : !storyIntroDismissed && currentIndex === 0 && currentScenario ? (
+          <AnimatePresence mode="wait">
+            <StoryIntroCard
+              key="story-intro"
+              category={currentScenario.category as any}
+              onBegin={() => {
+                setStoryIntroDismissed(true);
+                setTimerRunning(true);
+                timerStartTime.current = Date.now();
+              }}
+            />
+          </AnimatePresence>
         ) : currentScenario ? (
           <div className="grid gap-5">
             {/* Zone A+B+C: Context, Question, Answers */}
@@ -484,6 +501,25 @@ export default function Game() {
                       Many people also considered: &ldquo;{counterfactual}&rdquo;
                     </motion.p>
                   )}
+                  {currentScenario?.deepDive?.teaching && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 3.0, duration: 0.5 }}
+                      className="px-4 py-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5 dark:bg-emerald-500/10"
+                      data-testid="panel-teaching-reveal"
+                    >
+                      <div className="flex items-start gap-2.5">
+                        <BookOpen className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
+                        <div className="space-y-1">
+                          <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">Why this matters</p>
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            {currentScenario.deepDive.teaching}
+                          </p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -521,6 +557,25 @@ export default function Game() {
                     );
                   })()}
                 </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Did You Know? card */}
+            <AnimatePresence>
+              {hasAnswered && currentScenario?.deepDive && (
+                (() => {
+                  const fact = currentScenario.deepDive.realWorldExample || currentScenario.deepDive.ruleOfThumb;
+                  return fact ? (
+                    <motion.div
+                      key="did-you-know"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                    >
+                      <DidYouKnowCard fact={fact} />
+                    </motion.div>
+                  ) : null;
+                })()
               )}
             </AnimatePresence>
 

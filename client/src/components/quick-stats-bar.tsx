@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import type { User } from "@shared/schema";
 import { LiquidMoneyMeter } from "@/components/liquid-money-meter";
 import { motion, AnimatePresence } from "framer-motion";
+import { AnimatedCounter } from "@/components/animated-counter";
 
 function AnimatedFlame({ className, active }: { className?: string; active?: boolean }) {
   if (!active) {
@@ -150,7 +151,11 @@ export function QuickStatsBar({ user, rank, className }: QuickStatsBarProps) {
                 )}
                 <div className="text-center">
                   <div className="font-bold text-sm leading-none" data-testid={`stat-${stat.label.toLowerCase()}`}>
-                    {stat.value}
+                    {typeof stat.value === "number" ? (
+                      <AnimatedCounter value={stat.value} duration={1.0} delay={0.2} />
+                    ) : (
+                      stat.value
+                    )}
                   </div>
                   <div className="text-[10px] text-muted-foreground leading-tight">
                     {stat.label}

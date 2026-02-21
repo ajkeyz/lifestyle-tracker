@@ -18,6 +18,7 @@ import type { User, DailyDrop, LeaderboardEntry } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { trackStreakUpdated, trackShareClicked } from "@/lib/analytics";
 import { analyzeAnswerPatterns, toneColors } from "@/lib/game-insights";
+import { CleoAnalysis } from "@/components/cleo-analysis";
 import { cn } from "@/lib/utils";
 
 function ResultsBubble({ mood, context }: { mood: import("@/components/mascot").MascotMood; context: MascotContext }) {
@@ -146,48 +147,51 @@ export default function Results() {
     }
   }, [user]);
 
-  if (!user?.todayResult) {
+  const result = user?.todayResult ?? null;
+  const scenarios = dailyDrop?.scenarios || [];
+
+  const correctAnswers = useMemo(() => {
+    if (!result) return [];
+    return result.answers.map((answer: string, index: number) => {
+      const scenario = scenarios[index];
+      if (!scenario) return false;
+      const choice = scenario.choices.find((c: any) => c.label === answer);
+      return choice?.isCorrect || false;
+    });
+  }, [result, scenarios]);
+
+  const patternSummary = useMemo(() => {
+    if (!result || scenarios.length === 0) return null;
+    return analyzeAnswerPatterns(scenarios, result.answers);
+  }, [result, scenarios]);
+
+  // Rich context for the mascot — makes Cleo contextually aware on results page
+  const STREAK_MILESTONES = [7, 14, 30, 60, 100];
+  const mascotContext: MascotContext = useMemo(() => {
+    if (!result || !user) return { screen: "results" as const } as MascotContext;
+    return {
+      screen: "results",
+      score: result.score,
+      iq: result.iq,
+      moneyHealth: result.moneyHealth,
+      streakGained: user.streak > 0,
+      streakBroken: user.streak === 0 && user.highestStreak > 0,
+      isStreakMilestone: STREAK_MILESTONES.includes(user.streak),
+      username: user.username,
+      streak: user.streak,
+      percentile: leaderboard && leaderboard.length > 0
+        ? Math.round(((leaderboard.length - (leaderboard.findIndex(e => e.id === user.id) + 1)) / leaderboard.length) * 100)
+        : undefined,
+    };
+  }, [result, user, leaderboard]);
+
+  if (!result) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20 flex items-center justify-center">
         <p className="text-muted-foreground" data-testid="text-no-results">Loading results...</p>
       </div>
     );
   }
-
-  const result = user.todayResult;
-  const scenarios = dailyDrop?.scenarios || [];
-
-  const correctAnswers = useMemo(() => {
-    return result.answers.map((answer, index) => {
-      const scenario = scenarios[index];
-      if (!scenario) return false;
-      const choice = scenario.choices.find((c) => c.label === answer);
-      return choice?.isCorrect || false;
-    });
-  }, [result.answers, scenarios]);
-
-  const patternSummary = useMemo(() => {
-    if (scenarios.length === 0) return null;
-    return analyzeAnswerPatterns(scenarios, result.answers);
-  }, [scenarios, result.answers]);
-
-  // Rich context for the mascot — makes Cleo contextually aware on results page
-  const STREAK_MILESTONES = [7, 14, 30, 60, 100];
-  const mascotContext: MascotContext = useMemo(() => ({
-    screen: "results",
-    score: result.score,
-    iq: result.iq,
-    moneyHealth: result.moneyHealth,
-    streakGained: user.streak > 0,
-    streakBroken: user.streak === 0 && user.highestStreak > 0,
-    isStreakMilestone: STREAK_MILESTONES.includes(user.streak),
-    username: user.username,
-    streak: user.streak,
-    // Estimate percentile from leaderboard rank
-    percentile: leaderboard && leaderboard.length > 0
-      ? Math.round(((leaderboard.length - (leaderboard.findIndex(e => e.id === user.id) + 1)) / leaderboard.length) * 100)
-      : undefined,
-  }), [result, user, leaderboard]);
 
   return (
     <>
@@ -386,11 +390,24 @@ export default function Results() {
               </motion.div>
             )}
 
+            {/* Cleo AI Analysis */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.5, ease: "easeOut" }}
+            >
+              <CleoAnalysis
+                score={correctAnswers.filter(Boolean).length}
+                totalQuestions={scenarios.length}
+                moneyHealth={result.moneyHealth}
+              />
+            </motion.div>
+
             {leaderboard && leaderboard.length > 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.5, ease: "easeOut" }}
+                transition={{ duration: 0.4, delay: 0.55, ease: "easeOut" }}
               >
                 <FriendLeague entries={leaderboard} currentUserId={user.id} />
               </motion.div>
