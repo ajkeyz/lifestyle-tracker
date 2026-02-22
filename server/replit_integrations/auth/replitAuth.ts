@@ -180,6 +180,12 @@ export async function setupAuth(app: Express) {
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
   if (isDevBypass) {
+    // In dev mode, check if user has an active session.
+    // After logout, req.isAuthenticated() returns false — respect that
+    // instead of auto-creating a new dev user on every request.
+    if (!req.isAuthenticated() && !req.user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
     if (!req.user) {
       const devUser: any = {
         claims: DEV_USER_CLAIMS,

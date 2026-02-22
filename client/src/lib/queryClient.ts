@@ -41,20 +41,16 @@ export const getQueryFn: <T>(options: {
     return await res.json();
   };
 
-// Global error handler for authentication failures
-const handleGlobalError = (error: unknown) => {
-  const errorMessage = error instanceof Error ? error.message : String(error);
-
-  // Check if error is a 401 Unauthorized
-  if (errorMessage.includes("401:") || errorMessage.toLowerCase().includes("unauthorized")) {
-    // Clear all queries to prevent stale data
-    queryClient.clear();
-    // Redirect to login page (will trigger auth flow)
-    // Small delay to allow any in-flight operations to complete
-    setTimeout(() => {
-      window.location.href = "/";
-    }, 100);
-  }
+// Global error handler for authentication failures.
+// IMPORTANT: Only redirect on true session expiry, not on individual endpoint 401s.
+// Individual endpoints may return 401 for authorization reasons even when the
+// session is valid (e.g., missing permissions). Calling queryClient.clear() here
+// would trigger all queries to refetch, causing an infinite 401 → clear → refetch loop.
+const handleGlobalError = (_error: unknown) => {
+  // Intentionally a no-op. Authentication state is managed by the useAuth hook
+  // which uses its own queryFn that returns null on 401 instead of throwing.
+  // Individual query 401 errors are expected and handled by React Query's
+  // built-in retry/error state. No global redirect is needed.
 };
 
 export const queryClient = new QueryClient({
@@ -70,7 +66,14 @@ export const queryClient = new QueryClient({
       refetchInterval: false,
       refetchOnWindowFocus: false,
       staleTime: Infinity,
-      retry: 1,
+      retry: (failureCount, error) => {
+        // Don't retry 401 Unauthorized — retrying won't help and causes loops
+        const message = error instanceof Error ? error.message : String(error);
+        if (message.includes("401") || message.toLowerCase().includes("unauthorized")) {
+          return false;
+        }
+        return failureCount < 1;
+      },
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 3000),
     },
     mutations: {

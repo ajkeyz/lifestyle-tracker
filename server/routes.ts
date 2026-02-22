@@ -5,6 +5,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { submitGameSchema, setModeSchema, updateProfileSchema, createLeagueSchema, joinLeagueSchema, createChallengeSchema, addFreezeTokenSchema, adminScenarioSchema, banUserSchema, addModeratorSchema, createCoopSessionSchema, joinCoopSessionSchema, submitArcadeGameSchema, type CoopMessage } from "@shared/schema";
 import { getDailyScenarios, getArcadeScenarios } from "./static-scenarios";
+import { isAuthenticated } from "./replit_integrations/auth/replitAuth";
 
 // VAPID keys for push notifications (must be set via environment variables)
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
@@ -78,12 +79,9 @@ function isAuthenticatedUser(req: Request): boolean {
   return !!(user?.claims?.sub);
 }
 
-function requireAuth(req: Request, res: Response, next: Function) {
-  if (!isAuthenticatedUser(req)) {
-    return res.status(401).json({ error: "Authentication required" });
-  }
-  next();
-}
+// Use the passport isAuthenticated middleware which handles dev bypass properly.
+// This ensures dev mode auto-populates req.user before checking auth.
+const requireAuth = isAuthenticated;
 
 const rateLimiters: Map<string, Map<string, { count: number; resetAt: number }>> = new Map();
 
