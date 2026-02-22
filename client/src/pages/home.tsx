@@ -18,6 +18,7 @@ import { AnimatedAvatar } from "@/components/animated-avatar";
 import { DebugScreen, useDebugGesture } from "@/components/debug-screen";
 import { AmbientBackground } from "@/components/ambient-background";
 import { Mascot, getMascotMoodForStreak, type MascotContext } from "@/components/mascot";
+import { CleoPlayNudge } from "@/components/cleo-edge-presence";
 import { 
   Play, 
   Trophy, 
@@ -206,6 +207,15 @@ export default function Home() {
     },
   });
 
+  const { data: friendsActivity } = useQuery<{
+    friendsPlayedToday: number;
+    totalFriends: number;
+    recentActivity: Array<{ id: string; type: string; username: string; value?: number; timestamp: string }>;
+  }>({
+    queryKey: ["/api/friends/activity"],
+    refetchInterval: 60000,
+  });
+
   const hasPlayedToday = user?.todayResult != null; // loose inequality handles both null and undefined (avoids true while user is loading)
   const isInFirstWeek = user ? (user.gamesPlayed <= 7) : false;
   const firstWeekDay = user ? Math.min(user.gamesPlayed + 1, 7) : 1;
@@ -369,7 +379,7 @@ export default function Home() {
                     <SocialProofCounter />
                   </div>
                   <div className="mb-3">
-                    <LiveActivityTicker className="text-xs" />
+                    <LiveActivityTicker activities={friendsActivity?.recentActivity as any} className="text-xs" />
                   </div>
                   <Button
                     size="lg"
@@ -814,6 +824,17 @@ export default function Home() {
       </main>
       </div>
       <DebugScreen open={showDebugScreen} onOpenChange={setShowDebugScreen} />
+      {/* Cleo nudge — pops up if user hasn't played after 10s */}
+      {user && (
+        <CleoPlayNudge
+          hasPlayedToday={hasPlayedToday}
+          streak={user.streak}
+          onPlay={() => {
+            if (!user.mode) navigate("/setup");
+            else navigate("/play");
+          }}
+        />
+      )}
     </>
   );
 }

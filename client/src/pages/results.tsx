@@ -12,6 +12,7 @@ import { QuickWinsPopup } from "@/components/quick-wins-popup";
 import { ArrowLeft, Home, Trophy, Calendar, Share2, BookOpen, Sparkles, Flame, Brain } from "lucide-react";
 import { AppLogo } from "@/components/app-logo";
 import { Mascot, getMascotMoodForScore, getMascotScoreMessage, getMascotContextDialogue, CelebrationBurst, BODY_COLORS, type MascotContext } from "@/components/mascot";
+import { CleoCongratsPeek } from "@/components/cleo-edge-presence";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import type { User, DailyDrop, LeaderboardEntry } from "@shared/schema";
@@ -244,7 +245,7 @@ export default function Results() {
               />
 
               {/* Full-screen confetti for near-perfect or perfect scores */}
-              <CelebrationBurst trigger={result.score >= 380} />
+              <CelebrationBurst trigger={result.score >= 380} intensity={result.score >= 480 ? "epic" : "normal"} />
 
               <div className="flex flex-col items-center mb-4 relative z-10" data-testid="mascot-results">
                 <Mascot
@@ -438,6 +439,11 @@ export default function Results() {
         )}
       </main>
     </div>
+    {/* Cleo slides in from top-right for streak milestones */}
+    <CleoCongratsPeek
+      trigger={user?.streak >= 7 && [7, 14, 30, 60, 100].includes(user.streak)}
+      message={`${user?.streak}-day streak! You're on a roll!`}
+    />
     </>
   );
 }

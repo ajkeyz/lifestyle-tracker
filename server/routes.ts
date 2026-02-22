@@ -726,6 +726,60 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/friends/activity", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const friends = await storage.getFriends(sessionId);
+      const today = new Date().toISOString().split("T")[0];
+
+      let friendsPlayedToday = 0;
+      const recentActivity: Array<{ id: string; type: string; username: string; value?: number; timestamp: string }> = [];
+
+      for (const friend of friends) {
+        if (friend.lastPlayedDate === today) {
+          friendsPlayedToday++;
+          const score = friend.todayResult?.score;
+          if (score != null) {
+            recentActivity.push({
+              id: `${friend.id}-score`,
+              type: "score",
+              username: friend.username || "Player",
+              value: score,
+              timestamp: today,
+            });
+          }
+        }
+        if ((friend.streak ?? 0) >= 3) {
+          recentActivity.push({
+            id: `${friend.id}-streak`,
+            type: "streak",
+            username: friend.username || "Player",
+            value: friend.streak ?? 0,
+            timestamp: today,
+          });
+        }
+        if ((friend.moneyHealth ?? 0) >= 75) {
+          recentActivity.push({
+            id: `${friend.id}-level`,
+            type: "level_up",
+            username: friend.username || "Player",
+            value: friend.moneyHealth ?? 0,
+            timestamp: today,
+          });
+        }
+      }
+
+      res.json({
+        friendsPlayedToday,
+        totalFriends: friends.length,
+        recentActivity: recentActivity.slice(0, 10),
+      });
+    } catch (error) {
+      console.error("Error getting friends activity:", error);
+      res.status(500).json({ error: "Failed to get friends activity" });
+    }
+  });
+
   app.post("/api/friends/add", requireAuth, rateLimit("add-friend", 20, 60000), async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
