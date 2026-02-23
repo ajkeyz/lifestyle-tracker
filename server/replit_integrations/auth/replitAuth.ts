@@ -27,6 +27,7 @@ export function getSession() {
     ttl: sessionTtl,
     tableName: "sessions",
   });
+  const isLocalDev = !process.env.REPL_ID;
   return session({
     secret: process.env.SESSION_SECRET!,
     store: sessionStore,
@@ -34,8 +35,8 @@ export function getSession() {
     saveUninitialized: true,
     cookie: {
       httpOnly: true,
-      secure: true,
-      sameSite: "none" as const,
+      secure: !isLocalDev,
+      sameSite: isLocalDev ? "lax" as const : "none" as const,
       maxAge: sessionTtl,
     },
   });
@@ -71,6 +72,61 @@ export async function setupAuth(app: Express) {
   app.use(getSession());
   app.use(passport.initialize());
   app.use(passport.session());
+
+  // In local dev without Replit, use a mock dev user
+  const isLocalDev = !process.env.REPL_ID;
+
+  if (isLocalDev) {
+    console.log("[auth] No REPL_ID found — using local dev auth (auto-login as dev user)");
+
+    const devUser = {
+      claims: {
+        sub: "dev-user-001",
+        email: "dev@localhost",
+        first_name: "Dev",
+        last_name: "User",
+        profile_image_url: "",
+      },
+      expires_at: Math.floor(Date.now() / 1000) + 86400 * 365,
+    };
+
+    // Upsert the dev user into the auth storage
+    try {
+      await upsertUser(devUser.claims);
+    } catch (_e) {
+      // Ignore if user already exists
+    }
+
+    passport.serializeUser((user: Express.User, cb) => cb(null, user));
+    passport.deserializeUser((user: Express.User, cb) => cb(null, user));
+
+    app.get("/api/login", (req, res) => {
+      req.login(devUser, () => {
+        res.redirect("/");
+      });
+    });
+
+    app.get("/api/callback", (_req, res) => {
+      res.redirect("/");
+    });
+
+    app.get("/api/logout", (req, res) => {
+      req.logout(() => {
+        res.redirect("/");
+      });
+    });
+
+    // Auto-login middleware: if no session user, log in as dev user
+    app.use((req, _res, next) => {
+      if (!req.user) {
+        req.login(devUser, () => next());
+      } else {
+        next();
+      }
+    });
+
+    return;
+  }
 
   const config = await getOidcConfig();
 
@@ -144,7 +200,7 @@ export async function setupAuth(app: Express) {
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
   const user = req.user as any;
 
-  if (!req.isAuthenticated() || !user.expires_at) {
+  if (!req.isAuthenticated() || !user?.expires_at) {
     return res.status(401).json({ message: "Unauthorized" });
   }
 
