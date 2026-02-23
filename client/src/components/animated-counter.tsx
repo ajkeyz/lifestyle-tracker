@@ -63,9 +63,9 @@ function RollingDigit({ digit, delay = 0 }: RollingDigitProps) {
   }
 
   return (
-    <span className="inline-block relative overflow-hidden h-[1em]">
+    <span className="inline-block relative overflow-hidden h-[1.4em] leading-[1.4]">
       <motion.span
-        className="inline-block"
+        className="inline-block leading-[1.4]"
         initial={{ y: "100%" }}
         animate={{ y: "0%" }}
         transition={{

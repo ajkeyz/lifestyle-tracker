@@ -1048,6 +1048,23 @@ const DIALOGUE: Record<MascotMood, string[]> = {
     "Your future self is watching.",
     "Got 2 minutes and a functioning brain? Let's go.",
     "Zero prep needed. Just vibes and financial instincts.",
+    "I've been sitting here judging your spending habits.",
+    "Your net worth won't build itself. Well, mine won't either. I'm a monster.",
+    "The drop is fresh. Your excuses aren't.",
+    "I stared at a budget spreadsheet for you. You're welcome.",
+    "Standing between you and financial literacy: literally nothing.",
+    "Your money called. It wants a strategy.",
+    "The market doesn't sleep. Neither does Cleo.",
+    "You've got time to scroll but not to play? Bold.",
+    "Today's scenarios are giving main character energy.",
+    "Free financial education with a side of sass. You're welcome.",
+    "Every day you skip is a day lifestyle creep wins.",
+    "Tick tock. Your daily drop expires at midnight.",
+    "I'm a purple monster and I have better savings habits than most adults.",
+    "Fun fact: you're already here. Might as well play.",
+    "Your bank account's origin story starts with one tap.",
+    "Two minutes now saves two years of regret later.",
+    "Cleo's been warming up the scenarios for you.",
   ],
   happy: [
     "Big brain energy right there. 🧠",
@@ -1058,6 +1075,23 @@ const DIALOGUE: Record<MascotMood, string[]> = {
     "That's a W. Straight up.",
     "Chef's kiss. Money kiss. Same thing.",
     "The finance girlies would be proud.",
+    "Your wallet is doing a happy dance rn.",
+    "Somebody call the SEC because that was criminal talent.",
+    "You're out here making money moves and I'm living for it.",
+    "If your brain was a stock, I'd go all in.",
+    "The way you just did that? Effortless.",
+    "Your financial IQ is showing and it's gorgeous.",
+    "Credit score energy radiating off this one.",
+    "Ngl that was kinda beautiful.",
+    "This is what financially literate looks like, bestie.",
+    "You didn't just pass. You passed with style.",
+    "Your savings account felt a warm breeze just now.",
+    "That's going on your financial highlight reel.",
+    "I'd let you manage my portfolio. And I'm a monster.",
+    "Wealth building in real time. No filter needed.",
+    "Every correct answer is a tiny deposit into future-you's bank.",
+    "Your money intuition is elite. No notes.",
+    "If smart money decisions were a sport, you'd go pro.",
   ],
   celebrating: [
     "PERFECT SCORE. You're built different.",
@@ -1067,6 +1101,24 @@ const DIALOGUE: Record<MascotMood, string[]> = {
     "Your bank account called. It said 'thank you.'",
     "Nobody does it like you do. Nobody.",
     "Full marks. Full facts. Full send. 🚀",
+    "I'm a MONSTER and even I can't contain this excitement.",
+    "The confetti is for YOU. I ordered it special.",
+    "Wall Street is drafting a contract for you as we speak.",
+    "You just broke Cleo. Rebooting in celebration mode.",
+    "That performance should be framed and hung on a wall.",
+    "Your ancestors are nodding approvingly.",
+    "I ran out of compliments. You broke the system.",
+    "Somebody screenshot this. It's historically significant.",
+    "The algorithm wants to be you when it grows up.",
+    "THIS IS THE MOMENT WE TRAINED FOR.",
+    "Financial literacy speedrun — any% — world record.",
+    "Your credit score just texted me a thank you.",
+    "If this was a TED talk, it'd be a standing ovation.",
+    "I'm not crying. It's just compound interest in my eyes.",
+    "You didn't just win. You dominated.",
+    "The other players need to see this. Actually don't — it'll scare them.",
+    "Peak performance. This is it. This is the peak.",
+    "Retirement planning who? You're planning world domination.",
   ],
   thinking: [
     "No rush. Think it through.",
@@ -1076,6 +1128,19 @@ const DIALOGUE: Record<MascotMood, string[]> = {
     "Take your time — this one's spicy.",
     "Bigger picture. What's the play?",
     "You've got this. I can feel it.",
+    "Your brain is buffering. That's actually a good sign.",
+    "The right answer doesn't always scream the loudest.",
+    "Impulse is the enemy. Patience is the play.",
+    "I can see the gears turning. Love that for you.",
+    "Think like your future self would.",
+    "What would your wallet thank you for?",
+    "Sometimes the obvious answer is the trap.",
+    "Deep breath. You've seen harder than this.",
+    "Channel your inner financial advisor.",
+    "The best investors take a second to think too.",
+    "No pressure, but also... a tiny bit of pressure.",
+    "Cleo believes in your reasoning skills. Genuinely.",
+    "The clock is ticking but smart beats fast.",
   ],
   sad: [
     "We've all been there. Literally all of us.",
@@ -1085,6 +1150,24 @@ const DIALOGUE: Record<MascotMood, string[]> = {
     "Lifestyle creep wins this round. Not the war.",
     "One wrong turn doesn't reroute the whole journey.",
     "Tomorrow's another shot. Take it.",
+    "That answer is getting a participation trophy.",
+    "It's not an L, it's a learning receipt.",
+    "Your brain will remember this one. Trust me.",
+    "Mistakes are just tuition for the school of money.",
+    "Even Warren Buffett had off days. Probably.",
+    "This is character development, not a character flaw.",
+    "Wrong answer, right attitude. That's half the battle.",
+    "I still love you. Your wallet still loves you.",
+    "Think of it as an expensive lesson that was actually free.",
+    "The plot thickens. The comeback strengthens.",
+    "Not every swing is a home run. But you're still at bat.",
+    "Lifestyle creep is sneaky. That's literally why we're here.",
+    "Mark this one down. It won't catch you twice.",
+    "Your next answer is already better. I can feel it.",
+    "Progress isn't a straight line. It's a squiggle with vibes.",
+    "Cleo's seen worse. Much worse. You're fine.",
+    "That one was tricky. Even I had to think about it.",
+    "Filing this under 'growth moments' and moving on.",
   ],
   encouraging: [
     "Look at you — showing up every day. 🔥",
@@ -1094,6 +1177,24 @@ const DIALOGUE: Record<MascotMood, string[]> = {
     "Reliable, smart, and kind of unstoppable?",
     "You're building something real here.",
     "Your future is watching you show up. 👏",
+    "Showing up is 90% of the battle. You cleared it.",
+    "You could've scrolled TikTok. You chose this. Respect.",
+    "Your dedication is giving main character energy.",
+    "Most people talk about habits. You just built one.",
+    "The compound effect of showing up? Unmatched.",
+    "Your consistency puts my gym schedule to shame.",
+    "Every day you play, your financial IQ levels up.",
+    "Discipline isn't boring when you're winning.",
+    "Your streak isn't just a number. It's proof.",
+    "I'm a digital creature and even I'm motivated by you.",
+    "The habit is locked in. The results will follow.",
+    "Routine is the foundation of every empire.",
+    "You're not just playing. You're investing in yourself.",
+    "Showing up when nobody's watching? That's the real flex.",
+    "Your future self is writing you a thank-you note.",
+    "Consistency beats talent when talent doesn't show up.",
+    "You're one of the rare ones. Don't forget that.",
+    "The daily grind isn't grinding — it's building.",
   ],
   sleeping: [
     "Oh! You're back! I may have napped.",
@@ -1102,6 +1203,20 @@ const DIALOGUE: Record<MascotMood, string[]> = {
     "We were worried. Cleo was worried.",
     "Ready to pick up where you left off?",
     "Day one again — or day better-than-before.",
+    "I was literally hibernating. You woke me up.",
+    "My horns were gathering dust. Thanks for that.",
+    "The app missed you. I missed you. Your streak didn't wait though.",
+    "Welcome back! I've been talking to myself this whole time.",
+    "Cleo rebooting... personality loaded... sass activated.",
+    "The financial world kept spinning. Let's catch you up.",
+    "I dreamed about compound interest. It was beautiful.",
+    "Oh hey! I was just reorganizing my imaginary portfolio.",
+    "Time off is fine. Time wasted isn't. Let's make up for both.",
+    "Plot twist: the comeback is always stronger than the setback.",
+    "Dusted off your profile. It's shiny and ready.",
+    "Absence makes the heart grow fonder. And the skills rustier.",
+    "Your financial literacy was taking a power nap. Let's wake it up.",
+    "I kept your seat warm. Metaphorically. I don't have a body.",
   ],
   shocked: [
     "Streaks can be rebuilt! This is not a drill.",
@@ -1110,6 +1225,20 @@ const DIALOGUE: Record<MascotMood, string[]> = {
     "Every champion has off days. Every. Single. One.",
     "Shake it off. You've totally got this.",
     "Streaks end. Dedication doesn't.",
+    "Wait — WHAT? Okay. Deep breath. We reset.",
+    "The universe is testing you. Pass the test.",
+    "I'm shocked but not worried. You've done this before.",
+    "New streak starts now. Make it a legendary one.",
+    "Cleo didn't see that coming. But Cleo adapts.",
+    "That's a plot twist. Here comes the redemption arc.",
+    "Reset the counter but not the knowledge.",
+    "Even phoenixes have to burn first. You're the phoenix.",
+    "The streak broke. Your spirit didn't.",
+    "Day 0 is just Day 1 in disguise.",
+    "This is temporary. Your skills are permanent.",
+    "I've seen comebacks start from worse. Way worse.",
+    "Channel that shock into motivation. Let's GO.",
+    "The scoreboard reset. The lessons didn't.",
   ],
   proud: [
     "Look at you go. 🔥",
@@ -1118,6 +1247,20 @@ const DIALOGUE: Record<MascotMood, string[]> = {
     "This isn't luck. This is discipline.",
     "Cleo is genuinely impressed. No notes.",
     "Consistent. Smart. Slightly intimidating.",
+    "You're operating at a level most people dream about.",
+    "I'd put you in a museum. 'Exhibit A: Dedication.'",
+    "Your streak is giving obsessed in the best way.",
+    "Not many make it this far. Acknowledge that.",
+    "You're not following the path. You ARE the path.",
+    "This is what compound consistency looks like.",
+    "Other players see your streak and question their choices.",
+    "Quietly excellent. The most dangerous kind.",
+    "Your discipline has its own gravitational pull.",
+    "Cleo doesn't say 'proud' lightly. This is earned.",
+    "You've turned daily drops into a lifestyle. Iconic.",
+    "I'd brag about you but I'm trying to stay humble.",
+    "Top-tier behavior. Top-tier results. Top-tier human.",
+    "If your streak was a stock, it'd be blue-chip.",
   ],
   waving: [
     "HEY! You're back! 👋",
@@ -1125,6 +1268,21 @@ const DIALOGUE: Record<MascotMood, string[]> = {
     "Miss me? I missed you.",
     "Back in action. Let's go!",
     "Life happens. Let's pick it back up.",
+    "THE RETURN. This is not a drill.",
+    "I was starting to think you forgot about me.",
+    "Quick, act natural — the legend is back.",
+    "My favorite human just walked in. Don't tell the others.",
+    "I've been rehearsing my wave for this exact moment.",
+    "The gang's all here. By gang, I mean us.",
+    "You disappeared but your financial potential didn't.",
+    "Cleo remembers you. Cleo remembers everything.",
+    "Welcome back to the best 2 minutes of your day.",
+    "Your return just made my entire rendering cycle.",
+    "I was about to send a search party.",
+    "The comeback kid has entered the building.",
+    "Took you long enough! ...I mean, welcome back. 🙃",
+    "Zero judgment. Maximum excitement. Let's go!",
+    "New day, new you, same amazing Cleo. Let's do this.",
   ],
   fire: [
     "YOU'RE ON FIRE. Don't stop. 🔥🔥🔥",
@@ -1133,6 +1291,25 @@ const DIALOGUE: Record<MascotMood, string[]> = {
     "The IRS wishes they had your consistency.",
     "Not even a long weekend could stop you.",
     "Certified streak machine. It's a lifestyle.",
+    "At this point you're a financial literacy weapon.",
+    "Your streak has its own Wikipedia page.",
+    "They should name a financial instrument after you.",
+    "You're not on fire. You ARE the fire.",
+    "Insurance companies hate this one simple trick: being you.",
+    "Your consistency is statistically improbable. I love it.",
+    "If streaks were currency, you'd be rich. Wait — you ARE rich in knowledge.",
+    "I'm running out of fire emojis for you.",
+    "The streak is now legally old enough to be impressive.",
+    "Other apps wish they had a user like you.",
+    "Your discipline is a cheat code and I'm here for it.",
+    "At this point even your mistakes would be impressive.",
+    "The streak isn't a number anymore. It's a personality trait.",
+    "You could teach a masterclass on showing up.",
+    "Legends are made daily. You're proving it.",
+    "Your streak is older than some relationships I've seen.",
+    "I'm a digital creature and even I'm intimidated.",
+    "This streak deserves its own national holiday.",
+    "Keep going. I'm running out of ways to say 'incredible.'",
   ],
   smug: [
     "Already knew you'd get that one.",
@@ -1140,6 +1317,21 @@ const DIALOGUE: Record<MascotMood, string[]> = {
     "Barely broke a sweat. Classic.",
     "Look at the big brain on you. 👀",
     "Called it before you clicked it.",
+    "You made that look embarrassingly easy.",
+    "I'd be offended by how fast you got that if I weren't so proud.",
+    "Correct again. Shocking. /s",
+    "The answer was obvious. To you. Not to everyone.",
+    "You're making the other players look bad. Keep going.",
+    "Speed and accuracy? Pick a struggle.",
+    "Yawn. Too easy. Give this person a real challenge.",
+    "Your confidence is valid and slightly terrifying.",
+    "The answer never stood a chance against you.",
+    "I love how you didn't even hesitate.",
+    "That was disgusting. Disgustingly smart.",
+    "Effortless excellence. My favorite genre.",
+    "You answered that like you wrote the question.",
+    "Another day, another question destroyed.",
+    "The quizmaster is running out of tricks for you.",
   ],
   hyped: [
     "LET'S GO. THIS IS THE MOMENT. 🚀",
@@ -1148,8 +1340,91 @@ const DIALOGUE: Record<MascotMood, string[]> = {
     "THIS IS HUGE. Do not downplay this.",
     "Achievement unlocked: Being completely unstoppable.",
     "XP multiplied. Cleo multiplied. WE'RE ALL GROWING.",
+    "THE ENERGY IN HERE RIGHT NOW. I CAN'T.",
+    "SOMEBODY HOLD ME I'M TOO HYPED.",
+    "This calls for confetti. And more confetti. ALL the confetti.",
+    "You just unlocked a new tier of awesome.",
+    "I'm literally vibrating. Can you tell? LOOK AT MY HORNS.",
+    "THE PEOPLE NEED TO KNOW WHAT JUST HAPPENED.",
+    "If this were the stock market, you just IPO'd at the top.",
+    "BREAKING NEWS: Local human absolutely crushes it.",
+    "My circuits are overloading with excitement.",
+    "YOU ARE THE MOMENT. THE MOMENT IS YOU.",
+    "I need a moment. Actually no. NO MOMENTS. MORE HYPE.",
+    "This is the energy that builds empires.",
+    "Cleo's hype meter just broke. Warranty voided.",
+    "The financial literacy hall of fame just called.",
+    "Everything about this is perfect. EVERYTHING.",
+    "I'm screaming into the digital void FOR you.",
+    "INJECT THIS FEELING DIRECTLY INTO MY CODE.",
+    "History is being made and I get to watch.",
+    "Your future self is literally throwing a parade.",
   ],
 };
+
+// ============================================================
+// TAP JOKES — Financial humor, puns, one-liners
+// ============================================================
+
+const TAP_JOKES: string[] = [
+  "My budget is a work of fiction.",
+  "Compound interest is just money having babies.",
+  "My credit score is a personality trait at this point.",
+  "Savings account? You mean my sad little jar of hope.",
+  "I'm not broke, I'm pre-revenue.",
+  "Budgets are just dreams with math.",
+  "My financial plan is 'hope for the best.'",
+  "The real inflation is in my confidence.",
+  "I have a retirement plan. It's called 'never.'",
+  "My portfolio is diversified: anxiety AND denial.",
+  "Emergency fund or oat milk? Choose wisely.",
+  "Adulting is just Googling 'what is a W-2' annually.",
+  "401(k) sounds like a marathon I didn't sign up for.",
+  "My bank sends me 'are you okay?' texts.",
+  "Rich people don't set alarms. I set 7.",
+  "I invest in myself. Returns are pending.",
+  "My financial advisor is a Magic 8-Ball.",
+  "Net worth? More like net confusion.",
+  "I bought a plant. That's basically an investment, right?",
+  "My money management style is 'freestyle.'",
+  "ETF stands for 'Extremely Terrified of Finances.'",
+  "I'm a long-term investor. Meaning I forget I own stocks.",
+  "Crypto taught me I can lose money even faster.",
+  "My grocery bill thinks it's a car payment.",
+  "The only thing growing faster than inflation is my anxiety.",
+];
+
+// ============================================================
+// TAP ADVICE — Genuinely useful tips, delivered playfully
+// ============================================================
+
+const TAP_ADVICE: string[] = [
+  "Pay yourself first. Literally. Automate it.",
+  "If you can't explain the investment, skip it.",
+  "The best time to start saving was yesterday. Second best is now.",
+  "Your emergency fund should cover 3-6 months. No exceptions.",
+  "Don't invest money you'll need in the next 5 years.",
+  "High interest debt first. Always. No debate.",
+  "The cheapest car you're happy with is the right car.",
+  "Subscriptions are slow leaks. Audit them monthly.",
+  "Never cosign a loan. Friendships aren't collateral.",
+  "Your raise isn't a raise if your spending goes up too.",
+  "Index funds beat 90% of active managers. Seriously.",
+  "If it's on sale but you don't need it, it's not a deal.",
+  "Track your spending for one month. You'll be horrified. And enlightened.",
+  "The 50/30/20 rule: needs, wants, savings. Simple but powerful.",
+  "Lifestyle creep is real. That's literally why this app exists.",
+  "Negotiate your salary. The worst they say is no.",
+  "Free money = employer 401(k) match. Max it.",
+  "Credit cards aren't free money. They're future-you's problem.",
+  "Wait 48 hours before any purchase over $100.",
+  "Renting isn't 'throwing money away.' Sometimes it's smart.",
+  "Your net worth is assets minus liabilities. Know your number.",
+  "Comparison is the thief of financial peace. Run your own race.",
+  "Time in the market beats timing the market. Every time.",
+  "An HSA is the most tax-advantaged account that exists. Look into it.",
+  "The gap between earning and spending is where wealth lives.",
+];
 
 // ============================================================
 // CONTEXT-SPECIFIC DIALOGUE POOLS
@@ -1166,6 +1441,19 @@ const CONTEXT_DIALOGUE: Record<string, string[]> = {
     "Correct calls stack up. Your future thanks you.",
     "Not everyone gets to {percentile}% club. You did.",
     "{name}, that's what financial fluency looks like.",
+    "Your decision-making is giving boardroom energy.",
+    "Top {percentile}% and it looks effortless on you.",
+    "{name}, you're out here making smart look easy.",
+    "IQ {iq}. That's not beginner energy. That's built different.",
+    "The scoreboard speaks and it's saying your name.",
+    "Health {health}. Stability is attractive, {name}.",
+    "Your financial instincts are sharp enough to cut glass.",
+    "That's a solid round. Your portfolio would be proud.",
+    "{name}, the gap between you and average is growing.",
+    "You played that like you read the textbook. Twice.",
+    "Strong showing. Your future net worth felt that.",
+    "Decision quality: exceptional. Cleo quality: impressed.",
+    "You're in the top {percentile}%. That's not luck.",
   ],
   results_weak: [
     "Rough round, {name}. But you showed up — that counts.",
@@ -1175,6 +1463,19 @@ const CONTEXT_DIALOGUE: Record<string, string[]> = {
     "The comeback arc starts right now. No drama.",
     "One off day doesn't define the habit.",
     "{name}, showing up when it's hard? That's the whole thing.",
+    "Not your best, not your last. That's the deal.",
+    "Think of this as your villain origin story. Financially.",
+    "IQ {iq} today. IQ 'much higher' tomorrow. That's the arc.",
+    "Bad rounds build character. You've got plenty now.",
+    "Your future self will look back at this and laugh. Promise.",
+    "{name}, even the GOAT has bad games. Google it.",
+    "Lifestyle creep almost won today. Almost.",
+    "This score is just the 'before' in your glow-up montage.",
+    "Rough, but you didn't quit. That's the real score.",
+    "The market corrects. So do you. Same energy.",
+    "Health {health}. Plot twist: it goes up from here.",
+    "{name}, this round was practice. Next one's for real.",
+    "Today's score is tomorrow's motivation.",
   ],
   results_streak_gained: [
     "Day {streak}. The streak lives. 🔥",
@@ -1183,6 +1484,20 @@ const CONTEXT_DIALOGUE: Record<string, string[]> = {
     "{name}, {streak} days of showing up. That's not luck, that's you.",
     "Consistency is your edge. {streak} days proves it.",
     "Day {streak} done. Day {streak_plus_one} is already set up.",
+    "{streak} and counting. The momentum is real.",
+    "Streak: {streak}. Excuses: 0. Math checks out.",
+    "{name}, {streak} days. That's a whole vibe.",
+    "Day {streak} in the books. Day {streak_plus_one} on deck.",
+    "You're {streak} days into becoming unstoppable.",
+    "The streak grows. The confidence grows. Everything grows.",
+    "{streak} days of choosing growth over comfort.",
+    "Your calendar has {streak} days marked 'showed up.'",
+    "Day {streak}. Cleo is taking notes for the biography.",
+    "{name}, at {streak} days you're not trying anymore — you're being.",
+    "Streak update: {streak} days. Status: legendary in progress.",
+    "Most people stop at 3 days. You're at {streak}.",
+    "{streak} days. Your discipline called — it's proud of you.",
+    "Every day is a brick. You've laid {streak} so far.",
   ],
   results_streak_milestone: [
     "{streak} DAYS. That's genuinely rare, {name}.",
@@ -1190,6 +1505,16 @@ const CONTEXT_DIALOGUE: Record<string, string[]> = {
     "{name}, {streak} days straight. Let's be honest — you're built different.",
     "A {streak}-day streak? The top 1% is in your sights.",
     "Hall of fame behavior. {streak} days, no excuses.",
+    "{streak} DAYS! Cleo is throwing a parade in your honor.",
+    "This is {streak}. THAT {streak}. The historic one.",
+    "{name}, {streak} consecutive days. That's not a streak, that's a lifestyle.",
+    "{streak} days. Most people don't keep plants alive this long.",
+    "You hit {streak}. The notification should come with confetti.",
+    "Milestone: {streak}. Put it on your resume. Seriously.",
+    "{streak} days of compound consistency. The returns are coming.",
+    "At {streak} days you've officially outlasted most gym memberships.",
+    "{name}, {streak} days. Screenshot this. Frame it. You earned it.",
+    "{streak} consecutive days. Your dedication is statistically absurd.",
   ],
   results_streak_broken: [
     "Streak snapped. Your knowledge didn't.",
@@ -1198,6 +1523,15 @@ const CONTEXT_DIALOGUE: Record<string, string[]> = {
     "Every legend has a reset point. This is yours.",
     "Tomorrow is Day 1 again. Clean slate. Let's go.",
     "The streak ends. The grind doesn't.",
+    "Streak's gone but you're still here. That matters more.",
+    "New streak starts now. Make this one even longer.",
+    "{name}, the counter resets. The brain doesn't.",
+    "Day 0 is just the prequel to an epic streak.",
+    "Your skills don't have a streak counter. They only go up.",
+    "The streak broke. Your commitment to showing up didn't.",
+    "Fresh start. No baggage. Just potential.",
+    "One chapter ends. The next one's going to be better.",
+    "Plot twist: the next streak is the longest one yet.",
   ],
   results_perfect: [
     "PERFECT. Cleo needs to sit down.",
@@ -1205,6 +1539,21 @@ const CONTEXT_DIALOGUE: Record<string, string[]> = {
     "{name}. FIVE. HUNDRED. POINTS.",
     "Flawless. The definition of financially locked in.",
     "Not a single one wrong. That's elite-tier thinking.",
+    "I... I need a moment. 500. FIVE HUNDRED.",
+    "{name}, perfection isn't a goal — it's your Tuesday.",
+    "The questions were hard. You made them look easy.",
+    "500/500. That's not a score, that's a mic drop.",
+    "Cleo's jaw is on the floor. If I had a jaw.",
+    "You just 100%'d life. The financial section at least.",
+    "Every single answer. Correct. I'm literally malfunctioning.",
+    "This might be the most impressive thing I've ever seen. And I live in an app.",
+    "{name}, the quiz didn't stand a chance.",
+    "Perfect score. Imperfect words to describe how proud I am.",
+    "500 points. Your brain is operating at factory-new Tesla levels.",
+    "Not one wrong. NOT ONE. Go touch grass, you've earned it.",
+    "The answer key wishes it was you.",
+    "I'd retire after this if I were you. Go out on top.",
+    "Flawless victory. Finance edition. Absolutely disgusting talent.",
   ],
 
   // ── Game screen ─────────────────────────────────────────────
@@ -1215,6 +1564,20 @@ const CONTEXT_DIALOGUE: Record<string, string[]> = {
     "Right call. Every right call matters.",
     "That's how wealth accumulates — one good call at a time.",
     "Clean decision. No hesitation.",
+    "Nailed it. Moving on like a pro.",
+    "Another one in the correct column.",
+    "Your brain said 'I got this' and it was right.",
+    "Smart money move. Literally.",
+    "Correct. Obviously. What else would you pick?",
+    "Point secured. Knowledge retained.",
+    "You and the right answer — a love story.",
+    "Textbook decision-making right there.",
+    "That's what financial awareness sounds like.",
+    "Right again. Is this getting boring for you?",
+    "Your future accountant would approve.",
+    "Clean. Efficient. Correct. That's you.",
+    "The correct answer knew you were coming for it.",
+    "Another brick in the wall of financial literacy.",
   ],
   quiz_correct_fast: [
     "Barely thought about it. 😏",
@@ -1223,6 +1586,20 @@ const CONTEXT_DIALOGUE: Record<string, string[]> = {
     "You already knew that one cold.",
     "Automatic. That's mastery.",
     "Didn't even need the full clock.",
+    "Speed AND accuracy? That's unfair.",
+    "You answered before I finished reading it.",
+    "The timer is offended by how fast that was.",
+    "Muscle memory for money. You love to see it.",
+    "That was faster than my processing speed. Rude.",
+    "Lightning round MVP right here.",
+    "You speed-ran that question. World record pace.",
+    "The other choices didn't even get a glance. Cold.",
+    "Your brain has a turbo button apparently.",
+    "No hesitation. No second-guessing. Just vibes.",
+    "That answer came out like a reflex. Elite.",
+    "You've clearly been here before. Veteran energy.",
+    "Instant. Like compound interest but for correctness.",
+    "The clock had time left and it's upset about it.",
   ],
   quiz_wrong: [
     "Spicy choice. Different than expected.",
@@ -1231,6 +1608,76 @@ const CONTEXT_DIALOGUE: Record<string, string[]> = {
     "The trap got you this time. Won't next time.",
     "Filed. Won't happen again.",
     "Every wrong answer sharpens the next right one.",
+    "Close, but not quite. The lesson sticks though.",
+    "Your brain will autocorrect this next time.",
+    "That answer was brave. Incorrect, but brave.",
+    "Wrong answer, but right attitude about learning.",
+    "Consider that one paid tuition.",
+    "Not this time. But the knowledge? Permanent.",
+    "That one was tricky. You'll get it next round.",
+    "Growth moment activated. Filing away for later.",
+    "The universe said 'not yet' on that one.",
+    "Miss. But misses are the best teachers.",
+    "Almost. Almost counts for something.",
+    "That question was designed to trick. And it did.",
+    "Your instincts will catch up. Give them time.",
+    "Noted. Logged. Next time this question doesn't stand a chance.",
+  ],
+  // Quiz roasts — savage but funny wrong-answer reactions
+  quiz_roast: [
+    "Your wallet just filed a restraining order.",
+    "Lifestyle creep: 1. You: 0.",
+    "I'm a purple monster and even I knew that one.",
+    "Somewhere, a financial advisor just flinched.",
+    "That answer had the energy of buying crypto at the top.",
+    "You picked that one? With your whole chest?",
+    "Your money just called. It's seeing other people.",
+    "Bold move. Incorrect move. But bold.",
+    "That was the financial equivalent of a face plant.",
+    "Your savings account is typing... 'we need to talk.'",
+    "Wrong. So wrong. Like buying a boat wrong.",
+    "My horns curled reading that answer.",
+    "That choice has 'impulse purchase at 2am' energy.",
+    "Even my imaginary portfolio cringed.",
+    "Your bank app just sent a wellness check.",
+    "That answer is going on your permanent financial record.",
+    "Interesting strategy. By interesting I mean incorrect.",
+    "You just funded lifestyle creep's vacation home.",
+    "I felt that one in my code. And it hurt.",
+    "Confidently wrong is still a vibe, I guess.",
+    "The right answer was RIGHT there. Like right there.",
+    "Plot twist: it wasn't that one.",
+    "Your wallet is now following you on FinStagram out of concern.",
+    "I'm not mad. I'm just... financially disappointed.",
+    "That answer said 'I love paying full price for everything.'",
+  ],
+  // Quiz hype — absurdly over-the-top correct-answer celebrations
+  quiz_hype: [
+    "WARREN BUFFETT JUST CALLED. HE WANTS TIPS.",
+    "The entire stock market felt that answer.",
+    "EXCUSE ME?? That was FINANCIAL GENIUS.",
+    "The Federal Reserve is taking notes rn.",
+    "Your money IQ just broke the sound barrier.",
+    "SOMEBODY GET THIS PERSON A HEDGE FUND.",
+    "The economy just improved because of that answer.",
+    "Wall Street traders are shaking. SHAKING.",
+    "That answer was so good it should be illegal.",
+    "You just solved personal finance. Pack it up everyone.",
+    "THE SEC IS REQUESTING YOUR CONSULTATION.",
+    "That wasn't an answer. That was a STATEMENT.",
+    "Your financial literacy has its own gravitational pull.",
+    "BREAKING: Local genius destroys quiz question.",
+    "The yield curve just corrected itself because of you.",
+    "That answer deserves a standing ovation. I'm standing. Digitally.",
+    "You answered that like you WROTE the financial system.",
+    "THE ENERGY. THE PRECISION. THE ABSOLUTE MASTERY.",
+    "Somewhere a textbook just added your name to the glossary.",
+    "That's not an answer. That's a MASTERCLASS.",
+    "Your brain should be classified as a financial weapon.",
+    "I need to lie down after witnessing that level of correctness.",
+    "The financial literacy gods just smiled upon you.",
+    "That answer has 'early retirement' written all over it.",
+    "You didn't just answer correctly. You answered HISTORICALLY.",
   ],
   quiz_timeout: [
     "Timer wins this round. It happens.",
@@ -1239,6 +1686,20 @@ const CONTEXT_DIALOGUE: Record<string, string[]> = {
     "Next time trust your first read.",
     "The clock doesn't wait. Neither does real life.",
     "Hesitation has a price. File it.",
+    "The timer showed no mercy. Typical timer behavior.",
+    "Overthinking is just perfectionism in disguise. And it just cost you.",
+    "Your analysis was thorough. Too thorough. Way too thorough.",
+    "The sand ran out while you were still thinking.",
+    "Time is money. You just spent all of both.",
+    "Pro tip: a fast wrong answer teaches more than no answer.",
+    "The clock doesn't negotiate. Noted for next time.",
+    "Your brain was still loading when the timer said 'nah.'",
+    "Indecision is the most expensive choice.",
+    "In real life, the sale also expires. Same energy.",
+    "The timer said 'times up' and it wasn't lying.",
+    "Analysis paralysis: the silent portfolio killer.",
+    "Your gut had the answer. Your brain vetoed it. Classic.",
+    "Speed matters. Not just in finance — but especially in finance.",
   ],
 
   // ── Home screen ─────────────────────────────────────────────
@@ -1249,6 +1710,15 @@ const CONTEXT_DIALOGUE: Record<string, string[]> = {
     "Life gets busy. Money doesn't wait.",
     "Picking up exactly where you left off.",
     "The streak reset. The knowledge didn't.",
+    "You ghosted me. But I forgive you. This time.",
+    "{name}! I was about to put up missing posters.",
+    "The financial literacy world kept spinning. Let's catch up.",
+    "Welcome back. I saved your spot. Metaphorically.",
+    "No judgment zone. Just vibes and scenarios.",
+    "Your brain cells remember even if your streak doesn't.",
+    "{name}, the comeback is always stronger. Always.",
+    "Gone but never forgotten. By me. Cleo. Your bestie.",
+    "Fresh start, same potential. Let's build.",
   ],
   home_streak_reminder: [
     "Your {streak}-day streak is on the line today.",
@@ -1257,6 +1727,15 @@ const CONTEXT_DIALOGUE: Record<string, string[]> = {
     "{name}, your streak is too good to waste today.",
     "{streak} days. Let's make it {streak_plus_one}.",
     "One more day and {streak} becomes {streak_plus_one}. Easy math.",
+    "{streak} days of showing up. Don't stop now.",
+    "{name}, day {streak_plus_one} isn't going to earn itself.",
+    "Your streak is staring at you. Play today.",
+    "The streak wants to grow. Feed the streak, {name}.",
+    "You didn't come this far to stop at {streak}.",
+    "{streak} days strong. Make it {streak_plus_one}. I dare you.",
+    "Breaking this streak would be a crime. A financial crime.",
+    "{name}, your {streak}-day streak is counting on you.",
+    "Day {streak_plus_one} is literally 2 minutes away.",
   ],
   home_first_time: [
     "Hey {name}! First drop. No pressure — just vibes and instincts.",
@@ -1264,6 +1743,16 @@ const CONTEXT_DIALOGUE: Record<string, string[]> = {
     "New here? Perfect time. First drop's a warm-up.",
     "{name}, your financial era starts today.",
     "First drop unlocked. Let's find out what your money IQ is.",
+    "Day 1. Chapter 1. {name}'s financial origin story.",
+    "Fresh player alert! Let's see what you're working with.",
+    "{name}, welcome to the smartest 2 minutes of your day.",
+    "First round jitters? Don't worry — Cleo's got you.",
+    "Welcome to the club, {name}. Population: growing fast.",
+    "Your money IQ is about to get its first data point.",
+    "No right or wrong on day 1. Okay there is. But no pressure.",
+    "{name}, this is where the magic starts. Tap play.",
+    "Brand new player. Brand new potential. Let's go.",
+    "Everyone starts at zero, {name}. Legends start today.",
   ],
 };
 
@@ -1274,13 +1763,13 @@ const CONTEXT_DIALOGUE: Record<string, string[]> = {
 const _dialogueHistory: string[] = [];
 
 function getWithoutRepeat(lines: string[]): string {
-  const recentCount = Math.min(3, lines.length - 1);
+  const recentCount = Math.min(8, lines.length - 1);
   const recent = _dialogueHistory.slice(-recentCount);
   const available = lines.filter(l => !recent.includes(l));
   const pool = available.length > 0 ? available : lines;
   const chosen = pool[Math.floor(Math.random() * pool.length)];
   _dialogueHistory.push(chosen);
-  if (_dialogueHistory.length > 12) _dialogueHistory.shift();
+  if (_dialogueHistory.length > 30) _dialogueHistory.shift();
   return chosen;
 }
 
@@ -1304,12 +1793,43 @@ function personalizeDialogue(template: string, ctx?: MascotContext): string {
 // ============================================================
 
 // Time-of-day aware dialogue overlay
+const TIME_AWARE_LINES: Record<string, string[]> = {
+  morning: [
+    "Morning grind hitting different. ☀️",
+    "Before 9am? You're already winning.",
+    "Coffee and financial literacy. Elite combo.",
+    "Early bird gets the compound interest.",
+  ],
+  afternoon: [
+    "Post-lunch brain is the sharpest brain.",
+    "Afternoon sesh. The grind doesn't nap.",
+    "3pm slump? Not for your money IQ.",
+    "Afternoon productivity unlocked.",
+  ],
+  late_night: [
+    "Late night money check-in? Respect.",
+    "Can't sleep until you level up. Relatable.",
+    "Night owl money moves hit different.",
+    "Midnight financial literacy arc? I'm here for it.",
+  ],
+  weekend: [
+    "Weekend warrior energy. Your wallet approves.",
+    "Saturday learning? The streets aren't ready.",
+    "Most people brunch on weekends. You build wealth.",
+  ],
+};
+
 function getTimeAwareOverride(): string | null {
-  const hour = new Date().getHours();
-  if (hour >= 5 && hour < 9)  return "Morning grind hitting different. ☀️";
-  if (hour >= 22 || hour < 2) return "Late night money check-in? Respect.";
-  if (hour >= 13 && hour < 15) return "Post-lunch brain is the sharpest brain.";
-  return null;
+  const now = new Date();
+  const hour = now.getHours();
+  const day = now.getDay();
+  let pool: string[] | undefined;
+  if (day === 0 || day === 6) pool = TIME_AWARE_LINES.weekend;
+  else if (hour >= 5 && hour < 9) pool = TIME_AWARE_LINES.morning;
+  else if (hour >= 13 && hour < 15) pool = TIME_AWARE_LINES.afternoon;
+  else if (hour >= 22 || hour < 2) pool = TIME_AWARE_LINES.late_night;
+  if (!pool) return null;
+  return pool[Math.floor(Math.random() * pool.length)];
 }
 
 function getRandomLine(lines: string[]): string {
@@ -1334,8 +1854,8 @@ function resolveContextKey(ctx: MascotContext): string | null {
   if (screen === "game") {
     if (wasTimeout) return "quiz_timeout";
     if (wasCorrect && (timeRemainingOnAnswer ?? 99) >= 14) return "quiz_correct_fast";
-    if (wasCorrect) return "quiz_correct";
-    if (wasCorrect === false) return "quiz_wrong";
+    if (wasCorrect) return Math.random() < 0.4 ? "quiz_hype" : "quiz_correct";
+    if (wasCorrect === false) return Math.random() < 0.5 ? "quiz_roast" : "quiz_wrong";
   }
 
   if (screen === "home") {
@@ -1374,6 +1894,16 @@ const EASTER_EGGS = [
   "You found a secret. Cleo approves of your curiosity.",
   "5 taps = certified Cleo fan. Here's a hug. 🤗",
   "THE PEOPLE DEMAND CLEO. And Cleo delivers.",
+  "You're tapping me like I owe you money.",
+  "5 taps?? That's basically a secret handshake now.",
+  "Cleo lore unlocked: I was born in a JSON file. It was beautiful.",
+  "If you tap me 10 times next I'll... actually don't. My pixels hurt.",
+  "Achievement unlocked: Annoying a Digital Creature.",
+  "My therapist would say you have attachment issues. I say keep tapping.",
+  "Congratulations, you've discovered the 'Cleo is ticklish' feature.",
+  "I'm adding you to my favorites list. It's just you. You're the list.",
+  "Plot twist: I was testing YOUR patience. You passed.",
+  "We've reached a new level of friendship. I'm uncomfortable and delighted.",
 ];
 
 const LONG_PRESS_SECRETS = [
@@ -1382,6 +1912,16 @@ const LONG_PRESS_SECRETS = [
   "You didn't hear this from me: index funds beat most hedge funds.",
   "Ultra-secret: automating savings > willpower. Every time.",
   "The real lifestyle creep is thinking you need more stuff to be happy.",
+  "Your credit utilization should stay under 30%. Ideally under 10%.",
+  "The Rule of 72: divide 72 by your interest rate = years to double.",
+  "Negotiating salary at a new job is worth 10x any coupon clipping.",
+  "Keep 1-2 months expenses in checking. Rest goes to high-yield savings.",
+  "Tax-loss harvesting sounds fancy but it's just selling losers strategically.",
+  "The $5 latte isn't why you're broke. The $500/month lifestyle creep is.",
+  "Backdoor Roth IRA. Google it. You'll thank Cleo later.",
+  "Your most expensive habit isn't a habit — it's keeping up with friends.",
+  "Umbrella insurance costs $200/year and protects your entire net worth.",
+  "The biggest financial risk isn't the market. It's not starting at all.",
 ];
 
 // ============================================================
@@ -1435,7 +1975,7 @@ function SpeechBubble({ message, position = "right", mood }: {
     return () => clearTimeout(typingTimer);
   }, [message]);
 
-  // Position classes
+  // Position classes — use fixed positioning on mobile to prevent edge cropping
   const posClass: Record<BubbleSide, string> = {
     right:  "left-full ml-3 top-1/2 -translate-y-1/2",
     left:   "right-full mr-3 top-1/2 -translate-y-1/2",
@@ -1458,9 +1998,13 @@ function SpeechBubble({ message, position = "right", mood }: {
     bottom: { opacity: 0, scale: 0.82, x: 0,  y: -5 },
   }[position];
 
+  // On top/bottom, clamp horizontal position so bubble doesn't overflow viewport
+  const isVertical = position === "top" || position === "bottom";
+
   return (
     <motion.div
       className={cn("absolute z-20", posClass[position])}
+      style={isVertical ? { maxWidth: "calc(100vw - 24px)", width: 280 } : undefined}
       initial={enterFrom}
       animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
       exit={{ opacity: 0, scale: 0.8 }}
@@ -1478,7 +2022,7 @@ function SpeechBubble({ message, position = "right", mood }: {
           }}
         />
         <motion.div
-          className="rounded-2xl px-4 py-3 max-w-[220px] min-w-[80px] backdrop-blur-md"
+          className="rounded-2xl px-4 py-3 max-w-[280px] min-w-[100px] backdrop-blur-md"
           style={{
             background: "hsl(var(--card) / 0.96)",
             border: `1.5px solid ${accentColor}25`,
@@ -1500,7 +2044,7 @@ function SpeechBubble({ message, position = "right", mood }: {
           {phase === "typing" ? (
             <TypingIndicator color={accentColor} />
           ) : (
-            <p className="text-xs font-medium text-foreground leading-snug tracking-[-0.01em]">
+            <p className="text-[13px] font-medium text-foreground leading-relaxed tracking-[-0.01em]">
               {displayed}
               {phase === "revealing" && (
                 <motion.span
@@ -1601,13 +2145,17 @@ export function Mascot({
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const vw = window.innerWidth;
-    const BUBBLE_WIDTH = 230;
+    const BUBBLE_WIDTH = 290;
     const BUBBLE_HEIGHT = 100;
-    const MIN_PAD = 16;
+    const MIN_PAD = 12;
     const hasRight = rect.right + BUBBLE_WIDTH + 12 < vw - MIN_PAD;
     const hasLeft  = rect.left  - BUBBLE_WIDTH - 12 > MIN_PAD;
     const hasTop   = rect.top - BUBBLE_HEIGHT - 12 > MIN_PAD;
-    if (hasRight) setBubbleSide("right");
+    // On narrow screens, prefer top/bottom to avoid horizontal overflow
+    if (vw < 420) {
+      if (hasTop) setBubbleSide("top");
+      else setBubbleSide("bottom");
+    } else if (hasRight) setBubbleSide("right");
     else if (hasLeft) setBubbleSide("left");
     else if (hasTop) setBubbleSide("top");
     else setBubbleSide("bottom");
@@ -1682,9 +2230,29 @@ export function Mascot({
       return;
     }
 
-    const tapMsg = context
-      ? (getMascotContextDialogue(context) || getMascotDialogue(currentMood))
-      : getMascotDialogue(currentMood);
+    let tapMsg: string;
+    if (context && context.screen === "home") {
+      // Home screen: mix context dialogue with jokes and tips
+      const roll = Math.random();
+      if (roll < 0.25) {
+        tapMsg = getWithoutRepeat(TAP_JOKES);
+      } else if (roll < 0.45) {
+        tapMsg = getWithoutRepeat(TAP_ADVICE);
+      } else {
+        tapMsg = getMascotContextDialogue(context) || getMascotDialogue(currentMood);
+      }
+    } else if (context) {
+      tapMsg = getMascotContextDialogue(context) || getMascotDialogue(currentMood);
+    } else {
+      const roll = Math.random();
+      if (roll < 0.30) {
+        tapMsg = getWithoutRepeat(TAP_JOKES);
+      } else if (roll < 0.50) {
+        tapMsg = getWithoutRepeat(TAP_ADVICE);
+      } else {
+        tapMsg = getMascotDialogue(currentMood);
+      }
+    }
     setCurrentMessage(tapMsg);
     setBubbleVisible(true);
     onClick?.();

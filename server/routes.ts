@@ -1,11 +1,16 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
+import type { IncomingMessage } from "http";
 import webpush from "web-push";
 import { WebSocketServer, WebSocket } from "ws";
+import { randomUUID } from "crypto";
 import { storage } from "./storage";
-import { submitGameSchema, setModeSchema, updateProfileSchema, createLeagueSchema, joinLeagueSchema, createChallengeSchema, addFreezeTokenSchema, adminScenarioSchema, banUserSchema, addModeratorSchema, createCoopSessionSchema, joinCoopSessionSchema, submitArcadeGameSchema, type CoopMessage } from "@shared/schema";
+import { submitGameSchema, setModeSchema, updateProfileSchema, createLeagueSchema, joinLeagueSchema, createChallengeSchema, addFreezeTokenSchema, adminScenarioSchema, banUserSchema, addModeratorSchema, createCoopSessionSchema, joinCoopSessionSchema, submitArcadeGameSchema, createSurvivalLobbySchema, survivalAnswerSchema, type CoopMessage, type SurvivalMessage } from "@shared/schema";
 import { getDailyScenarios, getArcadeScenarios } from "./static-scenarios";
+import { SurvivalMatchmaking } from "./survival-matchmaking";
+import type { SurvivalRoom } from "./survival-room";
 import { isAuthenticated } from "./replit_integrations/auth/replitAuth";
+import { testAuthMiddleware, getTestUserId, registerTestEndpoints, TEST_MODE } from "./test-hooks";
 
 // VAPID keys for push notifications (must be set via environment variables)
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
@@ -69,7 +74,7 @@ function getSessionId(req: Request): string {
   }
   
   if (!req.session.visitorId) {
-    req.session.visitorId = `visitor-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    req.session.visitorId = `visitor-${randomUUID()}`;
   }
   return req.session.visitorId;
 }
@@ -85,29 +90,40 @@ const requireAuth = isAuthenticated;
 
 const rateLimiters: Map<string, Map<string, { count: number; resetAt: number }>> = new Map();
 
+// P1-6: Periodic cleanup of expired rate limiter entries to prevent memory leak
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, limiter] of rateLimiters) {
+    for (const [sessionId, entry] of limiter) {
+      if (now > entry.resetAt) limiter.delete(sessionId);
+    }
+    if (limiter.size === 0) rateLimiters.delete(key);
+  }
+}, 60000); // Clean every minute
+
 // In-memory cache for idempotency - tracks in-flight submissions
 const submissionCache: Map<string, Promise<any>> = new Map();
 
 function rateLimit(key: string, maxRequests: number, windowMs: number) {
   return (req: Request, res: Response, next: Function) => {
     const sessionId = getSessionId(req);
-    
+
     if (!rateLimiters.has(key)) {
       rateLimiters.set(key, new Map());
     }
     const limiter = rateLimiters.get(key)!;
     const now = Date.now();
     const entry = limiter.get(sessionId);
-    
+
     if (!entry || now > entry.resetAt) {
       limiter.set(sessionId, { count: 1, resetAt: now + windowMs });
       return next();
     }
-    
+
     if (entry.count >= maxRequests) {
       return res.status(429).json({ error: "Too many requests. Please try again later." });
     }
-    
+
     entry.count++;
     next();
   };
@@ -117,6 +133,11 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  // Test mode: inject synthetic auth from X-Test-User-Id header
+  if (TEST_MODE) {
+    app.use(testAuthMiddleware);
+  }
+
   app.get("/api/user", async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
@@ -176,8 +197,8 @@ export async function registerRoutes(
       const count = await storage.getActivePlayersToday();
       res.json({ count });
     } catch (error) {
-      // Fallback to a reasonable default if the method doesn't exist
-      res.json({ count: Math.floor(Math.random() * 8) + 3 });
+      console.error("Error getting active players:", error);
+      res.json({ count: 0 });
     }
   });
 
@@ -885,16 +906,38 @@ export async function registerRoutes(
     }
   });
 
+  // P2-4: Health check endpoint for load balancers
+  app.get("/api/health", async (_req: Request, res: Response) => {
+    try {
+      // Verify DB connectivity
+      await storage.getActivePlayersToday();
+      res.json({ status: "ok", uptime: process.uptime() });
+    } catch {
+      res.status(503).json({ status: "unhealthy" });
+    }
+  });
+
+  // P0-1: Restricted to admin — was previously open to any authenticated user
   app.post("/api/add-freeze-token", requireAuth, rateLimit("freeze-token", 10, 60000), async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
+
+      // P0-1: Only admins/moderators can grant freeze tokens
+      const isAdmin = await storage.isAdmin(sessionId);
+      const isMod = await storage.isModerator(sessionId);
+      if (!isAdmin && !isMod) {
+        return res.status(403).json({ error: "Admin access required to grant freeze tokens" });
+      }
+
       const parsed = addFreezeTokenSchema.safeParse(req.body);
-      
+
       if (!parsed.success) {
         return res.status(400).json({ error: "Invalid request" });
       }
-      
-      const user = await storage.addFreezeToken(sessionId, parsed.data.count);
+
+      // Admin specifies target userId in body, not self-granting
+      const targetUserId = req.body.userId || sessionId;
+      const user = await storage.addFreezeToken(targetUserId, parsed.data.count);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
@@ -1006,7 +1049,14 @@ export async function registerRoutes(
       if (!parsed.success) {
         return res.status(400).json({ error: "Invalid scenario data" });
       }
-      const scenario = await storage.createCommunityScenario(sessionId, parsed.data);
+      // P1-7: Sanitize user-submitted community content (strip HTML tags)
+      const sanitized = {
+        ...parsed.data,
+        title: parsed.data.title.replace(/<[^>]*>/g, "").slice(0, 200),
+        context: parsed.data.context.replace(/<[^>]*>/g, "").slice(0, 2000),
+        question: parsed.data.question.replace(/<[^>]*>/g, "").slice(0, 500),
+      };
+      const scenario = await storage.createCommunityScenario(sessionId, sanitized);
       res.json(scenario);
     } catch (error) {
       console.error("Error creating community scenario:", error);
@@ -1081,7 +1131,12 @@ export async function registerRoutes(
       if (!parsed.success) {
         return res.status(400).json({ error: "Invalid comment data" });
       }
-      const comment = await storage.addComment(sessionId, parsed.data);
+      // P1-7: Sanitize comment content
+      const sanitized = {
+        ...parsed.data,
+        content: parsed.data.content.replace(/<[^>]*>/g, "").slice(0, 2000),
+      };
+      const comment = await storage.addComment(sessionId, sanitized);
       res.json(comment);
     } catch (error) {
       console.error("Error adding comment:", error);
@@ -1522,8 +1577,21 @@ export async function registerRoutes(
       if (!parsed.success) {
         return res.status(400).json({ error: "Invalid request" });
       }
-      const { mode, arcadeGameIndex } = parsed.data;
-      const session = await storage.createCoopSession(sessionId, mode, arcadeGameIndex ?? null);
+      const { mode, arcadeGameIndex, invitedUserId } = parsed.data;
+      const session = await storage.createCoopSession(sessionId, mode, arcadeGameIndex ?? null, invitedUserId ?? null);
+
+      // Send push notification to invited friend
+      if (invitedUserId) {
+        const host = await storage.getUser(sessionId);
+        const hostName = host?.username || "Someone";
+        sendPushToUser(
+          invitedUserId,
+          "Game invite! 🎮",
+          `${hostName} wants to play with you!`,
+          { type: "coop_invite", sessionId: session.id, code: session.code }
+        );
+      }
+
       res.json(session);
     } catch (error) {
       console.error("Error creating co-op session:", error);
@@ -1531,13 +1599,30 @@ export async function registerRoutes(
     }
   });
 
-  // Get co-op session
-  app.get("/api/coop/session/:sessionId", async (req: Request, res: Response) => {
+  // Get pending co-op invites for current user
+  app.get("/api/coop/pending-invites", requireAuth, async (req: Request, res: Response) => {
     try {
+      const userId = getSessionId(req);
+      const pendingInvites = await storage.getCoopPendingInvites(userId);
+      res.json(pendingInvites);
+    } catch (error) {
+      console.error("Error getting pending invites:", error);
+      res.status(500).json({ error: "Failed to get pending invites" });
+    }
+  });
+
+  // P0-3: Get co-op session — now requires auth + participant check
+  app.get("/api/coop/session/:sessionId", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = getSessionId(req);
       const { sessionId } = req.params;
       const session = await storage.getCoopSession(sessionId);
       if (!session) {
         return res.status(404).json({ error: "Session not found" });
+      }
+      // Verify user is a participant (host or guest)
+      if (session.hostId !== userId && session.guestId !== userId) {
+        return res.status(403).json({ error: "Not a participant in this session" });
       }
       res.json(session);
     } catch (error) {
@@ -1641,14 +1726,19 @@ export async function registerRoutes(
     }
   });
 
-  // Move to next question (both must have answered)
-  app.post("/api/coop/session/:sessionId/next", async (req: Request, res: Response) => {
+  // P0-2: Move to next question — now requires auth + participant check
+  app.post("/api/coop/session/:sessionId/next", requireAuth, async (req: Request, res: Response) => {
     try {
+      const userId = getSessionId(req);
       const { sessionId } = req.params;
-      
+
       const session = await storage.getCoopSession(sessionId);
       if (!session) {
         return res.status(404).json({ error: "Session not found" });
+      }
+      // Verify user is a participant
+      if (session.hostId !== userId && session.guestId !== userId) {
+        return res.status(403).json({ error: "Not a participant in this session" });
       }
 
       const totalQuestions = 5;
@@ -1694,10 +1784,16 @@ export async function registerRoutes(
     }
   });
 
-  // Get co-op game result
-  app.get("/api/coop/session/:sessionId/result", async (req: Request, res: Response) => {
+  // P0-3: Get co-op game result — now requires auth + participant check
+  app.get("/api/coop/session/:sessionId/result", requireAuth, async (req: Request, res: Response) => {
     try {
+      const userId = getSessionId(req);
       const { sessionId } = req.params;
+      // Verify participation before returning results
+      const session = await storage.getCoopSession(sessionId);
+      if (session && session.hostId !== userId && session.guestId !== userId) {
+        return res.status(403).json({ error: "Not a participant in this session" });
+      }
       const result = await storage.getCoopGameResult(sessionId);
       if (!result) {
         return res.status(404).json({ error: "Result not found" });
@@ -1709,13 +1805,204 @@ export async function registerRoutes(
     }
   });
 
-  // ==================== WEBSOCKET SERVER FOR CO-OP ====================
-  
+  // ==================== SURVIVAL MODE ROUTES ====================
+
+  // Survival WebSocket connections: matchId → Map<userId, WebSocket>
+  const survivalConnections: Map<string, Map<string, WebSocket>> = new Map();
+
+  function broadcastToSurvival(matchId: string): (msg: SurvivalMessage) => void {
+    return (msg: SurvivalMessage) => {
+      const conns = survivalConnections.get(matchId);
+      if (!conns) return;
+      const str = JSON.stringify(msg);
+      conns.forEach((ws) => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(str);
+        }
+      });
+    };
+  }
+
+  // Persistence callback when a survival match ends
+  const onSurvivalMatchEnd = async (room: SurvivalRoom) => {
+    if (room.persisted) return;
+    room.persisted = true;
+
+    const ranked = room.getRankedPlayers();
+    const winner = ranked.find(r => r.placement === 1)?.player ?? null;
+
+    try {
+      await storage.saveSurvivalMatch({
+        id: room.match.id,
+        code: room.match.code,
+        hostId: room.match.hostId,
+        isPrivate: room.match.isPrivate,
+        playerCount: room.match.players.length,
+        totalRounds: room.match.round,
+        winnerId: winner?.id ?? null,
+        startedAt: room.match.startedAt ?? new Date().toISOString(),
+        completedAt: room.match.completedAt ?? new Date().toISOString(),
+      });
+
+      await storage.saveSurvivalPlayers(
+        room.match.id,
+        ranked.map(r => ({
+          userId: r.player.id,
+          placement: r.placement,
+          score: r.player.score,
+          roundsSurvived: r.player.eliminatedRound ?? room.match.round,
+          shieldUsed: !r.player.shieldActive, // shield was used if no longer active
+        }))
+      );
+
+      // Update each player's survival stats
+      for (const r of ranked) {
+        await storage.updateSurvivalStats(r.player.id, r.placement === 1, r.placement);
+      }
+
+      // Update winner badge
+      if (winner) {
+        await storage.updateBadgeProgress(winner.id, "survivor", 1);
+      }
+    } catch (error) {
+      console.error("Error persisting survival match:", error);
+    }
+
+    // Schedule cleanup
+    matchmaking.scheduleCleanup(room.match.id);
+  };
+
+  const matchmaking = new SurvivalMatchmaking(broadcastToSurvival, onSurvivalMatchEnd);
+
+  // Register test-only debug endpoints (no-op if TEST_MODE is off)
+  registerTestEndpoints(app, { getMatchmaking: () => matchmaking });
+
+  // POST /api/survival/queue — Join public matchmaking queue
+  app.post("/api/survival/queue", requireAuth, rateLimit("survival-queue", 10, 60000), async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const user = await storage.getOrCreateUser(sessionId);
+      const result = matchmaking.joinQueue({
+        id: user.id,
+        username: user.username,
+        avatar: user.avatar,
+      });
+      res.json(result);
+    } catch (error) {
+      console.error("Error joining survival queue:", error);
+      res.status(500).json({ error: "Failed to join queue" });
+    }
+  });
+
+  // DELETE /api/survival/queue — Leave queue
+  app.delete("/api/survival/queue", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      matchmaking.leaveQueue(sessionId);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to leave queue" });
+    }
+  });
+
+  // POST /api/survival/create — Create private lobby
+  app.post("/api/survival/create", requireAuth, rateLimit("survival-create", 5, 60000), async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const parsed = createSurvivalLobbySchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request" });
+      }
+
+      const user = await storage.getOrCreateUser(sessionId);
+      const { matchId, code } = matchmaking.createPrivateLobby({
+        id: user.id,
+        username: user.username,
+        avatar: user.avatar,
+      });
+
+      // Send push notifications to invited friends
+      if (parsed.data.invitedUserIds && parsed.data.invitedUserIds.length > 0) {
+        for (const invitedId of parsed.data.invitedUserIds) {
+          sendPushToUser(
+            invitedId,
+            "Survival Mode! ⚔️",
+            `${user.username} invited you to Last Investor Standing!`,
+            { type: "survival_invite", matchId, code }
+          );
+        }
+      }
+
+      res.json({ matchId, code });
+    } catch (error) {
+      console.error("Error creating survival lobby:", error);
+      res.status(500).json({ error: "Failed to create lobby" });
+    }
+  });
+
+  // POST /api/survival/join/:code — Join private lobby by code
+  app.post("/api/survival/join/:code", requireAuth, rateLimit("survival-join", 10, 60000), async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const user = await storage.getOrCreateUser(sessionId);
+      const result = matchmaking.joinByCode(req.params.code, {
+        id: user.id,
+        username: user.username,
+        avatar: user.avatar,
+      });
+
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+
+      const room = matchmaking.getRoom(result.matchId!);
+      res.json({ matchId: result.matchId, match: room?.getState() });
+    } catch (error) {
+      console.error("Error joining survival lobby:", error);
+      res.status(500).json({ error: "Failed to join lobby" });
+    }
+  });
+
+  // GET /api/survival/match/:matchId — Get match state
+  app.get("/api/survival/match/:matchId", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const room = matchmaking.getRoom(req.params.matchId);
+      if (!room) {
+        return res.status(404).json({ error: "Match not found" });
+      }
+      res.json(room.getState());
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get match" });
+    }
+  });
+
+  // ==================== WEBSOCKET SERVER FOR CO-OP & SURVIVAL ====================
+
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
 
-  wss.on('connection', (ws: WebSocket) => {
+  // P0-5: Extract authenticated user from the HTTP upgrade request session
+  function getAuthenticatedUserId(req: IncomingMessage): string | null {
+    // TEST_MODE: allow synthetic user ID via header
+    const testId = getTestUserId(req);
+    if (testId) return testId;
+
+    const passportUser = (req as any).user;
+    if (passportUser?.claims?.sub) {
+      return passportUser.claims.sub;
+    }
+    // Check session for visitor ID
+    const session = (req as any).session;
+    if (session?.visitorId) {
+      return session.visitorId;
+    }
+    return null;
+  }
+
+  wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
+    // P0-5: Derive userId from the authenticated HTTP session, not client messages
+    const authenticatedUserId = getAuthenticatedUserId(req);
     let currentSessionId: string | null = null;
-    let currentUserId: string | null = null;
+    let currentUserId: string | null = authenticatedUserId;
 
     // P1: Add heartbeat mechanism to detect stale connections
     let isAlive = true;
@@ -1753,7 +2040,9 @@ export async function registerRoutes(
         const message = JSON.parse(data.toString());
         
         if (message.type === 'join_session') {
-          const { sessionId, userId } = message;
+          const { sessionId } = message;
+          // P0-5: Use server-verified userId, ignore client-sent userId
+          const userId = authenticatedUserId || message.userId;
           currentSessionId = sessionId;
           currentUserId = userId;
 
@@ -1788,6 +2077,58 @@ export async function registerRoutes(
             sessionId: currentSessionId,
             payload: message.payload,
           }, currentUserId || undefined);
+        }
+
+        // ---- Survival Mode WS Messages ----
+        if (message.type === 'survival_join' && message.matchId) {
+          const room = matchmaking.getRoom(message.matchId);
+          if (!room) {
+            ws.send(JSON.stringify({ type: "survival_error", message: "Match not found" }));
+            return;
+          }
+
+          const verifiedUserId = authenticatedUserId || message.userId;
+          if (!verifiedUserId) return;
+
+          // Register WS connection for this match
+          if (!survivalConnections.has(message.matchId)) {
+            survivalConnections.set(message.matchId, new Map());
+          }
+          survivalConnections.get(message.matchId)!.set(verifiedUserId, ws);
+
+          // Track which survival match this connection belongs to
+          (ws as any).__survivalMatchId = message.matchId;
+          (ws as any).__survivalUserId = verifiedUserId;
+
+          // Handle reconnection
+          room.reconnectPlayer(verifiedUserId);
+
+          // Send full state sync
+          ws.send(JSON.stringify({ type: "survival_state_sync", match: room.getState() }));
+        }
+
+        if (message.type === 'survival_answer') {
+          const validated = survivalAnswerSchema.safeParse(message);
+          if (!validated.success) return;
+
+          const verifiedUserId = authenticatedUserId || currentUserId;
+          if (!verifiedUserId) return;
+
+          const room = matchmaking.getRoom(validated.data.matchId);
+          room?.submitAnswer(verifiedUserId, validated.data.choiceLabel, validated.data.round);
+        }
+
+        if (message.type === 'survival_start' && message.matchId) {
+          const verifiedUserId = authenticatedUserId || currentUserId;
+          if (!verifiedUserId) return;
+
+          const room = matchmaking.getRoom(message.matchId);
+          if (room && room.match.hostId === verifiedUserId) {
+            const result = room.startGame();
+            if (!result.success) {
+              ws.send(JSON.stringify({ type: "survival_error", message: result.error }));
+            }
+          }
         }
       } catch (error) {
         console.error("WebSocket message error:", error);
@@ -1824,6 +2165,23 @@ export async function registerRoutes(
             sessionId: currentSessionId,
             payload: { userId: currentUserId },
           });
+        }
+      }
+
+      // Clean up survival connections
+      const survivalMatchId = (ws as any).__survivalMatchId;
+      const survivalUserId = (ws as any).__survivalUserId;
+      if (survivalMatchId && survivalUserId) {
+        const conns = survivalConnections.get(survivalMatchId);
+        if (conns) {
+          conns.delete(survivalUserId);
+          if (conns.size === 0) {
+            survivalConnections.delete(survivalMatchId);
+          }
+        }
+        const room = matchmaking.getRoom(survivalMatchId);
+        if (room) {
+          room.removePlayer(survivalUserId);
         }
       }
     });

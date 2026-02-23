@@ -78,6 +78,11 @@ export const lifestyleUsers = pgTable("lifestyle_users", {
   whyImHere: varchar("why_im_here", { length: 250 }).default(""),
   friendVisibility: varchar("friend_visibility", { length: 20 }).default("trend"),
 
+  // Survival Mode
+  survivalWins: integer("survival_wins").notNull().default(0),
+  survivalPlayed: integer("survival_played").notNull().default(0),
+  survivalBestPlacement: integer("survival_best_placement"),
+
   // Timestamps
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -285,6 +290,8 @@ export const coopSessions = pgTable("coop_sessions", {
   code: varchar("code", { length: 10 }).notNull().unique(),
   hostId: varchar("host_id", { length: 255 }).notNull().references(() => lifestyleUsers.id),
   guestId: varchar("guest_id", { length: 255 }).references(() => lifestyleUsers.id),
+  invitedUserId: varchar("invited_user_id", { length: 255 }).references(() => lifestyleUsers.id),
+  invitedUsername: varchar("invited_username", { length: 255 }),
   status: varchar("status", { length: 50 }).notNull().default("waiting"), // waiting, playing, completed
   mode: varchar("mode", { length: 20 }).notNull().default("daily"), // daily, arcade
   dropId: varchar("drop_id", { length: 255 }).notNull(),
@@ -299,4 +306,38 @@ export const coopSessions = pgTable("coop_sessions", {
   uniqueIndex("idx_coop_sessions_code").on(table.code),
   index("idx_coop_sessions_host_id").on(table.hostId),
   index("idx_coop_sessions_status").on(table.status),
+]);
+
+// ============================================
+// SURVIVAL MODE TABLES
+// ============================================
+
+export const survivalMatches = pgTable("survival_matches", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  code: varchar("code", { length: 6 }).notNull(),
+  hostId: varchar("host_id", { length: 255 }).notNull(),
+  isPrivate: boolean("is_private").notNull().default(false),
+  status: varchar("status", { length: 20 }).notNull().default("lobby"),
+  totalRounds: integer("total_rounds").notNull().default(10),
+  playerCount: integer("player_count").notNull().default(0),
+  winnerId: varchar("winner_id", { length: 255 }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+}, (table) => [
+  index("idx_survival_matches_status").on(table.status),
+  index("idx_survival_matches_code").on(table.code),
+]);
+
+export const survivalPlayers = pgTable("survival_players", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  matchId: uuid("match_id").notNull(),
+  userId: varchar("user_id", { length: 255 }).notNull(),
+  placement: integer("placement"),
+  score: integer("score").notNull().default(0),
+  roundsSurvived: integer("rounds_survived").notNull().default(0),
+  shieldUsed: boolean("shield_used").notNull().default(false),
+}, (table) => [
+  index("idx_survival_players_match").on(table.matchId),
+  index("idx_survival_players_user").on(table.userId),
 ]);

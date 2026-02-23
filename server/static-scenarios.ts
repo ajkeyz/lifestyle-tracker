@@ -1,4 +1,4 @@
-import { Scenario } from "@shared/schema";
+import { Scenario, SurvivalDifficulty } from "@shared/schema";
 
 // 30 days of pre-generated scenarios (5 per day = 150 total)
 // Scenarios cycle back to day 1 after day 30
@@ -1210,4 +1210,41 @@ export function getDropNumber(): number {
   const diffTime = today.getTime() - referenceDate.getTime();
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
   return diffDays + 1; // Start from day 1
+}
+
+/** Returns a flat array of all 150 scenarios */
+export function getAllScenarios(): Scenario[] {
+  return staticScenarioSets.flat();
+}
+
+/** Classify a scenario's difficulty based on point spread between best and second-best answer */
+export function classifyDifficulty(scenario: Scenario): SurvivalDifficulty {
+  const points = scenario.choices.map(c => c.points);
+  const maxPoints = Math.max(...points);
+  const secondBest = points.filter(p => p !== maxPoints).sort((a, b) => b - a)[0] ?? 0;
+  const spread = maxPoints - secondBest;
+
+  // Larger spread = easier (obvious best answer)
+  if (spread >= 60) return "easy";
+  if (spread >= 30) return "medium";
+  return "hard";
+}
+
+/** Get shuffled scenarios for a survival match, grouped by difficulty */
+export function getSurvivalScenarios(): { easy: Scenario[]; medium: Scenario[]; hard: Scenario[] } {
+  const all = getAllScenarios();
+  const shuffled = [...all].sort(() => Math.random() - 0.5);
+
+  const easy: Scenario[] = [];
+  const medium: Scenario[] = [];
+  const hard: Scenario[] = [];
+
+  for (const s of shuffled) {
+    const d = classifyDifficulty(s);
+    if (d === "easy") easy.push(s);
+    else if (d === "medium") medium.push(s);
+    else hard.push(s);
+  }
+
+  return { easy, medium, hard };
 }

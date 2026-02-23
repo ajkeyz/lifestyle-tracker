@@ -40,8 +40,9 @@ export function getSession() {
   return session({
     secret: process.env.SESSION_SECRET!,
     store: sessionStore,
-    resave: true,
-    saveUninitialized: true,
+    // P1-10: Don't save empty sessions — prevents session table bloat from bots/crawlers
+    resave: false,
+    saveUninitialized: false,
     cookie: {
       httpOnly: true,
       secure: !isDevBypass,

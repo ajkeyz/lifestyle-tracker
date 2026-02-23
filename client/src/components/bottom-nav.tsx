@@ -2,11 +2,11 @@ import { useLocation, Link } from "wouter";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { 
-  Home, 
-  Users, 
-  MessageSquare, 
+import { AnimatedAvatar } from "@/components/animated-avatar";
+import {
+  Home,
+  Users,
+  MessageSquare,
   User,
   Trophy
 } from "lucide-react";
@@ -68,12 +68,17 @@ export function BottomNav() {
                   />
                 )}
                 {isProfile && user?.avatar ? (
-                  <Avatar className={cn("w-5 h-5", active && "ring-2 ring-primary ring-offset-1 ring-offset-background")}>
-                    <AvatarImage src={user.avatar} alt={user.username || "Profile"} />
-                    <AvatarFallback className="text-[8px]">
-                      {(user.username || "U").charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+                  <div className={cn(
+                    "w-6 h-6 rounded-full overflow-hidden",
+                    active && "ring-2 ring-primary ring-offset-1 ring-offset-background"
+                  )}>
+                    <AnimatedAvatar
+                      avatarId={user.avatar}
+                      size="xs"
+                      isAnimated={false}
+                      className="w-6 h-6 [&>div]:w-6 [&>div]:h-6"
+                    />
+                  </div>
                 ) : (
                   <Icon className={cn("w-5 h-5", active && "animate-bounce-subtle")} />
                 )}

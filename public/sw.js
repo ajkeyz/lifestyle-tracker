@@ -93,18 +93,43 @@ self.addEventListener('fetch', (event) => {
 self.addEventListener('push', (event) => {
   let body = 'Your daily drop is ready!';
   let title = 'Lifestyle Creep';
-  
+  let pushData = {};
+
   if (event.data) {
     try {
       const data = event.data.json();
       body = data.body || body;
       title = data.title || title;
+      pushData = data.data || {};
     } catch (e) {
       // If JSON parse fails, use text
       body = event.data.text() || body;
     }
   }
-  
+
+  // Determine notification URL based on push data type
+  let url = '/';
+  let actions = [
+    { action: 'play', title: 'Play Now' },
+    { action: 'later', title: 'Later' }
+  ];
+
+  if (pushData.type === 'coop_invite' && pushData.code) {
+    url = '/coop-lobby?join=' + pushData.code;
+    actions = [
+      { action: 'join', title: 'Join Game' },
+      { action: 'later', title: 'Later' }
+    ];
+  }
+
+  if (pushData.type === 'survival_invite' && pushData.matchId) {
+    url = '/survival/lobby/' + pushData.matchId;
+    actions = [
+      { action: 'join', title: 'Join Game' },
+      { action: 'later', title: 'Later' }
+    ];
+  }
+
   const options = {
     body,
     icon: '/icons/icon-192.png',
@@ -112,12 +137,10 @@ self.addEventListener('push', (event) => {
     vibrate: [100, 50, 100],
     data: {
       dateOfArrival: Date.now(),
-      url: '/'
+      url,
+      ...pushData
     },
-    actions: [
-      { action: 'play', title: 'Play Now' },
-      { action: 'later', title: 'Later' }
-    ]
+    actions
   };
 
   event.waitUntil(
@@ -129,18 +152,24 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  if (event.action === 'play' || !event.action) {
-    event.waitUntil(
-      clients.matchAll({ type: 'window' }).then((clientList) => {
-        for (const client of clientList) {
-          if (client.url === '/' && 'focus' in client) {
-            return client.focus();
-          }
+  if (event.action === 'later') return;
+
+  const targetUrl = (event.notification.data && event.notification.data.url) || '/';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window' }).then((clientList) => {
+      // Try to focus an existing window and navigate it
+      for (const client of clientList) {
+        if ('focus' in client) {
+          client.focus();
+          client.navigate(targetUrl);
+          return;
         }
-        if (clients.openWindow) {
-          return clients.openWindow('/');
-        }
-      })
-    );
-  }
+      }
+      // Otherwise open a new window
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
+    })
+  );
 });

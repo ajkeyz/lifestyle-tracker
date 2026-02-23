@@ -57,6 +57,10 @@ const CoopGame = lazy(() => import("@/pages/coop-game"));
 const CoopResults = lazy(() => import("@/pages/coop-results"));
 const ArcadePage = lazy(() => import("@/pages/arcade"));
 const ArcadeResults = lazy(() => import("@/pages/arcade-results"));
+const SurvivalEntry = lazy(() => import("@/pages/survival-entry"));
+const SurvivalLobby = lazy(() => import("@/pages/survival-lobby"));
+const SurvivalMatch = lazy(() => import("@/pages/survival-match"));
+const SurvivalResults = lazy(() => import("@/pages/survival-results"));
 const Terms = lazy(() => import("@/pages/terms"));
 const Privacy = lazy(() => import("@/pages/privacy"));
 const NotFound = lazy(() => import("@/pages/not-found"));
@@ -79,7 +83,7 @@ function AuthenticatedRouter() {
   const [location] = useLocation();
 
   // Hide bottom nav on immersive pages
-  const hideBottomNav = ["/play", "/results", "/coop-game", "/arcade"].some(
+  const hideBottomNav = ["/play", "/results", "/coop-game", "/arcade", "/survival"].some(
     (path) => location.startsWith(path)
   );
 
@@ -124,6 +128,10 @@ function AuthenticatedRouter() {
             <Route path="/coop-results/:sessionId" component={CoopResults} />
             <Route path="/arcade" component={ArcadePage} />
             <Route path="/arcade-results" component={ArcadeResults} />
+            <Route path="/survival" component={SurvivalEntry} />
+            <Route path="/survival/lobby/:matchId" component={SurvivalLobby} />
+            <Route path="/survival/match/:matchId" component={SurvivalMatch} />
+            <Route path="/survival/results/:matchId" component={SurvivalResults} />
             <Route path="/terms" component={Terms} />
             <Route path="/privacy" component={Privacy} />
             <Route component={NotFound} />

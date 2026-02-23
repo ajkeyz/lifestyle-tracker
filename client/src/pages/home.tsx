@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { StatBarGrid } from "@/components/stat-bar";
-import { ThemeToggle } from "@/components/theme-toggle";
+
 import { StreakCalendar } from "@/components/streak-calendar";
 import { Onboarding } from "@/components/onboarding";
 import { QuickStatsBar } from "@/components/quick-stats-bar";
@@ -13,10 +13,13 @@ import { SocialProofCounter } from "@/components/social-proof-counter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LiveActivityTicker, PlayerCounter } from "@/components/live-activity-ticker";
 import { TipCardCarousel } from "@/components/stories-tips";
-import { AnimatedCounter } from "@/components/animated-counter";
-import { AnimatedAvatar } from "@/components/animated-avatar";
+import { AnimatedCounter, RollingNumber } from "@/components/animated-counter";
 import { DebugScreen, useDebugGesture } from "@/components/debug-screen";
 import { AmbientBackground } from "@/components/ambient-background";
+import { AppLogo } from "@/components/app-logo";
+import { AnimatedAvatar } from "@/components/animated-avatar";
+import { ProgressRing } from "@/components/progress-ring";
+import { Badge } from "@/components/ui/badge";
 import { Mascot, getMascotMoodForStreak, type MascotContext } from "@/components/mascot";
 import { CleoPlayNudge } from "@/components/cleo-edge-presence";
 import { 
@@ -39,15 +42,16 @@ import {
   CalendarDays,
   Settings,
   MessageSquare,
-  BarChart3,
   RefreshCw,
-  Flame
+  Flame,
+  Shield
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { useLocation, Link } from "wouter";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import type { User as UserType, DailyDrop, LeaderboardEntry, CommunityScenario } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
+import { isFeatureEnabled } from "@/lib/feature-flags";
 
 const THEME_CONFIG: Record<string, { label: string; icon: typeof Plane; color: string }> = {
   travel: { label: "Travel", icon: Plane, color: "text-blue-500" },
@@ -167,6 +171,7 @@ function getTodaysTip(): string {
 export default function Home() {
   const [, navigate] = useLocation();
   const { user: authUser } = useAuth();
+  const qc = useQueryClient();
   const [countdown, setCountdown] = useState(getTimeUntilMidnightUTC());
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showDebugScreen, setShowDebugScreen] = useState(false);
@@ -179,6 +184,20 @@ export default function Home() {
 
     return () => clearInterval(timer);
   }, []);
+
+  // P1-5: Invalidate daily drop and user data at midnight UTC so users get the new drop
+  useEffect(() => {
+    const now = new Date();
+    const msToMidnight =
+      new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1)).getTime() -
+      now.getTime();
+    const midnightTimer = setTimeout(() => {
+      qc.invalidateQueries({ queryKey: ["/api/daily-drop"] });
+      qc.invalidateQueries({ queryKey: ["/api/user"] });
+      qc.invalidateQueries({ queryKey: ["/api/leaderboard"] });
+    }, msToMidnight + 2000); // +2s buffer for server to generate new drop
+    return () => clearTimeout(midnightTimer);
+  }, [qc]);
 
   const { data: user, isLoading: userLoading } = useQuery<UserType>({
     queryKey: ["/api/user"],
@@ -231,6 +250,20 @@ export default function Home() {
   const streakContext = user ? getStreakContextMessage(user.streak, hasPlayedToday) : null;
   const isLastHour = countdown.hours === 0;
 
+  // Cleo greeting — shows "Afternoon, username" on load, then fades to normal dialogue
+  const [cleoGreeting, setCleoGreeting] = useState<string | undefined>(() => {
+    const hour = new Date().getHours();
+    const timeOfDay = hour < 12 ? "Morning" : hour < 17 ? "Afternoon" : "Evening";
+    return `${timeOfDay}, ${user?.username || authUser?.username || "there"}!`;
+  });
+
+  useEffect(() => {
+    if (!cleoGreeting) return;
+    // Clear the greeting after 6 seconds so Cleo reverts to normal context dialogue
+    const t = setTimeout(() => setCleoGreeting(undefined), 6000);
+    return () => clearTimeout(t);
+  }, [cleoGreeting]);
+
   const userRank = leaderboard?.findIndex((e) => e.id === user?.id);
   const displayRank = userRank !== undefined && userRank !== -1 ? userRank + 1 : null;
 
@@ -251,43 +284,20 @@ export default function Home() {
       {showOnboarding && (
         <Onboarding onComplete={() => setShowOnboarding(false)} />
       )}
-      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50 relative">
+      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50 relative overflow-x-hidden">
       <AmbientBackground variant="default" />
-      <header className="flex items-center justify-between gap-2 p-4 border-b bg-card/80 backdrop-blur-xl sticky top-0 z-50 border-white/10">
-        <span className="font-display font-semibold text-sm tracking-[-0.02em]" data-testid="text-daily-drop-header">
-          {(() => {
-            const hour = new Date().getHours();
-            return hour < 12 ? "Morning," : hour < 17 ? "Afternoon," : "Evening,";
-          })()}{" "}
-          <motion.span
-            initial={{ opacity: 0, filter: "blur(4px)" }}
-            animate={{ opacity: 1, filter: "blur(0px)" }}
-            transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-            className="text-primary"
-          >
-            {user?.username || authUser?.username || "there"}
-          </motion.span>
-        </span>
-        <div className="flex items-center gap-2">
-          {authUser && (
-            <div className="flex items-center gap-2">
-              <Link href="/profile" data-testid="link-profile">
-                <AnimatedAvatar
-                  avatarId={user?.avatar || "cosmic-cat"}
-                  size="xs"
-                  isAnimated={false}
-                />
-              </Link>
-              <Button variant="ghost" size="icon" onClick={() => navigate("/stats")} data-testid="button-stats" aria-label="View statistics">
-                <BarChart3 className="w-4 h-4" />
-              </Button>
-              <Button variant="ghost" size="icon" onClick={() => navigate("/settings")} data-testid="button-settings" aria-label="Open settings">
-                <Settings className="w-4 h-4" />
-              </Button>
-            </div>
-          )}
-          <ThemeToggle />
+      <header className="flex items-center justify-between px-4 h-14 border-b bg-card/80 backdrop-blur-xl sticky top-0 z-50 border-white/10">
+        <div className="flex items-center gap-2.5 min-h-[40px]">
+          <AppLogo size="sm" />
+          <span className="font-display font-extrabold text-[15px] leading-none tracking-[-0.04em] text-white drop-shadow-[0_0_12px_rgba(255,255,255,0.15)]" style={{ fontFeatureSettings: '"ss01", "ss02"' }}>
+            Lifestyle Creep
+          </span>
         </div>
+        {authUser && (
+          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => navigate("/settings")} data-testid="button-settings" aria-label="Open settings">
+            <Settings className="w-4 h-4" />
+          </Button>
+        )}
       </header>
 
       <main className="container max-w-2xl mx-auto p-4 space-y-4">
@@ -303,7 +313,7 @@ export default function Home() {
             <StreakUrgencyBanner hasPlayedToday={hasPlayedToday} streak={user.streak} />
 
             {/* Quick Stats Bar - consolidated with streak context */}
-            <QuickStatsBar user={user} rank={displayRank} className="mb-2" />
+            <QuickStatsBar user={user} rank={displayRank} streakContext={streakContext} className="mb-2" />
 
             {/* First-Week Narrative */}
             {isInFirstWeek && firstWeekNarrative && !hasPlayedToday && (
@@ -322,20 +332,6 @@ export default function Home() {
               </motion.div>
             )}
 
-            {/* Streak Context - replaces redundant streak displays */}
-            {streakContext && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.02 }}
-              >
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-orange-500/5 border border-orange-500/10" data-testid="card-streak-context">
-                  <Flame className="w-4 h-4 text-orange-500 flex-shrink-0" />
-                  <span className="text-xs text-muted-foreground">{streakContext}</span>
-                </div>
-              </motion.div>
-            )}
-
             {/* ===== PRIMARY FOCUS: Daily Drop CTA ===== */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -343,7 +339,7 @@ export default function Home() {
               transition={{ duration: 0.4, ease: "easeOut" }}
             >
             <Card
-              className="p-6 border-primary/25 overflow-visible relative shadow-lg hero-spotlight"
+              className="p-6 overflow-visible relative shadow-lg shadow-primary/5 hero-spotlight rounded-xl border-primary/25 transition-all duration-300 hover:shadow-xl hover:shadow-primary/10 hover:border-primary/35"
               style={{
                 background: "linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--card)) 60%, hsl(var(--primary) / 0.06) 100%)",
               }}
@@ -411,50 +407,80 @@ export default function Home() {
                     )}
                     <ChevronRight className="w-4 h-4" />
                   </Button>
+
+                  {/* Post-play score summary */}
+                  {hasPlayedToday && user.todayResult && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="flex items-center gap-2.5 mt-3 p-2 rounded-lg bg-muted/30 border border-border/30"
+                      data-testid="card-today-score-summary"
+                    >
+                      <ProgressRing progress={(user.todayResult.score / 500) * 100} size={40} strokeWidth={3.5} color={user.todayResult.score >= 400 ? "success" : user.todayResult.score >= 200 ? "primary" : "warning"}>
+                        <span className="text-[10px] font-bold leading-none">{Math.round((user.todayResult.score / 500) * 100)}%</span>
+                      </ProgressRing>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold leading-tight">
+                          <AnimatedCounter value={user.todayResult.score} duration={1.2} /><span className="text-muted-foreground font-normal text-xs">/500</span>
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">
+                          IQ: <span className="font-medium text-primary">{user.todayResult.iq}</span>
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="gap-1 flex-shrink-0 h-7 px-2"
+                        onClick={(e) => { e.stopPropagation(); handleShare(); }}
+                        data-testid="button-share-inline"
+                      >
+                        <Share2 className="w-3 h-3" />
+                        Share
+                      </Button>
+                    </motion.div>
+                  )}
                 </div>
-                <div className="flex flex-col items-center gap-2 flex-shrink-0">
-                  <div data-testid="mascot-home" onClick={handleTap} style={{ cursor: "pointer" }}>
+                <div className="flex flex-col items-center flex-shrink-0 relative">
+                  {/* Ambient glow behind Cleo */}
+                  <motion.div
+                    className="absolute inset-0 -m-4 rounded-full pointer-events-none"
+                    style={{ background: "radial-gradient(circle, hsl(var(--primary) / 0.2) 0%, transparent 70%)" }}
+                    animate={{
+                      scale: [1, 1.15, 1],
+                      opacity: [0.4, 0.7, 0.4],
+                    }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                  />
+                  {/* Floating animation wrapper */}
+                  <motion.div
+                    data-testid="mascot-home"
+                    onClick={handleTap}
+                    style={{ cursor: "pointer" }}
+                    animate={{
+                      y: [0, -6, 0],
+                      rotate: [0, 1.5, 0, -1.5, 0],
+                    }}
+                    transition={{
+                      y: { duration: 3, repeat: Infinity, ease: "easeInOut" },
+                      rotate: { duration: 5, repeat: Infinity, ease: "easeInOut" },
+                    }}
+                  >
                     <Mascot
-                      mood={getMascotMoodForStreak(user.streak, hasPlayedToday)}
-                      size="md"
-                      showBubble={!hasPlayedToday}
+                      mood={cleoGreeting ? "waving" : getMascotMoodForStreak(user.streak, hasPlayedToday)}
+                      size="lg"
+                      message={cleoGreeting}
+                      showBubble={!!cleoGreeting || !hasPlayedToday}
                       streakCount={user.streak}
                       showStreakFlame={user.streak >= 3}
                       context={{
                         screen: "home",
                         username: user.username,
                         streak: user.streak,
-                        daysInactive: undefined, // could pass from user data if available
+                        daysInactive: undefined,
                       } satisfies MascotContext}
                     />
-                  </div>
-                  <motion.button
-                    onClick={() => {
-                      if (hasPlayedToday) {
-                        navigate("/results");
-                      } else if (!user.mode) {
-                        navigate("/setup");
-                      } else {
-                        navigate("/play");
-                      }
-                    }}
-                    whileHover={{ scale: 1.08 }}
-                    whileTap={{ scale: 0.93 }}
-                    className={cn(
-                      "w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 cursor-pointer relative overflow-hidden",
-                      hasPlayedToday
-                        ? "bg-gradient-to-br from-accent to-amber-500 glow-accent"
-                        : "bg-gradient-to-br from-primary to-emerald-400 dark:from-primary dark:to-emerald-300 glow-primary btn-premium border-0"
-                    )}
-                    data-testid="button-play-icon"
-                    aria-label={hasPlayedToday ? "View Results" : "Play Now"}
-                  >
-                    {hasPlayedToday ? (
-                      <Trophy className="w-7 h-7 text-amber-900" />
-                    ) : (
-                      <Play className="w-7 h-7 text-white ml-0.5" />
-                    )}
-                  </motion.button>
+                  </motion.div>
                 </div>
               </div>
             </Card>
@@ -517,15 +543,19 @@ export default function Home() {
                     {hasPlayedToday ? "Next decision test unlocks in..." : "Today's drop expires in..."}
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
                   <div
                     className={cn(
-                      "text-lg font-bold font-mono tabular-nums transition-colors duration-500",
+                      "text-lg font-bold font-mono tabular-nums transition-colors duration-500 flex items-center",
                       isLastHour ? "text-primary" : "text-foreground"
                     )}
                     data-testid="text-countdown"
                   >
-                    {String(countdown.hours).padStart(2, '0')}:{String(countdown.minutes).padStart(2, '0')}:{String(countdown.seconds).padStart(2, '0')}
+                    <RollingNumber value={String(countdown.hours).padStart(2, '0')} />
+                    <span className="mx-0.5">:</span>
+                    <RollingNumber value={String(countdown.minutes).padStart(2, '0')} />
+                    <span className="mx-0.5">:</span>
+                    <RollingNumber value={String(countdown.seconds).padStart(2, '0')} />
                   </div>
                 </div>
               </div>
@@ -540,8 +570,9 @@ export default function Home() {
             {/* Quick Tip - Enhanced Carousel */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.4, delay: 0.05, ease: "easeOut" }}
             >
             <TipCardCarousel
               tips={DAILY_TIPS.map((content, index) => ({
@@ -552,35 +583,36 @@ export default function Home() {
             />
             </motion.div>
 
-            {/* Game Modes Row */}
+            {/* Game Modes + Friends — Bento-style Grid */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.12, ease: "easeOut" }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.4, delay: 0.05, ease: "easeOut" }}
             >
-            <div className="grid grid-cols-2 gap-3">
-              <Card 
-                className="p-4 cursor-pointer hover-elevate" 
+            <div className="grid grid-cols-3 gap-3">
+              <Card
+                className="p-4 cursor-pointer hover-elevate rounded-xl border-2 border-transparent hover:border-indigo-500/20 transition-all duration-200"
                 onClick={() => navigate("/coop-lobby")}
                 data-testid="card-coop-play"
               >
-                <div className="flex flex-col items-center gap-2 text-center">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
+                <div className="flex flex-col items-center gap-2.5 text-center">
+                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
                     <Swords className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-sm">Co-op Play</h3>
-                    <p className="text-[11px] text-muted-foreground">Play with a friend</p>
+                    <h3 className="font-semibold text-sm">Co-op</h3>
+                    <p className="text-[11px] text-muted-foreground">With a friend</p>
                   </div>
                 </div>
               </Card>
-              <Card 
-                className="p-4 cursor-pointer hover-elevate" 
+              <Card
+                className="p-4 cursor-pointer hover-elevate rounded-xl border-2 border-transparent hover:border-purple-500/20 transition-all duration-200"
                 onClick={() => navigate("/arcade")}
                 data-testid="card-arcade"
               >
-                <div className="flex flex-col items-center gap-2 text-center">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                <div className="flex flex-col items-center gap-2.5 text-center">
+                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
                     <Gamepad2 className="w-5 h-5 text-white" />
                   </div>
                   <div>
@@ -589,25 +621,43 @@ export default function Home() {
                   </div>
                 </div>
               </Card>
+              {isFeatureEnabled("survival_mode") && (
+                <Card
+                  className="p-4 cursor-pointer hover-elevate rounded-xl border-2 border-transparent hover:border-red-500/20 transition-all duration-200"
+                  onClick={() => navigate("/survival")}
+                  data-testid="card-survival"
+                >
+                  <div className="flex flex-col items-center gap-2.5 text-center">
+                    <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center shadow-lg shadow-red-500/20">
+                      <Shield className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-sm">Survival</h3>
+                      <p className="text-[11px] text-muted-foreground">Last standing</p>
+                    </div>
+                  </div>
+                </Card>
+              )}
             </div>
             </motion.div>
 
-            {/* Friends - more subtle */}
+            {/* Friends - enhanced */}
             {!user.lowPressureMode && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.14, ease: "easeOut" }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: 0.05, ease: "easeOut" }}
               >
-              <Card 
-                className="p-4 cursor-pointer hover-elevate" 
+              <Card
+                className="p-4 cursor-pointer hover-elevate rounded-xl border-2 border-transparent hover:border-blue-500/20 transition-all duration-200"
                 onClick={() => navigate("/friends")}
                 data-testid="card-friends"
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
-                      <Users className="w-4 h-4 text-muted-foreground" />
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                      <Users className="w-5 h-5 text-white" />
                     </div>
                     <div>
                       <h3 className="font-semibold text-sm">Friends</h3>
@@ -623,23 +673,24 @@ export default function Home() {
             {/* Community - Hot Posts Preview */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.16, ease: "easeOut" }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.4, delay: 0.05, ease: "easeOut" }}
             >
-            <Card className="p-4" data-testid="card-community">
+            <Card className="p-4 rounded-xl" data-testid="card-community">
               <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                    <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                    <MessageSquare className="w-4 h-4 text-white" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-sm">Community</h3>
                     <p className="text-xs text-muted-foreground">Real scenarios, real advice</p>
                   </div>
                 </div>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
                   className="gap-1"
                   onClick={() => navigate("/community")}
                   data-testid="button-view-community"
@@ -648,13 +699,16 @@ export default function Home() {
                   <ChevronRight className="w-4 h-4" />
                 </Button>
               </div>
-              
+
               {hotPosts && hotPosts.length > 0 ? (
                 <div className="space-y-2">
-                  {hotPosts.slice(0, 2).map((post) => (
-                    <div 
+                  {hotPosts.slice(0, 2).map((post, i) => (
+                    <motion.div
                       key={post.id}
-                      className="p-3 rounded-lg bg-muted/30 cursor-pointer hover-elevate"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.08 }}
+                      className="p-3 rounded-lg bg-muted/30 cursor-pointer hover-elevate border border-transparent hover:border-border/50 transition-all"
                       onClick={() => navigate(`/community/${post.id}`)}
                       data-testid={`community-post-${post.id}`}
                     >
@@ -663,17 +717,26 @@ export default function Home() {
                           <p className="text-sm font-medium line-clamp-1">{post.title}</p>
                           <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{post.context}</p>
                         </div>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground flex-shrink-0">
-                          <TrendingUp className="w-3 h-3 text-primary" />
-                          <span>{post.upvotes}</span>
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          {post.upvotes + post.downvotes + post.commentCount >= 10 && (
+                            <Badge variant="outline" className="text-[10px] h-5 border-orange-500/30 text-orange-500 px-1.5">
+                              <Flame className="w-2.5 h-2.5 mr-0.5" />
+                              Hot
+                            </Badge>
+                          )}
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <TrendingUp className="w-3 h-3 text-primary" />
+                            <span>{post.upvotes}</span>
+                          </div>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                        <span>by {post.authorUsername}</span>
+                        <AnimatedAvatar avatarId={post.authorAvatar || "cosmic-cat"} size="xs" />
+                        <span>{post.authorUsername}</span>
                         <span>·</span>
                         <span>{post.commentCount} comments</span>
                       </div>
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
               ) : (
@@ -696,73 +759,93 @@ export default function Home() {
             {/* Streak Calendar with Protection */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.18, ease: "easeOut" }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.4, delay: 0.05, ease: "easeOut" }}
             >
             <StreakCalendar user={user} />
             </motion.div>
 
             {/* Friend League Preview - hidden in low pressure mode */}
             {!user.lowPressureMode && (
-              <Card className="p-4" data-testid="card-friend-league-preview">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: 0.05, ease: "easeOut" }}
+              >
+              <Card className="p-4 rounded-xl" data-testid="card-friend-league-preview">
                 <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
                   <div className="flex items-center gap-2">
-                    <Users className="w-5 h-5 text-accent" />
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent to-amber-500 flex items-center justify-center">
+                      <Trophy className="w-4 h-4 text-white" />
+                    </div>
                     <h3 className="font-semibold text-sm">Friend Leagues</h3>
                   </div>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     className="gap-1"
                     onClick={() => navigate("/leagues")}
                     data-testid="button-view-leagues"
                   >
-                    Manage Leagues
+                    Manage
                     <ChevronRight className="w-4 h-4" />
                   </Button>
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2">
-                    <Trophy className="w-6 h-6 text-accent" />
-                    <div>
-                      <p className="text-2xl font-bold" data-testid="text-user-rank">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-accent/20 to-amber-500/20 flex items-center justify-center">
+                      <p className="text-xl font-bold text-accent" data-testid="text-user-rank">
                         {displayRank ? `#${displayRank}` : "—"}
                       </p>
-                      <p className="text-xs text-muted-foreground">Your rank</p>
                     </div>
+                    <p className="text-xs text-muted-foreground">Your rank</p>
                   </div>
                   {leaderboard && leaderboard.length > 0 && (
-                    <div className="flex-1 flex items-center gap-1 overflow-x-auto">
+                    <div className="flex-1 flex items-center gap-1.5 overflow-x-auto pr-2">
                       {leaderboard.slice(0, 5).map((entry, i) => (
-                        <div 
-                          key={entry.id} 
-                          className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
-                            entry.id === user.id 
-                              ? "bg-primary text-primary-foreground" 
-                              : "bg-muted text-muted-foreground"
-                          }`}
+                        <motion.div
+                          key={entry.id}
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: i * 0.06 }}
+                          className={cn(
+                            "flex-shrink-0 relative",
+                            entry.id === user.id && "ring-2 ring-primary ring-offset-1 ring-offset-card rounded-full"
+                          )}
                           title={entry.username}
                           data-testid={`avatar-rank-${i + 1}`}
                         >
-                          {i + 1}
-                        </div>
+                          <AnimatedAvatar avatarId={entry.id === user.id ? (user.avatar || "cosmic-cat") : `avatar-${i}`} size="xs" />
+                          <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-card flex items-center justify-center text-[8px] font-bold text-muted-foreground border border-border">
+                            {i + 1}
+                          </span>
+                        </motion.div>
                       ))}
                     </div>
                   )}
                 </div>
               </Card>
+              </motion.div>
             )}
 
             {/* Secondary nav items */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.4, delay: 0.05, ease: "easeOut" }}
+            >
             <div className="grid grid-cols-2 gap-3">
-              <Card 
-                className="p-4 cursor-pointer hover-elevate" 
+              <Card
+                className="p-4 cursor-pointer hover-elevate rounded-xl border-2 border-transparent hover:border-amber-500/20 transition-all duration-200"
                 onClick={() => navigate("/achievements")}
                 data-testid="card-achievements"
               >
-                <div className="flex flex-col items-center gap-2 text-center">
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center">
-                    <Award className="w-4 h-4 text-white" />
+                <div className="flex flex-col items-center gap-2.5 text-center">
+                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
+                    <Award className="w-5 h-5 text-white" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-sm">Achievements</h3>
@@ -770,14 +853,14 @@ export default function Home() {
                   </div>
                 </div>
               </Card>
-              <Card 
-                className="p-4 cursor-pointer hover-elevate" 
+              <Card
+                className="p-4 cursor-pointer hover-elevate rounded-xl border-2 border-transparent hover:border-pink-500/20 transition-all duration-200"
                 onClick={() => navigate("/weekly-recap")}
                 data-testid="card-weekly-recap"
               >
-                <div className="flex flex-col items-center gap-2 text-center">
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center">
-                    <CalendarDays className="w-4 h-4 text-white" />
+                <div className="flex flex-col items-center gap-2.5 text-center">
+                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center shadow-lg shadow-pink-500/20">
+                    <CalendarDays className="w-5 h-5 text-white" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-sm">Weekly Recap</h3>
@@ -786,6 +869,7 @@ export default function Home() {
                 </div>
               </Card>
             </div>
+            </motion.div>
 
             {/* Share Today's Results */}
             {hasPlayedToday && (

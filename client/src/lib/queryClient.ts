@@ -65,7 +65,8 @@ export const queryClient = new QueryClient({
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
-      staleTime: Infinity,
+      // P1-5: Allow data to go stale after 5 minutes so midnight daily drop refreshes
+      staleTime: 5 * 60 * 1000,
       retry: (failureCount, error) => {
         // Don't retry 401 Unauthorized — retrying won't help and causes loops
         const message = error instanceof Error ? error.message : String(error);
