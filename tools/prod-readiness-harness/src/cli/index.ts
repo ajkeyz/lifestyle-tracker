@@ -32,8 +32,13 @@ import { HttpClient } from "../core/http-client";
 import { UserFactory } from "../synthetic/user-factory";
 import { printConsoleReport, printSuiteReport } from "../report/console-reporter";
 import { writeJsonReport } from "../report/json-reporter";
+import { writeHtmlReport } from "../report/html-reporter";
+import { computeScorecard } from "../report/scorecard";
 import { cleanup } from "../data/cleanup";
 import { runApiTests } from "../api/api-test-runner";
+import { runSecurityTests } from "../security/security-runner";
+import { runChaosTests } from "../chaos/chaos-runner";
+import { runLoadTests } from "../load/load-runner";
 
 // ---------------------------------------------------------------------------
 // ANSI helpers (minimal, for the banner)
@@ -62,6 +67,10 @@ function buildConfig(options: Record<string, string | boolean>): HarnessConfig {
   if (typeof options.reportDir === "string") config.reportDir = options.reportDir;
   if (typeof options.timeout === "string") config.timeout = parseInt(options.timeout, 10);
   if (typeof options.testUserPrefix === "string") config.testUserPrefix = options.testUserPrefix;
+
+  if (typeof options.format === "string") {
+    config.formats = options.format.split(",").map((f) => f.trim()) as HarnessConfig["formats"];
+  }
 
   if (options.verbose === true) config.verbose = true;
   if (options.failFast === true) config.failFast = true;
@@ -386,24 +395,19 @@ async function dispatch(
       return [await runApiTests(config)];
 
     case "load":
-      console.log(`  ${YELLOW}Load tests: not yet implemented${RESET}`);
-      return [placeholderSuite("Load Tests")];
+      return [await runLoadTests(config, "smoke")];
 
     case "stress":
-      console.log(`  ${YELLOW}Stress tests: not yet implemented${RESET}`);
-      return [placeholderSuite("Stress Tests")];
+      return [await runLoadTests(config, "stress")];
 
     case "soak":
-      console.log(`  ${YELLOW}Soak tests: not yet implemented${RESET}`);
-      return [placeholderSuite("Soak Tests")];
+      return [await runLoadTests(config, "sustained")];
 
     case "chaos":
-      console.log(`  ${YELLOW}Chaos experiments: not yet implemented${RESET}`);
-      return [placeholderSuite("Chaos Experiments")];
+      return [await runChaosTests(config)];
 
     case "security":
-      console.log(`  ${YELLOW}Security checks: not yet implemented${RESET}`);
-      return [placeholderSuite("Security Checks")];
+      return [await runSecurityTests(config)];
 
     case "full": {
       const suites: SuiteResult[] = [];
@@ -427,18 +431,39 @@ async function dispatch(
         return suites;
       }
 
-      // 3-7. Placeholders (to be implemented)
-      const remaining = [
-        { key: "load", label: "Load Tests", step: 3 },
-        { key: "stress", label: "Stress Tests", step: 4 },
-        { key: "chaos", label: "Chaos Experiments", step: 5 },
-        { key: "security", label: "Security Checks", step: 6 },
-      ];
+      // Brief recovery pause between heavy suites (let DB pool recover)
+      console.log(`  ${GRAY}Pausing 3s for DB connection recovery...${RESET}`);
+      await new Promise((r) => setTimeout(r, 3000));
 
-      for (const { key, label, step } of remaining) {
-        console.log(`  ${CYAN}[${step}/7]${RESET} ${label}: ${DIM}not yet implemented${RESET}`);
-        suites.push(placeholderSuite(label));
+      // 3. Security checks
+      console.log(`  ${CYAN}[3/7]${RESET} Running security checks...`);
+      suites.push(await runSecurityTests(config));
+
+      if (config.failFast && !suites[suites.length - 1].passed) {
+        console.log(`  ${RED}Fail-fast: security tests failed. Aborting remaining suites.${RESET}`);
+        return suites;
       }
+
+      // Brief recovery pause
+      console.log(`  ${GRAY}Pausing 3s for DB connection recovery...${RESET}`);
+      await new Promise((r) => setTimeout(r, 3000));
+
+      // 4. Load smoke test
+      console.log(`  ${CYAN}[4/7]${RESET} Running load smoke test...`);
+      suites.push(await runLoadTests(config, "smoke"));
+
+      if (config.failFast && !suites[suites.length - 1].passed) {
+        console.log(`  ${RED}Fail-fast: load tests failed. Aborting remaining suites.${RESET}`);
+        return suites;
+      }
+
+      // Recovery before chaos
+      console.log(`  ${GRAY}Pausing 3s for DB connection recovery...${RESET}`);
+      await new Promise((r) => setTimeout(r, 3000));
+
+      // 5. Chaos experiments
+      console.log(`  ${CYAN}[5/7]${RESET} Running chaos experiments...`);
+      suites.push(await runChaosTests(config));
 
       return suites;
     }
@@ -472,8 +497,21 @@ async function main(): Promise<void> {
   const suites = await dispatch(command, config);
 
   const runDuration = performance.now() - runStart;
-  const { score, grade } = computeScoreAndGrade(suites);
   const overallPassed = suites.every((s) => s.passed);
+
+  // Use weighted scorecard for scoring
+  const tempResult: RunResult = {
+    timestamp: new Date().toISOString(),
+    seed: config.seed,
+    serverUrl: config.serverUrl,
+    overallScore: 0,
+    overallPassed,
+    grade: "F",
+    duration: runDuration,
+    suites,
+  };
+  const scorecard = computeScorecard(tempResult);
+  const { score, grade } = { score: scorecard.score, grade: scorecard.grade };
 
   // Build the RunResult
   const result: RunResult = {
@@ -508,6 +546,15 @@ async function main(): Promise<void> {
       console.log(`  ${GRAY}JSON report written to: ${filepath}${RESET}`);
     } catch (err: any) {
       console.error(`  ${RED}Failed to write JSON report: ${err.message}${RESET}`);
+    }
+  }
+
+  if (config.formats.includes("html")) {
+    try {
+      const filepath = writeHtmlReport(result, config.reportDir);
+      console.log(`  ${GRAY}HTML report written to: ${filepath}${RESET}`);
+    } catch (err: any) {
+      console.error(`  ${RED}Failed to write HTML report: ${err.message}${RESET}`);
     }
   }
 

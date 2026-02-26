@@ -47,14 +47,15 @@ export async function runErrorShapeChecks(
         continue;
       }
 
-      // Check that the response body has an error field (or is at least JSON)
+      // Check that the response body has an error/message field (JSON error shape)
       const body = res.data;
-      if (body && typeof body === "object" && "error" in body) {
+      if (body && typeof body === "object" && ("error" in body || "message" in body)) {
+        const errText = (body as any).error || (body as any).message;
         results.push({
           name: tc.name,
           passed: true,
           duration,
-          details: `${res.status} with error: "${(body as any).error}"`,
+          details: `${res.status} with error: "${errText}"`,
         });
       } else if (typeof body === "string" && body.includes("<!DOCTYPE")) {
         // HTML error page (e.g., Express default 404) — acceptable for 404

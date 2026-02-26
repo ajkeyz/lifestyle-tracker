@@ -13,9 +13,9 @@ export async function runSchemaChecks(
 ): Promise<TestResult[]> {
   const results: TestResult[] = [];
 
-  // Skip parameterized paths that need real IDs, and skip destructive endpoints
+  // Skip parameterized paths, destructive endpoints, and explicitly skipped ones
   const testable = endpoints.filter(
-    (e) => !e.path.includes(":") && e.path !== "/api/account",
+    (e) => !e.path.includes(":") && e.path !== "/api/account" && !e.skipSchema,
   );
 
   for (const ep of testable) {
