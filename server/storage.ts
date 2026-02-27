@@ -66,7 +66,7 @@ export interface IStorage {
   checkUsernameAvailable(username: string, excludeUserId?: string): Promise<boolean>;
   searchUserByUsername(username: string, excludeUserId?: string): Promise<{ found: boolean; username: string | null; userId: string | null }>;
   getDailyDrop(): Promise<DailyDrop>;
-  submitGame(sessionId: string, submission: SubmitGame): Promise<UserGameResult>;
+  submitGame(sessionId: string, submission: SubmitGame, prefetchedDrop?: DailyDrop, prefetchedUser?: User): Promise<UserGameResult>;
   getLeaderboard(limit?: number): Promise<LeaderboardEntry[]>;
   // League methods
   createLeague(userId: string, data: CreateLeague): Promise<League>;
@@ -605,9 +605,9 @@ export class MemStorage implements IStorage {
     return this.dailyDrop;
   }
 
-  async submitGame(sessionId: string, submission: SubmitGame): Promise<UserGameResult> {
-    const user = await this.getOrCreateUser(sessionId);
-    const drop = await this.getDailyDrop();
+  async submitGame(sessionId: string, submission: SubmitGame, prefetchedDrop?: DailyDrop, prefetchedUser?: User): Promise<UserGameResult> {
+    const user = prefetchedUser || await this.getOrCreateUser(sessionId);
+    const drop = prefetchedDrop || await this.getDailyDrop();
 
     let totalScore = 0;
     let correctCount = 0;

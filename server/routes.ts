@@ -288,18 +288,26 @@ export async function registerRoutes(
         return res.json(cachedResult);
       }
 
-      // Check if user already played today (timezone-safe using lastPlayedDate)
-      const user = await storage.getUser(sessionId);
-      const today = new Date().toISOString().split("T")[0]; // UTC date string
+      // PERF: Fetch user + daily drop in PARALLEL (single round-trip).
+      const [user, dailyDrop] = await Promise.all([
+        storage.getUser(sessionId),
+        storage.getDailyDrop(),
+      ]);
+
+      // Fast-fail: skip entirely if already played
+      const today = new Date().toISOString().split("T")[0];
       if (user?.lastPlayedDate === today) {
         return res.status(400).json({ error: "Already played today" });
       }
 
-      // Create promise for this submission and cache it
-      const submissionPromise = storage.submitGame(sessionId, parsed.data)
+      // PERF: Pass pre-fetched user + drop so submitGame does ZERO additional
+      // DB reads. It computes results (pure CPU) and writes to DB in the
+      // background. The client gets a response in ~0ms after this point.
+      const submissionPromise = storage.submitGame(sessionId, parsed.data, dailyDrop, user!)
         .finally(() => {
-          // Clear from cache after completion (success or failure)
-          submissionCache.delete(idempotencyKey);
+          // Keep cache for 10s after resolution to catch late duplicate requests
+          // (e.g., user taps submit while the background DB write is still running)
+          setTimeout(() => submissionCache.delete(idempotencyKey), 10000);
         });
 
       submissionCache.set(idempotencyKey, submissionPromise);

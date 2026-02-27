@@ -14,6 +14,7 @@ import { AppLogo } from "@/components/app-logo";
 import { Mascot, getMascotMoodForScore, getMascotScoreMessage, getMascotContextDialogue, CelebrationBurst, BODY_COLORS, type MascotContext } from "@/components/mascot";
 import { CleoCongratsPeek } from "@/components/cleo-edge-presence";
 import { useQuery } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
 import type { User, DailyDrop, LeaderboardEntry } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -88,8 +89,21 @@ export default function Results() {
     queryKey: ["/api/leaderboard"],
   });
 
+  // Guard: redirect to home if no todayResult, but with a grace period.
+  // The submission may still be processing on the server (Neon cold start),
+  // so refetch once before giving up and redirecting.
+  const redirectAttempts = useRef(0);
   useEffect(() => {
     if (!userLoading && user && !user.todayResult) {
+      if (redirectAttempts.current < 2) {
+        // First 2 attempts: refetch user data after a short delay
+        redirectAttempts.current++;
+        const timer = setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+        }, 1500);
+        return () => clearTimeout(timer);
+      }
+      // After 2 retries (~3s), give up and redirect
       navigate("/");
     }
   }, [user, userLoading, navigate]);

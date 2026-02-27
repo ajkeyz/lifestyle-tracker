@@ -86,9 +86,9 @@ export default function Game() {
 
   const submitMutation = useMutation({
     mutationFn: async (data: SubmitGame) => {
-      // Add timeout to prevent permanent freeze if server hangs
+      // 30s timeout — Neon serverless can be slow on cold starts
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 15000);
+      const timeout = setTimeout(() => controller.abort(), 30000);
       try {
         const res = await fetch("/api/submit-game", {
           method: "POST",
@@ -126,14 +126,17 @@ export default function Game() {
         description: alreadyPlayed
           ? "You've already played today! Redirecting to results."
           : timedOut
-          ? "Request timed out, but your answers may have been saved. Checking results..."
+          ? "Taking longer than expected. Tap Submit again to retry."
           : "Failed to submit your answers. Please try again.",
         variant: alreadyPlayed || timedOut ? "default" : "destructive",
       });
-      if (alreadyPlayed || timedOut) {
+      if (alreadyPlayed) {
         queryClient.invalidateQueries({ queryKey: ["/api/user"] });
         navigate("/results");
       }
+      // On timeout or error: stay on game page. The submit button becomes
+      // clickable again so the user can retry. The server's idempotency cache
+      // prevents double-processing if the first request actually succeeded.
     },
   });
 

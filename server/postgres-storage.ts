@@ -612,24 +612,22 @@ export class PostgresStorage implements IStorage {
     return newDrop;
   }
 
-  async submitGame(sessionId: string, submission: SubmitGame): Promise<UserGameResult> {
-    // P0 FIX: Wrap in transaction with row-level locking to prevent race conditions
-    return await db.transaction(async (tx) => {
-      // P0-6: Acquire row-level lock to prevent concurrent update races
-      await tx.execute(sql`SELECT 1 FROM lifestyle_users WHERE id = ${sessionId} FOR UPDATE`);
-      const user = await this.getOrCreateUser(sessionId);
-      const drop = await this.getDailyDrop();
+  async submitGame(sessionId: string, submission: SubmitGame, prefetchedDrop?: DailyDrop, prefetchedUser?: User): Promise<UserGameResult> {
+    const drop = prefetchedDrop || await this.getDailyDrop();
+    const user = prefetchedUser || await this.getOrCreateUser(sessionId);
 
-      // Prevent double submission on same date (idempotency at storage layer)
-      const today = getTodayDateString();
-      if (user.lastPlayedDate === today) {
-        throw new Error("Already played today");
-      }
+    // Idempotency check
+    const today = getTodayDateString();
+    if (user.lastPlayedDate === today) {
+      throw new Error("Already played today");
+    }
 
-      // SECURITY: Validate dropId matches today's drop to prevent replay attacks
-      if (submission.dropId !== drop.id) {
-        throw new Error("Invalid drop ID - answers must be for today's quiz");
-      }
+    // SECURITY: Validate dropId matches today's drop
+    if (submission.dropId !== drop.id) {
+      throw new Error("Invalid drop ID - answers must be for today's quiz");
+    }
+
+    // ── Pure CPU computation (no DB calls) ──────────────────────────
 
     let totalScore = 0;
     let correctCount = 0;
@@ -678,9 +676,7 @@ export class PostgresStorage implements IStorage {
       stats: newStats,
     };
 
-    // today already defined above for idempotency check
     const yesterday = getYesterdayDateString();
-
     const wasFrozenYesterday = user.frozenDates.includes(yesterday);
     const playedYesterday = user.lastPlayedDate === yesterday;
 
@@ -718,7 +714,6 @@ export class PostgresStorage implements IStorage {
       timeSpent: 0,
     };
 
-    // Non-obvious bug fix: guard against gameHistory being non-array (e.g. null/undefined from DB)
     const existingHistory = Array.isArray(user.gameHistory) ? user.gameHistory : [];
     const newGameHistory = [...existingHistory, historyEntry].slice(-30);
 
@@ -745,28 +740,68 @@ export class PostgresStorage implements IStorage {
       }
     });
 
-    await this.updateUser(sessionId, {
-      streak: newStreak,
-      highestStreak: newHighestStreak,
-      streakCalendar: newStreakCalendar,
-      moneyHealth,
-      totalScore: user.totalScore + totalScore,
-      gamesPlayed: user.gamesPlayed + 1,
-      lastPlayedDate: today,
-      stats: newStats,
-      todayResult: result,
-      gameHistory: newGameHistory,
-      categoryStats: newCategoryStats,
-    });
+    // Compute badge updates inline (pure CPU, no DB)
+    const badges = [...user.badges];
 
-    await this.computeAndUpdateAllBadges(sessionId, {
-      correctCount,
-      totalQuestions: drop.scenarios.length,
-      categoryResults,
-    });
+    const spendingCategories = ["budgeting", "saving", "debt", "lifestyle", "credit"];
+    const spendingCorrect = (newCategoryStats || [])
+      .filter(c => spendingCategories.includes(c.category))
+      .reduce((sum, c) => sum + c.correctAnswers, 0);
+    this.applyBadgeProgress(badges, "no_spend_ninja", spendingCorrect);
+    this.applyBadgeProgress(badges, "credit_climber", moneyHealth);
+    this.applyBadgeProgress(badges, "emergency_fund_builder", user.gamesPlayed + 1);
+
+    const scamResults = categoryResults.get("scam");
+    let newScamStreak = user.scamStreak;
+    if (scamResults) {
+      if (scamResults.correct === scamResults.total && scamResults.total > 0) {
+        newScamStreak += scamResults.correct;
+      } else {
+        newScamStreak = 0;
+      }
+    }
+    this.applyBadgeProgress(badges, "scam_spotter", newScamStreak);
+
+    const isPerfect = correctCount === drop.scenarios.length && drop.scenarios.length > 0;
+    const newPerfectGames = isPerfect ? user.perfectGames + 1 : user.perfectGames;
+    this.applyBadgeProgress(badges, "budget_sniper", newPerfectGames);
+    this.applyBadgeProgress(badges, "streak_monster", newStreak);
+
+    if (user.hadPreviousStreak) {
+      this.applyBadgeProgress(badges, "comeback_king", newStreak);
+    }
+
+    // ── PERF: Fire-and-forget DB write ──────────────────────────────
+    // The client doesn't need to wait for the DB write to see their results.
+    // The route-level idempotency cache prevents double-processing.
+    // This turns a 1-5s blocking write into ~0ms from the client's perspective.
+    db.update(appSchema.lifestyleUsers)
+      .set({
+        streak: newStreak,
+        highestStreak: newHighestStreak,
+        streakCalendar: newStreakCalendar,
+        moneyHealth,
+        totalScore: user.totalScore + totalScore,
+        gamesPlayed: user.gamesPlayed + 1,
+        lastPlayedDate: today,
+        stats: newStats,
+        todayResult: result,
+        gameHistory: newGameHistory,
+        categoryStats: newCategoryStats,
+        badges,
+        scamStreak: newScamStreak,
+        perfectGames: newPerfectGames,
+        updatedAt: new Date(),
+      })
+      .where(eq(appSchema.lifestyleUsers.id, sessionId))
+      .then(() => {
+        console.log(`[submit-game] Saved results for ${sessionId} (score: ${totalScore})`);
+      })
+      .catch((err) => {
+        console.error(`[submit-game] FAILED to save results for ${sessionId}:`, err);
+      });
 
     return result;
-    }); // End transaction
   }
 
   async getLeaderboard(limit: number = 10): Promise<LeaderboardEntry[]> {
