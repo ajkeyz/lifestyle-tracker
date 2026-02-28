@@ -1,9 +1,15 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { AnimatedAvatar } from "@/components/animated-avatar";
+import { AmbientBackground } from "@/components/ambient-background";
+import { Mascot, type MascotContext } from "@/components/mascot";
+import { AppLogo } from "@/components/app-logo";
+import { GradientText } from "@/components/gradient-text";
+import { RollingNumber } from "@/components/animated-counter";
+import { cn } from "@/lib/utils";
 import {
   ArrowLeft,
   Zap,
@@ -15,6 +21,7 @@ import {
   Loader2,
   X,
   Swords,
+  Shield,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -134,99 +141,139 @@ export default function SurvivalEntry() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
+      <AmbientBackground variant="premium" />
+
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur-sm">
-        <div className="container max-w-lg mx-auto px-4 py-3">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate("/")}
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <div>
-              <h1 className="text-lg font-semibold leading-tight">
-                Survival Mode
-              </h1>
-              <p className="text-xs text-muted-foreground">
-                Last Investor Standing
-              </p>
-            </div>
-          </div>
+      <header className="flex items-center justify-between px-4 h-14 border-b bg-card/80 backdrop-blur-xl sticky top-0 z-50 border-white/10">
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate("/play-hub")}
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <AppLogo size="sm" />
+          <GradientText
+            variant="fire"
+            as="h1"
+            className="font-display font-extrabold text-[15px] leading-none tracking-[-0.04em]"
+          >
+            Survival
+          </GradientText>
         </div>
       </header>
 
-      <main className="container max-w-lg mx-auto px-4 py-6 space-y-5">
+      <main className="container max-w-md mx-auto px-4 py-6 space-y-5">
         {/* Player Stats Card */}
         <AnimatePresence>
           {hasPlayedBefore && user && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
+              transition={{ duration: 0.35 }}
             >
-              <Card className="bg-card border rounded-xl p-4">
-                <div className="flex items-center gap-3 mb-3">
-                  <AnimatedAvatar
-                    avatarId={user.avatarId || "cosmic-cat"}
-                    size="sm"
-                    isAnimated={false}
-                  />
-                  <span className="text-sm font-medium text-muted-foreground">
-                    Your Survival Stats
-                  </span>
-                </div>
-                <div className="grid grid-cols-3 gap-3 text-center">
-                  <div>
-                    <p className="text-xl font-bold tabular-nums">
-                      {user.survivalPlayed}
-                    </p>
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                      Played
-                    </p>
+              <Card className="relative overflow-hidden">
+                <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-400 via-orange-500 to-red-600 rounded-t-2xl" />
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <AnimatedAvatar
+                      avatarId={user.avatar || "cosmic-cat"}
+                      size="sm"
+                      isAnimated={false}
+                    />
+                    <span className="text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-[0.12em]">
+                      Your Survival Stats
+                    </span>
                   </div>
-                  <div>
-                    <p className="text-xl font-bold tabular-nums text-amber-500">
-                      {user.survivalWins}
-                    </p>
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                      Wins
-                    </p>
+                  <div className="grid grid-cols-3 gap-3 text-center">
+                    <div>
+                      <p className="text-xl font-display font-bold tabular-nums">
+                        <RollingNumber value={user.survivalPlayed} />
+                      </p>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        Played
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xl font-display font-bold tabular-nums text-orange-500">
+                        <RollingNumber value={user.survivalWins} />
+                      </p>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        Wins
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xl font-display font-bold tabular-nums">
+                        {user.survivalBestPlacement != null
+                          ? `#${user.survivalBestPlacement}`
+                          : "--"}
+                      </p>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        Best
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xl font-bold tabular-nums">
-                      {user.survivalBestPlacement != null
-                        ? `#${user.survivalBestPlacement}`
-                        : "--"}
-                    </p>
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                      Best
-                    </p>
-                  </div>
-                </div>
+                </CardContent>
               </Card>
             </motion.div>
           )}
         </AnimatePresence>
 
+        {/* Mascot */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.05, duration: 0.3 }}
+          className="flex justify-center"
+        >
+          <Mascot
+            mood="hyped"
+            size="sm"
+            showBubble={true}
+            message="Think you can outlast them all?"
+            context={{ screen: "survival-lobby", username: user?.username ?? "", streak: 0 } satisfies MascotContext}
+          />
+        </motion.div>
+
+        {/* Section Label */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.1, duration: 0.3 }}
+          className="flex items-center gap-2"
+        >
+          <p className="text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-[0.12em] px-0.5">
+            Choose Your Battle
+          </p>
+          <div className="flex-1 h-px bg-border/40" />
+        </motion.div>
+
         {/* Quick Match Card */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
+          transition={{ delay: 0.12, duration: 0.35 }}
         >
-          <Card className="bg-card border rounded-xl overflow-hidden">
-            <div className="p-5 space-y-4">
+          <Card className="relative overflow-hidden">
+            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-400 via-orange-500 to-red-600 rounded-t-2xl" />
+            <CardContent className="p-5 space-y-4">
               <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center flex-shrink-0">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.15, duration: 0.3 }}
+                  className="w-11 h-11 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center flex-shrink-0 shadow-sm shadow-orange-500/30"
+                >
                   <Zap className="w-5 h-5 text-white" />
-                </div>
+                </motion.div>
                 <div className="flex-1 min-w-0">
-                  <h2 className="text-base font-semibold">Quick Match</h2>
-                  <p className="text-sm text-muted-foreground mt-0.5">
-                    Join matchmaking queue -- play against random opponents
+                  <h2 className="font-display text-base font-bold tracking-tight">
+                    Quick Match
+                  </h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Join matchmaking queue — play against random opponents
                   </p>
                 </div>
               </div>
@@ -249,7 +296,7 @@ export default function SurvivalEntry() {
                           ease: "linear",
                         }}
                       >
-                        <Loader2 className="w-5 h-5 text-amber-500" />
+                        <Loader2 className="w-5 h-5 text-orange-500" />
                       </motion.div>
                       <span className="text-sm font-medium">
                         Searching for players...
@@ -258,7 +305,7 @@ export default function SurvivalEntry() {
                     {queuePosition != null && (
                       <p className="text-center text-xs text-muted-foreground">
                         Queue position:{" "}
-                        <span className="font-semibold text-foreground">
+                        <span className="font-semibold text-orange-500">
                           #{queuePosition}
                         </span>
                       </p>
@@ -277,7 +324,7 @@ export default function SurvivalEntry() {
                   <motion.div key="idle">
                     <Button
                       size="lg"
-                      className="w-full text-base font-semibold btn-premium border-0"
+                      className="w-full text-base font-bold btn-gold border-0"
                       onClick={() => queueMutation.mutate()}
                       disabled={queueMutation.isPending}
                     >
@@ -301,25 +348,33 @@ export default function SurvivalEntry() {
                   </motion.div>
                 )}
               </AnimatePresence>
-            </div>
+            </CardContent>
           </Card>
         </motion.div>
 
         {/* Private Lobby Card */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
+          transition={{ delay: 0.2, duration: 0.35 }}
         >
-          <Card className="bg-card border rounded-xl overflow-hidden">
-            <div className="p-5 space-y-4">
+          <Card className="relative overflow-hidden">
+            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-400 via-orange-500 to-red-600 rounded-t-2xl" />
+            <CardContent className="p-5 space-y-4">
               <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-                  <Users className="w-5 h-5 text-white" />
-                </div>
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.23, duration: 0.3 }}
+                  className="w-11 h-11 rounded-full bg-orange-500/10 flex items-center justify-center flex-shrink-0"
+                >
+                  <Shield className="w-5 h-5 text-orange-500" />
+                </motion.div>
                 <div className="flex-1 min-w-0">
-                  <h2 className="text-base font-semibold">Private Lobby</h2>
-                  <p className="text-sm text-muted-foreground mt-0.5">
+                  <h2 className="font-display text-base font-bold tracking-tight">
+                    Private Lobby
+                  </h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">
                     Create a room and invite friends
                   </p>
                 </div>
@@ -329,7 +384,7 @@ export default function SurvivalEntry() {
                 {/* Create Room */}
                 <Button
                   size="lg"
-                  className="w-full text-base font-semibold btn-premium border-0"
+                  className="w-full text-base font-bold btn-premium border-0"
                   onClick={() => createRoomMutation.mutate()}
                   disabled={createRoomMutation.isPending}
                 >
@@ -350,11 +405,11 @@ export default function SurvivalEntry() {
 
                 {/* Divider */}
                 <div className="flex items-center gap-3">
-                  <div className="flex-1 h-px bg-border" />
-                  <span className="text-xs text-muted-foreground font-medium">
+                  <div className="flex-1 h-px bg-border/40" />
+                  <span className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-[0.12em]">
                     or join with code
                   </span>
-                  <div className="flex-1 h-px bg-border" />
+                  <div className="flex-1 h-px bg-border/40" />
                 </div>
 
                 {/* Join by Code */}
@@ -386,42 +441,48 @@ export default function SurvivalEntry() {
                   </Button>
                 </div>
               </div>
-            </div>
+            </CardContent>
           </Card>
         </motion.div>
 
         {/* How It Works */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
+          transition={{ delay: 0.3, duration: 0.35 }}
         >
-          <Card className="bg-card border rounded-xl p-5">
-            <h3 className="text-sm font-semibold text-muted-foreground mb-3">
-              How It Works
-            </h3>
-            <div className="space-y-2.5">
-              <div className="flex items-center gap-3">
-                <div className="w-7 h-7 rounded-full bg-red-500/10 flex items-center justify-center flex-shrink-0">
-                  <Heart className="w-3.5 h-3.5 text-red-500" />
-                </div>
-                <span className="text-sm">3 lives, 1 shield</span>
+          <Card className="relative overflow-hidden">
+            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-400 via-orange-500 to-red-600 rounded-t-2xl" />
+            <CardContent className="p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <p className="text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-[0.12em]">
+                  How It Works
+                </p>
+                <div className="flex-1 h-px bg-border/40" />
               </div>
-              <div className="flex items-center gap-3">
-                <div className="w-7 h-7 rounded-full bg-amber-500/10 flex items-center justify-center flex-shrink-0">
-                  <TrendingUp className="w-3.5 h-3.5 text-amber-500" />
+              <div className="space-y-2.5">
+                <div className="flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-full bg-red-500/10 flex items-center justify-center flex-shrink-0">
+                    <Heart className="w-3.5 h-3.5 text-red-500" />
+                  </div>
+                  <span className="text-sm">3 lives, 1 shield</span>
                 </div>
-                <span className="text-sm">
-                  Difficulty increases each round
-                </span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-7 h-7 rounded-full bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
-                  <Trophy className="w-3.5 h-3.5 text-emerald-500" />
+                <div className="flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-full bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                    <TrendingUp className="w-3.5 h-3.5 text-amber-500" />
+                  </div>
+                  <span className="text-sm">
+                    Difficulty increases each round
+                  </span>
                 </div>
-                <span className="text-sm">Last player standing wins!</span>
+                <div className="flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-full bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
+                    <Trophy className="w-3.5 h-3.5 text-emerald-500" />
+                  </div>
+                  <span className="text-sm">Last player standing wins!</span>
+                </div>
               </div>
-            </div>
+            </CardContent>
           </Card>
         </motion.div>
       </main>
