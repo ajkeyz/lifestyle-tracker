@@ -2236,9 +2236,12 @@ export function Mascot({
     const BUBBLE_WIDTH = 280;
     const BUBBLE_HEIGHT = 100;
     const MIN_PAD = 12;
+    // Sticky headers are typically h-14 (56px). Top-positioned bubbles must
+    // clear the header so they don't render behind z-50 sticky elements.
+    const TOP_PAD = 68; // 56px header + 12px margin
     const hasRight = rect.right + BUBBLE_WIDTH + 12 < vw - MIN_PAD;
     const hasLeft  = rect.left  - BUBBLE_WIDTH - 12 > MIN_PAD;
-    const hasTop   = rect.top - BUBBLE_HEIGHT - 12 > MIN_PAD;
+    const hasTop   = rect.top - BUBBLE_HEIGHT - 12 > TOP_PAD;
     // On mobile screens (< 500px), always prefer top/bottom so the
     // SpeechBubble nudge logic can keep it within the viewport.
     if (vw < 500) {

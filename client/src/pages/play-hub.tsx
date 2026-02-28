@@ -84,7 +84,7 @@ export default function PlayHub() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 relative overflow-x-hidden">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 relative overflow-x-clip">
       <AmbientBackground variant="default" />
 
       {/* Header */}

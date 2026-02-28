@@ -199,8 +199,8 @@ export default function SurvivalLobby() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1, duration: 0.35 }}
         >
-          <Card className="relative overflow-hidden">
-            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-400 via-orange-500 to-red-600 rounded-t-2xl" />
+          <Card className="relative">
+            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-400 via-orange-500 to-red-600 rounded-t-xl" />
             <CardHeader className="text-center pb-3">
               <motion.div
                 initial={{ opacity: 0, scale: 0.8 }}
