@@ -117,11 +117,12 @@ export function CleoEdgePresence({
           transition={{ type: "spring", stiffness: 300, damping: 25 }}
         >
           <div
-            className="flex items-end gap-2 cursor-pointer"
+            className="flex items-end gap-2 cursor-pointer max-w-[calc(100vw-32px)]"
             onClick={handleDismiss}
           >
             {/* Cleo character (small size for edge presence) */}
             <motion.div
+              className="flex-shrink-0"
               animate={{ y: [0, -3, 0] }}
               transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
             >
@@ -137,7 +138,7 @@ export function CleoEdgePresence({
             {/* Message bubble */}
             {message && (
               <motion.div
-                className="rounded-2xl px-4 py-3 backdrop-blur-md max-w-[min(240px,calc(100vw-60px))]"
+                className="rounded-2xl px-4 py-3 backdrop-blur-md max-w-[min(220px,calc(100vw-100px))] min-w-0"
                 style={{
                   background: "hsl(var(--card) / 0.96)",
                   border: "1px solid hsl(var(--border) / 0.5)",

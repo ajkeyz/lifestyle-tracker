@@ -103,8 +103,8 @@ export default function CoopResults() {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ type: "spring", stiffness: 200, damping: 20 }}
         >
-          <Card className="overflow-hidden">
-            <CardHeader className="text-center bg-gradient-to-b from-primary/10 to-transparent pb-8 relative">
+          <Card>
+            <CardHeader className="text-center bg-gradient-to-b from-primary/10 to-transparent pb-8 relative rounded-t-xl">
               <div className="mx-auto mb-4">
                 <Mascot
                   mood={isWinner ? "celebrating" : isTie ? "happy" : "encouraging"}

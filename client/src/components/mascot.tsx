@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef } from "react";
 import { motion, AnimatePresence, useReducedMotion, useSpring, useMotionValue } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useHaptic } from "@/hooks/use-haptic";
@@ -2007,7 +2007,11 @@ function SpeechBubble({ message, position = "right", mood }: {
 }) {
   const [phase, setPhase] = useState<"typing" | "revealing" | "done">("typing");
   const [displayed, setDisplayed] = useState("");
+  const positionRef = useRef<HTMLDivElement>(null);
+  const [nudgeX, setNudgeX] = useState(0);
   const accentColor = mood ? BODY_COLORS[mood].main : "#34a874";
+  const EDGE_PAD = 12;
+  const isVertical = position === "top" || position === "bottom";
 
   useEffect(() => {
     setDisplayed("");
@@ -2028,90 +2032,121 @@ function SpeechBubble({ message, position = "right", mood }: {
     return () => clearTimeout(typingTimer);
   }, [message]);
 
-  // Position classes — use fixed positioning on mobile to prevent edge cropping
-  const posClass: Record<BubbleSide, string> = {
-    right:  "left-full ml-3 top-1/2 -translate-y-1/2",
-    left:   "right-full mr-3 top-1/2 -translate-y-1/2",
-    top:    "bottom-full mb-3 left-1/2 -translate-x-1/2",
-    bottom: "top-full mt-3 left-1/2 -translate-x-1/2",
+  // Viewport-aware nudge: measure the NATURAL centered position (outer div, no nudge applied)
+  // and compute how much to shift so the bubble stays within the viewport.
+  // The nudge is applied to a separate child div so the measurement stays stable
+  // and never causes an infinite re-render loop.
+  useLayoutEffect(() => {
+    if (!positionRef.current) return;
+    const rect = positionRef.current.getBoundingClientRect();
+    const vw = window.innerWidth;
+    let x = 0;
+    if (rect.left < EDGE_PAD) x = EDGE_PAD - rect.left;
+    else if (rect.right > vw - EDGE_PAD) x = (vw - EDGE_PAD) - rect.right;
+    if (x !== nudgeX) setNudgeX(x);
+  });
+
+  // CSS-only positioning styles — no Tailwind transform classes that FM could override.
+  // Outer div handles NATURAL position (always centered, no nudge).
+  // Nudge is applied to a separate child div to keep measurement stable.
+  const positionStyle: React.CSSProperties = (() => {
+    switch (position) {
+      case "right":
+        return { left: "100%", marginLeft: 12, top: "50%", transform: "translateY(-50%)" };
+      case "left":
+        return { right: "100%", marginRight: 12, top: "50%", transform: "translateY(-50%)" };
+      case "top":
+        return { bottom: "100%", marginBottom: 12, left: "50%", transform: "translateX(-50%)" };
+      case "bottom":
+        return { top: "100%", marginTop: 12, left: "50%", transform: "translateX(-50%)" };
+    }
+  })();
+
+  // Tail — counter-shift by -nudgeX so it still points at the mascot center
+  const tailBase: Record<BubbleSide, React.CSSProperties> = {
+    right:  { left: -6, top: "50%", transform: "translateY(-50%) rotate(45deg)", width: 12, height: 12, borderRadius: "0 0 0 4px" },
+    left:   { right: -6, top: "50%", transform: "translateY(-50%) rotate(45deg)", width: 12, height: 12, borderRadius: "0 4px 0 0" },
+    top:    { bottom: -6, left: `calc(50% - ${nudgeX}px)`, transform: "translateX(-50%) rotate(45deg)", width: 12, height: 12, borderRadius: "0 0 4px 0" },
+    bottom: { top: -6, left: `calc(50% - ${nudgeX}px)`, transform: "translateX(-50%) rotate(45deg)", width: 12, height: 12, borderRadius: "4px 0 0 0" },
   };
 
-  // Tail — modern rounded tail instead of triangle
-  const tailStyles: Record<BubbleSide, React.CSSProperties> = {
-    right: { left: -6, top: "50%", transform: "translateY(-50%) rotate(45deg)", width: 12, height: 12, borderRadius: "0 0 0 4px" },
-    left: { right: -6, top: "50%", transform: "translateY(-50%) rotate(45deg)", width: 12, height: 12, borderRadius: "0 4px 0 0" },
-    top: { bottom: -6, left: "50%", transform: "translateX(-50%) rotate(45deg)", width: 12, height: 12, borderRadius: "0 0 4px 0" },
-    bottom: { top: -6, left: "50%", transform: "translateX(-50%) rotate(45deg)", width: 12, height: 12, borderRadius: "4px 0 0 0" },
-  };
-
+  // Entry animation on the inner motion.div only — no transform conflicts with outer positioning
   const enterFrom = {
-    right:  { opacity: 0, scale: 0.82, x: -6, y: 0 },
-    left:   { opacity: 0, scale: 0.82, x: 6,  y: 0 },
-    top:    { opacity: 0, scale: 0.82, x: 0,  y: 5 },
-    bottom: { opacity: 0, scale: 0.82, x: 0,  y: -5 },
+    right:  { opacity: 0, scale: 0.82, x: -6 },
+    left:   { opacity: 0, scale: 0.82, x: 6 },
+    top:    { opacity: 0, scale: 0.82, y: 5 },
+    bottom: { opacity: 0, scale: 0.82, y: -5 },
   }[position];
 
-  // On top/bottom, clamp horizontal position so bubble doesn't overflow viewport
-  const isVertical = position === "top" || position === "bottom";
-
   return (
-    <motion.div
-      className={cn("absolute z-20", posClass[position])}
-      style={{ maxWidth: "calc(100vw - 40px)", width: isVertical ? 300 : "max-content" }}
-      initial={enterFrom}
-      animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
-      exit={{ opacity: 0, scale: 0.8 }}
-      transition={{ type: "spring", stiffness: 400, damping: 28 }}
+    <div
+      ref={positionRef}
+      className="absolute z-20"
+      style={{
+        ...positionStyle,
+        maxWidth: `min(280px, calc(100vw - ${EDGE_PAD * 2}px))`,
+        width: isVertical ? `min(280px, calc(100vw - ${EDGE_PAD * 2}px))` : "max-content",
+      }}
     >
-      <div className="relative">
-        {/* Rounded tail */}
-        <div
-          className="absolute"
-          style={{
-            ...tailStyles[position],
-            background: "hsl(var(--card) / 0.96)",
-            border: `1px solid ${accentColor}25`,
-            zIndex: -1,
-          }}
-        />
-        <motion.div
-          className="rounded-2xl px-4 py-3 max-w-[320px] min-w-[100px] backdrop-blur-md"
-          style={{
-            background: "hsl(var(--card) / 0.96)",
-            border: `1.5px solid ${accentColor}25`,
-            boxShadow: `0 8px 32px ${accentColor}15, 0 2px 8px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.08)`,
-          }}
-          animate={{ boxShadow: [
-            `0 8px 32px ${accentColor}12, 0 2px 8px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.06)`,
-            `0 8px 40px ${accentColor}22, 0 2px 8px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.1)`,
-            `0 8px 32px ${accentColor}12, 0 2px 8px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.06)`,
-          ]}}
-          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-        >
-          {/* Cleo label */}
-          <div className="flex items-center gap-1.5 mb-1">
-            <div className="w-1.5 h-1.5 rounded-full" style={{ background: accentColor }} />
-            <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: accentColor }}>Cleo</span>
-          </div>
+      {/* Nudge wrapper — shifts bubble within viewport without affecting the measured position above */}
+      <div style={isVertical && nudgeX ? { transform: `translateX(${nudgeX}px)` } : undefined}>
+      <motion.div
+        initial={enterFrom}
+        animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
+        exit={{ opacity: 0, scale: 0.8 }}
+        transition={{ type: "spring", stiffness: 400, damping: 28 }}
+      >
+        <div className="relative">
+          {/* Rounded tail — counter-shifted so it still points at the mascot */}
+          <div
+            className="absolute"
+            style={{
+              ...tailBase[position],
+              background: "hsl(var(--card) / 0.96)",
+              border: `1px solid ${accentColor}25`,
+              zIndex: -1,
+            }}
+          />
+          <motion.div
+            className="rounded-2xl px-4 py-3 max-w-[280px] min-w-[100px] backdrop-blur-md"
+            style={{
+              background: "hsl(var(--card) / 0.96)",
+              border: `1.5px solid ${accentColor}25`,
+              boxShadow: `0 8px 32px ${accentColor}15, 0 2px 8px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.08)`,
+            }}
+            animate={{ boxShadow: [
+              `0 8px 32px ${accentColor}12, 0 2px 8px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.06)`,
+              `0 8px 40px ${accentColor}22, 0 2px 8px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.1)`,
+              `0 8px 32px ${accentColor}12, 0 2px 8px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.06)`,
+            ]}}
+            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+          >
+            {/* Cleo label */}
+            <div className="flex items-center gap-1.5 mb-1">
+              <div className="w-1.5 h-1.5 rounded-full" style={{ background: accentColor }} />
+              <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: accentColor }}>Cleo</span>
+            </div>
 
-          {phase === "typing" ? (
-            <TypingIndicator color={accentColor} />
-          ) : (
-            <p className="text-[13px] font-medium text-foreground leading-relaxed tracking-[-0.01em]">
-              {displayed}
-              {phase === "revealing" && (
-                <motion.span
-                  className="inline-block w-[2px] h-[11px] ml-0.5 align-middle rounded-full"
-                  style={{ background: accentColor }}
-                  animate={{ opacity: [1, 0.3] }}
-                  transition={{ duration: 0.4, repeat: Infinity, ease: "easeInOut" }}
-                />
-              )}
-            </p>
-          )}
-        </motion.div>
+            {phase === "typing" ? (
+              <TypingIndicator color={accentColor} />
+            ) : (
+              <p className="text-[13px] font-medium text-foreground leading-relaxed tracking-[-0.01em]">
+                {displayed}
+                {phase === "revealing" && (
+                  <motion.span
+                    className="inline-block w-[2px] h-[11px] ml-0.5 align-middle rounded-full"
+                    style={{ background: accentColor }}
+                    animate={{ opacity: [1, 0.3] }}
+                    transition={{ duration: 0.4, repeat: Infinity, ease: "easeInOut" }}
+                  />
+                )}
+              </p>
+            )}
+          </motion.div>
+        </div>
+      </motion.div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -2198,14 +2233,15 @@ export function Mascot({
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const vw = window.innerWidth;
-    const BUBBLE_WIDTH = 290;
+    const BUBBLE_WIDTH = 280;
     const BUBBLE_HEIGHT = 100;
     const MIN_PAD = 12;
     const hasRight = rect.right + BUBBLE_WIDTH + 12 < vw - MIN_PAD;
     const hasLeft  = rect.left  - BUBBLE_WIDTH - 12 > MIN_PAD;
     const hasTop   = rect.top - BUBBLE_HEIGHT - 12 > MIN_PAD;
-    // On narrow screens, prefer top/bottom to avoid horizontal overflow
-    if (vw < 420) {
+    // On mobile screens (< 500px), always prefer top/bottom so the
+    // SpeechBubble nudge logic can keep it within the viewport.
+    if (vw < 500) {
       if (hasTop) setBubbleSide("top");
       else setBubbleSide("bottom");
     } else if (hasRight) setBubbleSide("right");
