@@ -228,14 +228,13 @@ export class PostgresStorage implements IStorage {
       survivalWins: 0,
       survivalPlayed: 0,
       survivalBestPlacement: null,
-      createdAt: new Date().toISOString(),
-      claimedMissions: [],
-      bonusArcadePlays: 0,
+      createdAt: new Date(),
     };
 
     await db.insert(appSchema.lifestyleUsers).values(newUser);
 
-    return newUser;
+    // Return app-shaped user (with string createdAt for the client)
+    return { ...newUser, createdAt: newUser.createdAt.toISOString(), claimedMissions: [] as string[], bonusArcadePlays: 0 };
   }
 
   async updateUser(sessionId: string, updates: Partial<User>): Promise<User | undefined> {
@@ -508,7 +507,7 @@ export class PostgresStorage implements IStorage {
       isProfilePrivate: dbUser.isProfilePrivate ?? false,
       profileSetupComplete: dbUser.profileSetupComplete ?? false,
       onboardingComplete: dbUser.onboardingComplete ?? false,
-      mode: dbUser.mode || "global",
+      mode: dbUser.mode ?? null,
       streak: dbUser.streak ?? 0,
       highestStreak: dbUser.highestStreak ?? 0,
       freezeTokens: dbUser.freezeTokens ?? 1,
