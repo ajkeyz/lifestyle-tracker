@@ -1,5 +1,5 @@
 /**
- * Endpoint Catalog — All 70+ API endpoints with metadata
+ * Endpoint Catalog — All 80+ API endpoints with metadata
  */
 
 export type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE";
@@ -56,6 +56,13 @@ export const ENDPOINT_CATALOG: EndpointDef[] = [
   { method: "GET",  path: "/api/friends/activity",     auth: true, description: "Get friend activity", tags: ["p2-social", "friends"] },
   { method: "POST", path: "/api/friends/add",          auth: true, rateLimit: 20, description: "Add friend", tags: ["p2-social", "friends"], hasBody: true, sampleBody: { friendId: "placeholder" } },
 
+  // ── Social Tab ─────────────────────────────────────────────
+  { method: "GET",  path: "/api/social/unread",         auth: true, description: "Check unread social activity", tags: ["p2-social", "social-tab"] },
+  { method: "POST", path: "/api/social/mark-read",      auth: true, description: "Mark social activity as read", tags: ["p2-social", "social-tab"] },
+
+  // ── Missions / Progression ────────────────────────────────
+  { method: "POST", path: "/api/missions/claim",        auth: true, rateLimit: 15, description: "Claim completed mission", tags: ["p1-core", "missions"], hasBody: true, sampleBody: { missionId: "complete_daily" } },
+
   // ── Challenges ────────────────────────────────────────────
   { method: "GET",  path: "/api/challenges",           auth: true, description: "Get user challenges", tags: ["p2-social", "challenges"] },
   { method: "POST", path: "/api/challenges",           auth: true, rateLimit: 10, description: "Create challenge", tags: ["p2-social", "challenges"], hasBody: true, sampleBody: { challengeeId: "placeholder", type: "money_health", trashTalk: "ready?" }, skipSchema: true },
@@ -86,6 +93,12 @@ export const ENDPOINT_CATALOG: EndpointDef[] = [
   { method: "POST",   path: "/api/survival/queue",     auth: true, rateLimit: 10, description: "Join survival queue", tags: ["p5-survival", "survival"] },
   { method: "DELETE", path: "/api/survival/queue",      auth: true, description: "Leave survival queue", tags: ["p5-survival", "survival"] },
   { method: "POST",   path: "/api/survival/create",    auth: true, rateLimit: 5, description: "Create survival lobby", tags: ["p5-survival", "survival"] },
+
+  // ── Sim Lab ───────────────────────────────────────────────
+  { method: "GET",  path: "/api/simlab/templates",      auth: true, description: "Get SimLab scenario templates", tags: ["p9-simlab", "simlab"] },
+  { method: "POST", path: "/api/simlab/run",            auth: true, rateLimit: 10, description: "Run a SimLab simulation", tags: ["p9-simlab", "simlab"], hasBody: true, sampleBody: { templateId: "coffee-daily", variables: { dailySpend: 5, investReturn: 8, years: 10 } } },
+  { method: "GET",  path: "/api/simlab/runs",           auth: true, description: "Get user simulation runs", tags: ["p9-simlab", "simlab"] },
+  { method: "GET",  path: "/api/simlab/preview-usage",  auth: true, description: "Preview SimLab usage limits", tags: ["p9-simlab", "simlab"] },
 
   // ── Badges ────────────────────────────────────────────────
   { method: "GET",  path: "/api/badges",               auth: true, description: "Get user badges", tags: ["p1-core", "badges"] },

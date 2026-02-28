@@ -280,16 +280,6 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Invalid submission data" });
       }
 
-      // Create idempotency key from userId + dropId
-      const idempotencyKey = `${sessionId}:${parsed.data.dropId}`;
-
-      // Check if this exact submission is already in progress
-      if (submissionCache.has(idempotencyKey)) {
-        console.log(`Duplicate submission detected for ${idempotencyKey}, returning cached promise`);
-        const cachedResult = await submissionCache.get(idempotencyKey);
-        return res.json(cachedResult);
-      }
-
       // PERF: Fetch user + daily drop in PARALLEL (single round-trip).
       const [user, dailyDrop] = await Promise.all([
         storage.getUser(sessionId),
@@ -300,6 +290,15 @@ export async function registerRoutes(
       const today = new Date().toISOString().split("T")[0];
       if (user?.lastPlayedDate === today) {
         return res.status(400).json({ error: "Already played today" });
+      }
+
+      // Create idempotency key from userId + dropId
+      const idempotencyKey = `${sessionId}:${parsed.data.dropId}`;
+
+      // Check if this exact submission is already in progress (concurrent double-tap)
+      if (submissionCache.has(idempotencyKey)) {
+        console.log(`Duplicate submission detected for ${idempotencyKey}, rejecting`);
+        return res.status(409).json({ error: "Submission already in progress" });
       }
 
       // PERF: Pass pre-fetched user + drop so submitGame does ZERO additional
