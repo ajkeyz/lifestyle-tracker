@@ -6,9 +6,11 @@ import {
   computeLevel,
   selectMissions,
   getNextUnlock,
+  buildMissionContext,
   MISSION_POOL,
   type UnlockState,
   type MissionDef,
+  type MissionContext,
   type GameModeId,
   type LevelInfo,
 } from "@shared/lib/progression";
@@ -50,6 +52,12 @@ export function useProgression() {
     [user?.createdAt]
   );
 
+  // Build mission context from user data (shared logic with server)
+  const missionContext: MissionContext = useMemo(
+    () => (user ? buildMissionContext(user) : buildMissionContext({})),
+    [user]
+  );
+
   // Use server-authoritative claimed missions
   const completedMissionIds = useMemo(
     () => user?.claimedMissions ?? [],
@@ -57,8 +65,8 @@ export function useProgression() {
   );
 
   const activeMissions: MissionDef[] = useMemo(
-    () => selectMissions(unlocks, completedMissionIds, 3, accountAgeDays),
-    [unlocks, completedMissionIds, accountAgeDays]
+    () => selectMissions(unlocks, completedMissionIds, 3, accountAgeDays, missionContext),
+    [unlocks, completedMissionIds, accountAgeDays, missionContext]
   );
 
   const completeMission = useCallback(
@@ -74,7 +82,7 @@ export function useProgression() {
         };
       });
 
-      // Call server to credit the actual reward
+      // Call server to credit the actual reward (server re-validates conditions)
       try {
         const res = await fetch("/api/missions/claim", {
           method: "POST",
@@ -87,9 +95,12 @@ export function useProgression() {
           if (data.user) {
             queryClient.setQueryData(["/api/user"], data.user);
           }
+        } else {
+          // Server rejected (conditions not met) — revert optimistic update
+          queryClient.invalidateQueries({ queryKey: ["/api/user"] });
         }
       } catch {
-        // Revert optimistic update on failure
+        // Network error — revert optimistic update
         queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       }
     },
@@ -115,6 +126,7 @@ export function useProgression() {
     nextUnlock,
     levelInfo,
     accountAgeDays,
+    missionContext,
     activeMissions,
     completedMissionIds,
     completeMission,

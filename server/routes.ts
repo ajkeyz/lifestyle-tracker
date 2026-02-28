@@ -6,7 +6,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { randomUUID } from "crypto";
 import { storage } from "./storage";
 import { submitGameSchema, setModeSchema, updateProfileSchema, createLeagueSchema, joinLeagueSchema, createChallengeSchema, addFreezeTokenSchema, adminScenarioSchema, banUserSchema, addModeratorSchema, createCoopSessionSchema, joinCoopSessionSchema, submitArcadeGameSchema, createSurvivalLobbySchema, survivalAnswerSchema, createSimRunSchema, saveSimRunSchema, type CoopMessage, type SurvivalMessage, type SimulationRun } from "@shared/schema";
-import { MISSION_POOL } from "@shared/lib/progression";
+import { MISSION_POOL, buildMissionContext } from "@shared/lib/progression";
 import { getTemplate, getAllTemplates, type SimulationResult } from "@shared/lib/simlab";
 import { getDailyScenarios, getArcadeScenarios } from "./static-scenarios";
 import { SurvivalMatchmaking } from "./survival-matchmaking";
@@ -980,6 +980,12 @@ export async function registerRoutes(
       const claimed = user.claimedMissions || [];
       if (claimed.includes(missionId)) {
         return res.status(200).json({ already: true, user });
+      }
+
+      // Server-side validation: re-check mission condition using DB data
+      const serverContext = buildMissionContext(user);
+      if (!mission.check(serverContext)) {
+        return res.status(400).json({ error: "Mission conditions not yet met" });
       }
 
       // Build reward updates

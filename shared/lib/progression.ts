@@ -41,6 +41,10 @@ export interface MissionDef {
   /** Mission tier — controls when missions appear based on account age.
    *  Tier 1 (Day 0+), Tier 2 (Day 3+), Tier 3 (Day 7+). Defaults to 1. */
   tier?: 1 | 2 | 3;
+  /** If true, mission checks cumulative/lifetime stats (e.g. total games, streak).
+   *  These missions are hidden if the condition is already met, since the user
+   *  can't meaningfully "work toward" something they've already achieved. */
+  cumulative?: boolean;
 }
 
 // ─── Level System ─────────────────────────────────────────────────────────────
@@ -213,6 +217,7 @@ export const MISSION_POOL: MissionDef[] = [
     xp: 80,
     reward: { type: "xp", amount: 80 },
     tier: 1,
+    cumulative: true,
     check: (ctx) => ctx.gamesPlayed >= 5,
   },
   {
@@ -222,6 +227,7 @@ export const MISSION_POOL: MissionDef[] = [
     xp: 100,
     reward: { type: "streak_shield", amount: 1 },
     tier: 1,
+    cumulative: true,
     check: (ctx) => ctx.streak >= 3,
   },
   // ── Tier 2: Day 3+ (intermediate missions) ──
@@ -242,6 +248,7 @@ export const MISSION_POOL: MissionDef[] = [
     xp: 75,
     reward: { type: "xp", amount: 75 },
     tier: 2,
+    cumulative: true,
     requiresUnlock: "coop",
     check: (ctx) => ctx.referralCount >= 1,
   },
@@ -268,13 +275,41 @@ export const MISSION_POOL: MissionDef[] = [
   },
 ];
 
+/** Build a MissionContext from user-like data. Works on both client and server. */
+export function buildMissionContext(user: {
+  todayResult?: unknown;
+  lastPlayedDate?: string | null;
+  arcadePlaysToday?: number;
+  streak?: number;
+  gamesPlayed?: number;
+  friendIds?: string[];
+  referralCount?: number;
+}): MissionContext {
+  const today = new Date().toISOString().slice(0, 10);
+  const lastPlayed = user.lastPlayedDate
+    ? new Date(user.lastPlayedDate).toISOString().slice(0, 10)
+    : "";
+  return {
+    hasPlayedToday: user.todayResult != null || lastPlayed === today,
+    arcadePlaysToday: user.arcadePlaysToday ?? 0,
+    streak: user.streak ?? 0,
+    gamesPlayed: user.gamesPlayed ?? 0,
+    friendCount: user.friendIds?.length ?? 0,
+    coopPlayed: false,
+    survivalPlayed: false,
+    referralCount: user.referralCount ?? 0,
+  };
+}
+
 /** Pick up to `count` relevant missions for this user, avoiding already-completed ones.
- *  When `accountAgeDays` is provided, only missions matching the user's tier are shown. */
+ *  When `accountAgeDays` is provided, only missions matching the user's tier are shown.
+ *  When `context` is provided, cumulative missions whose conditions are already met are skipped. */
 export function selectMissions(
   unlocks: UnlockState,
   completedIds: string[],
   count = 3,
-  accountAgeDays = 0
+  accountAgeDays = 0,
+  context?: MissionContext
 ): MissionDef[] {
   const userTier = getMissionTier(accountAgeDays);
 
@@ -285,6 +320,9 @@ export function selectMissions(
     if (m.requiresUnlock && !unlocks[m.requiresUnlock].unlocked) return false;
     // Skip missions above the user's current tier
     if ((m.tier ?? 1) > userTier) return false;
+    // Skip cumulative missions whose conditions are already met —
+    // the user can't "work toward" something they've already achieved
+    if (context && m.cumulative && m.check(context)) return false;
     return true;
   });
 

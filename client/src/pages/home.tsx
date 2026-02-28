@@ -22,7 +22,7 @@ import { NextUnlockCard } from "@/components/next-unlock-card";
 import { LevelProgress } from "@/components/level-progress";
 import { ResourceBar } from "@/components/resource-bar";
 import { useProgression } from "@/hooks/use-progression";
-import type { MissionContext } from "@shared/lib/progression";
+
 import {
   Play,
   Trophy,
@@ -133,6 +133,7 @@ export default function Home() {
     unlocks,
     nextUnlock,
     levelInfo,
+    missionContext,
     activeMissions,
     completedMissionIds,
     completeMission,
@@ -239,20 +240,7 @@ export default function Home() {
     }
   };
 
-  // Mission context for checking completions
-  const missionContext: MissionContext = useMemo(
-    () => ({
-      hasPlayedToday,
-      arcadePlaysToday: user?.arcadePlaysToday ?? 0,
-      streak: user?.streak ?? 0,
-      gamesPlayed: user?.gamesPlayed ?? 0,
-      friendCount: user?.friendIds?.length ?? 0,
-      coopPlayed: false,
-      survivalPlayed: false,
-      referralCount: user?.referralCount ?? 0,
-    }),
-    [hasPlayedToday, user]
-  );
+  // missionContext is now provided by useProgression (shared with server-side validation)
 
   return (
     <>
