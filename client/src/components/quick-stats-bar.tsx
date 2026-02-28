@@ -3,6 +3,7 @@ import { Target, Shield, Clock, Medal, Crown, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { User } from "@shared/schema";
 import { LiquidMoneyMeter } from "@/components/liquid-money-meter";
+import { StreakCalendar } from "@/components/streak-calendar";
 import { motion, AnimatePresence } from "framer-motion";
 import { AnimatedCounter } from "@/components/animated-counter";
 import { useQuery } from "@tanstack/react-query";
@@ -76,14 +77,14 @@ const HEALTH_INDICATORS = [
   {
     label: "Risk awareness",
     icon: Shield,
-    description: "Tracks your Money Health score over time. Score 65+ = high, 40+ = medium. Make smart choices in quizzes!",
+    description: "Tracks your Financial Fitness score over time. Score 65+ = high, 40+ = medium. Make smart choices in quizzes!",
     getLevel: (user: User) => {
       const health = user.moneyHealth;
       if (health >= 65) return "high" as const;
       if (health >= 40) return "mid" as const;
       return "low" as const;
     },
-    getStat: (user: User) => `${user.moneyHealth} health`,
+    getStat: (user: User) => `${user.moneyHealth} fitness`,
   },
   {
     label: "Delay discipline",
@@ -149,15 +150,10 @@ export function QuickStatsBar({ user, rank, streakContext, className }: QuickSta
 
         {/* Streak */}
         <div
-          className={cn(
-            "flex items-center gap-2 flex-1 justify-center",
-            streakContext ? "cursor-pointer" : "cursor-default"
-          )}
+          className="flex items-center gap-2 flex-1 justify-center cursor-pointer"
           onClick={() => {
-            if (streakContext) {
-              toggleSection("streak");
-              setStreakSeen(true);
-            }
+            toggleSection("streak");
+            setStreakSeen(true);
           }}
         >
           <span className="relative">
@@ -200,9 +196,9 @@ export function QuickStatsBar({ user, rank, streakContext, className }: QuickSta
         </div>
       </div>
 
-      {/* Streak context dropdown */}
+      {/* Streak dropdown with calendar */}
       <AnimatePresence>
-        {expandedSection === "streak" && streakContext && (
+        {expandedSection === "streak" && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
@@ -210,11 +206,14 @@ export function QuickStatsBar({ user, rank, streakContext, className }: QuickSta
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="px-3 pb-2.5 pt-1 border-t">
-              <div className="flex items-center gap-2 px-2.5 py-2 rounded-md bg-orange-500/5">
-                <AnimatedFlame className="w-4 h-4 text-orange-500 flex-shrink-0" active />
-                <span className="text-xs text-muted-foreground">{streakContext}</span>
-              </div>
+            <div className="px-3 pb-3 pt-1 border-t space-y-2">
+              {streakContext && (
+                <div className="flex items-center gap-2 px-2.5 py-2 rounded-md bg-orange-500/5">
+                  <AnimatedFlame className="w-4 h-4 text-orange-500 flex-shrink-0" active />
+                  <span className="text-xs text-muted-foreground">{streakContext}</span>
+                </div>
+              )}
+              <StreakCalendar user={user} />
             </div>
           </motion.div>
         )}
@@ -231,7 +230,7 @@ export function QuickStatsBar({ user, rank, streakContext, className }: QuickSta
             className="overflow-hidden"
           >
             <div className="px-3 pb-3 pt-1 border-t" data-testid="health-breakdown">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">What shapes your Money Health</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">What shapes your Financial Fitness</p>
               <div className="flex items-center justify-between gap-2">
                 {HEALTH_INDICATORS.map((indicator) => {
                   const level = indicator.getLevel(user);

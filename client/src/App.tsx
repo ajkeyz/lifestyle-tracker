@@ -7,7 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { PageTransition } from "@/components/page-transition";
 import { useAuth } from "@/hooks/use-auth";
 import { analytics, trackAppOpened } from "@/lib/analytics";
-import { useEffect, useState, lazy, Suspense } from "react";
+import { useEffect, useState, useRef, lazy, Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { AppLogo } from "@/components/app-logo";
@@ -19,6 +19,11 @@ import { BottomNav, SafeAreaSpacer } from "@/components/bottom-nav";
 import { StreakRitualOverlay } from "@/components/streak-ritual-overlay";
 import { AchievementOverlayProvider } from "@/components/achievement-overlay-provider";
 
+import { useProgression } from "@/hooks/use-progression";
+import { toast } from "@/hooks/use-toast";
+import { computeUnlocks } from "@shared/lib/progression";
+import type { User as UserType } from "@shared/schema";
+
 // Eager load critical pages (auth flow + core game)
 import Home from "@/pages/home";
 import AuthPage from "@/pages/auth";
@@ -26,6 +31,7 @@ import Game from "@/pages/game";
 import Results from "@/pages/results";
 
 // Lazy load all other pages for better initial bundle size
+const PlayHub = lazy(() => import("@/pages/play-hub"));
 const ProfileSetup = lazy(() => import("@/pages/profile-setup"));
 const NotificationsSetup = lazy(() => import("@/pages/notifications-setup"));
 const FriendsSetup = lazy(() => import("@/pages/friends-setup"));
@@ -61,6 +67,10 @@ const SurvivalEntry = lazy(() => import("@/pages/survival-entry"));
 const SurvivalLobby = lazy(() => import("@/pages/survival-lobby"));
 const SurvivalMatch = lazy(() => import("@/pages/survival-match"));
 const SurvivalResults = lazy(() => import("@/pages/survival-results"));
+const SimLabEntry = lazy(() => import("@/pages/simlab-entry"));
+const SimLabSetup = lazy(() => import("@/pages/simlab-setup"));
+const SimLabResults = lazy(() => import("@/pages/simlab-results"));
+const Social = lazy(() => import("@/pages/social"));
 const Terms = lazy(() => import("@/pages/terms"));
 const Privacy = lazy(() => import("@/pages/privacy"));
 const NotFound = lazy(() => import("@/pages/not-found"));
@@ -77,15 +87,83 @@ function RouteLoadingFallback() {
   );
 }
 
+/**
+ * Route guard: redirects to Play Hub (or Home) with a toast
+ * when user accesses a locked game mode directly.
+ */
+function GuardedRoute({
+  mode,
+  component: Component,
+}: {
+  mode: "arcade" | "coop" | "survival" | "simLab";
+  component: React.ComponentType<any>;
+}) {
+  const [, navigate] = useLocation();
+  const { data: user } = useQuery<UserType>({ queryKey: ["/api/user"] });
+
+  if (!user) return <RouteLoadingFallback />;
+
+  const unlocks = computeUnlocks({
+    createdAt: user.createdAt,
+    gamesPlayed: user.gamesPlayed,
+    membershipTier: user.membershipTier,
+  });
+
+  if (!unlocks[mode].unlocked) {
+    // If play hub itself is locked (pre-first-drop), send to Home
+    const target = unlocks.playHub.unlocked ? "/play-hub" : "/";
+    // Use setTimeout to toast after navigation
+    setTimeout(() => {
+      toast({
+        title: `${mode.charAt(0).toUpperCase() + mode.slice(1)} is locked`,
+        description: unlocks[mode].condition || "Keep playing to unlock this mode!",
+      });
+    }, 100);
+    navigate(target, { replace: true });
+    return null;
+  }
+
+  return <Component />;
+}
+
+/** Guard for Play Hub — redirect to Home if first drop not completed */
+function PlayHubGuard() {
+  const [, navigate] = useLocation();
+  const { data: user } = useQuery<UserType>({ queryKey: ["/api/user"] });
+
+  if (!user) return <RouteLoadingFallback />;
+
+  const unlocks = computeUnlocks({
+    createdAt: user.createdAt,
+    gamesPlayed: user.gamesPlayed,
+    membershipTier: user.membershipTier,
+  });
+
+  if (!unlocks.playHub.unlocked) {
+    setTimeout(() => {
+      toast({
+        title: "Complete your first Drop",
+        description: "Play your first Daily Drop to unlock the Play hub!",
+      });
+    }, 100);
+    navigate("/", { replace: true });
+    return null;
+  }
+
+  return <PlayHub />;
+}
+
 function AuthenticatedRouter() {
   // Monitor for badge unlocks and show celebratory toasts
   useAchievementToast();
   const [location] = useLocation();
 
-  // Hide bottom nav on immersive pages
-  const hideBottomNav = ["/play", "/results", "/coop-game", "/arcade", "/survival"].some(
-    (path) => location.startsWith(path)
-  );
+  // Hide bottom nav on immersive pages (exact match for /play, prefix match for others)
+  const hideBottomNav =
+    location === "/play" ||
+    ["/results", "/coop-game", "/arcade", "/survival", "/simlab"].some((path) =>
+      location.startsWith(path)
+    );
 
   return (
     <>
@@ -93,6 +171,7 @@ function AuthenticatedRouter() {
         <Suspense fallback={<RouteLoadingFallback />}>
           <Switch>
             <Route path="/" component={Home} />
+            <Route path="/play-hub" component={PlayHubGuard} />
             <Route path="/profile-setup" component={ProfileSetup} />
             <Route path="/notifications-setup" component={NotificationsSetup} />
             <Route path="/friends-setup" component={FriendsSetup} />
@@ -120,18 +199,30 @@ function AuthenticatedRouter() {
             <Route path="/admin" component={Admin} />
             <Route path="/admin/scenario-builder" component={AdminScenarioBuilder} />
             <Route path="/admin/scenario-builder/:id" component={AdminScenarioBuilder} />
+            <Route path="/social" component={Social} />
             <Route path="/profile" component={Profile} />
             <Route path="/profile/:userId" component={Profile} />
             <Route path="/friends" component={Friends} />
-            <Route path="/coop-lobby" component={CoopLobby} />
+            <Route path="/coop-lobby">
+              {() => <GuardedRoute mode="coop" component={CoopLobby} />}
+            </Route>
             <Route path="/coop-game/:sessionId" component={CoopGame} />
             <Route path="/coop-results/:sessionId" component={CoopResults} />
-            <Route path="/arcade" component={ArcadePage} />
+            <Route path="/arcade">
+              {() => <GuardedRoute mode="arcade" component={ArcadePage} />}
+            </Route>
             <Route path="/arcade-results" component={ArcadeResults} />
-            <Route path="/survival" component={SurvivalEntry} />
+            <Route path="/survival">
+              {() => <GuardedRoute mode="survival" component={SurvivalEntry} />}
+            </Route>
             <Route path="/survival/lobby/:matchId" component={SurvivalLobby} />
             <Route path="/survival/match/:matchId" component={SurvivalMatch} />
             <Route path="/survival/results/:matchId" component={SurvivalResults} />
+            <Route path="/simlab">
+              {() => <GuardedRoute mode="simLab" component={SimLabEntry} />}
+            </Route>
+            <Route path="/simlab/setup/:templateId" component={SimLabSetup} />
+            <Route path="/simlab/results/:runId" component={SimLabResults} />
             <Route path="/terms" component={Terms} />
             <Route path="/privacy" component={Privacy} />
             <Route component={NotFound} />
@@ -253,6 +344,7 @@ function AppContent() {
   const { isLoading, isAuthenticated } = useAuth();
   const [showSplash, setShowSplash] = useState(true);
   const [showStreakRitual, setShowStreakRitual] = useState(false);
+  const streakRitualShown = useRef(false);
   const splashDone = !showSplash;
 
   // Fetch game user data for streak info (only when authenticated)
@@ -271,9 +363,17 @@ function AppContent() {
     return () => clearTimeout(maxWaitTimer);
   }, [showSplash]);
 
-  // Trigger streak ritual after splash completes if user has an active streak
+  // Trigger streak ritual ONCE after splash completes if user has an active streak
   useEffect(() => {
-    if (splashDone && !isLoading && isAuthenticated && gameUser && (gameUser.streak ?? 0) > 0) {
+    if (
+      !streakRitualShown.current &&
+      splashDone &&
+      !isLoading &&
+      isAuthenticated &&
+      gameUser &&
+      (gameUser.streak ?? 0) > 0
+    ) {
+      streakRitualShown.current = true;
       setShowStreakRitual(true);
     }
   }, [splashDone, isLoading, isAuthenticated, gameUser]);

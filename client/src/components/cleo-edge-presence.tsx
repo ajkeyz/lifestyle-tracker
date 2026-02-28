@@ -137,7 +137,7 @@ export function CleoEdgePresence({
             {/* Message bubble */}
             {message && (
               <motion.div
-                className="rounded-2xl px-4 py-3 backdrop-blur-md max-w-[200px]"
+                className="rounded-2xl px-4 py-3 backdrop-blur-md max-w-[min(240px,calc(100vw-60px))]"
                 style={{
                   background: "hsl(var(--card) / 0.96)",
                   border: "1px solid hsl(var(--border) / 0.5)",

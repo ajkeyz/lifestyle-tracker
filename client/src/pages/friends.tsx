@@ -222,26 +222,14 @@ export default function Friends() {
           transition={{ duration: 0.3, delay: 0.05 }}
         >
           <Card className="p-4" data-testid="card-friends-leaderboard">
-            <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-                  <Trophy className="w-4 h-4 text-white" />
-                </div>
-                <div>
-                  <h3 className="font-semibold">Friends League</h3>
-                  <p className="text-xs text-muted-foreground">Compare Money Health</p>
-                </div>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                <Trophy className="w-4 h-4 text-white" />
               </div>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="gap-1"
-                onClick={() => navigate("/leaderboard")}
-                data-testid="button-view-leaderboard"
-              >
-                Full Leaderboard
-                <ChevronRight className="w-4 h-4" />
-              </Button>
+              <div>
+                <h3 className="font-semibold">Rankings</h3>
+                <p className="text-xs text-muted-foreground">Compare Money Health</p>
+              </div>
             </div>
             
             {loadingFriends ? (

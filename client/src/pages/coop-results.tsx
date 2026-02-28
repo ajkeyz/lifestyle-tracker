@@ -68,8 +68,8 @@ export default function CoopResults() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="p-6 text-center">
           <p className="text-muted-foreground">Results not available</p>
-          <Button onClick={() => navigate("/")} className="mt-4">
-            Go Home
+          <Button onClick={() => navigate("/play-hub")} className="mt-4">
+            Back
           </Button>
         </Card>
       </div>
@@ -233,11 +233,11 @@ export default function CoopResults() {
           <Button
             variant="outline"
             className="w-full h-12"
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/play-hub")}
             data-testid="button-go-home"
           >
             <Home className="h-5 w-5 mr-2" />
-            Back to Home
+            Back to Play
           </Button>
         </motion.div>
       </main>

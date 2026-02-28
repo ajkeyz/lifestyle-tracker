@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -63,6 +63,8 @@ import {
   Mail,
   FileText,
   Lock,
+  UserPlus,
+  Trophy,
   type LucideIcon,
 } from "lucide-react";
 import { useSound } from "@/hooks/use-sound";
@@ -148,6 +150,10 @@ export default function Settings() {
     queryKey: ["/api/user"],
   });
 
+  const { data: friends } = useQuery<{ id: string; username: string; avatar: string; moneyHealth: number; streak: number }[]>({
+    queryKey: ["/api/friends"],
+  });
+
   const { data: adminCheck } = useQuery<{ isAdmin: boolean; isModerator: boolean; hasAccess: boolean }>({
     queryKey: ["/api/admin/check"],
   });
@@ -161,14 +167,14 @@ export default function Settings() {
       toast({
         title: user?.lowPressureMode ? "Low Pressure Mode disabled" : "Low Pressure Mode enabled",
         description: user?.lowPressureMode
-          ? "Rankings and comparisons are now visible"
-          : "Focus on your personal growth",
+          ? "Rankings and comparisons are now visible."
+          : "Focus on your personal growth.",
       });
     },
     onError: () => {
       toast({
         title: "Error",
-        description: "Failed to update settings",
+        description: "Failed to update settings.",
         variant: "destructive",
       });
     },
@@ -201,7 +207,7 @@ export default function Settings() {
     localStorage.setItem("hapticEnabled", String(enabled));
     toast({
       title: enabled ? "Haptic feedback enabled" : "Haptic feedback disabled",
-      description: enabled ? "You'll feel vibrations during gameplay" : "Vibrations are now off",
+      description: enabled ? "You'll feel vibrations during gameplay." : "Vibrations are now off.",
     });
   };
 
@@ -210,7 +216,7 @@ export default function Settings() {
     localStorage.setItem("timerDuration", value);
     toast({
       title: "Timer updated",
-      description: `Question timer set to ${value} seconds`,
+      description: `Question timer set to ${value} seconds.`,
     });
   };
 
@@ -225,7 +231,7 @@ export default function Settings() {
         await navigator.share(shareData);
       } else {
         await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`);
-        toast({ title: "Link copied!", description: "Share it with your friends" });
+        toast({ title: "Link copied!", description: "Share it with your friends." });
       }
     } catch {
       // User cancelled share
@@ -508,6 +514,95 @@ export default function Settings() {
         {/* ─── Referral Card ────────────────────────────────── */}
         <ReferralCard />
 
+        {/* ─── Friends ────────────────────────────────────────── */}
+        {!user.lowPressureMode && (
+          <div>
+            <SectionHeader>Friends</SectionHeader>
+            <Card className="overflow-hidden" data-testid="card-friends-section">
+              {/* Rankings header */}
+              <div className="flex items-center justify-between px-4 pt-4 pb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+                    <Trophy className="w-3.5 h-3.5 text-primary" />
+                  </div>
+                  <h3 className="text-sm font-semibold">Rankings</h3>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs gap-1 text-muted-foreground"
+                  onClick={() => navigate("/friends")}
+                >
+                  View All
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+
+              {/* Ranking rows */}
+              <div className="px-4 pb-3">
+                {friends && friends.length > 0 ? (
+                  <div className="space-y-1">
+                    {friends.slice(0, 5).map((friend, index) => (
+                      <Link
+                        key={friend.id}
+                        href={`/profile/${friend.id}`}
+                        data-testid={`friend-rank-${friend.id}`}
+                      >
+                        <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
+                          <span className="text-xs font-bold text-muted-foreground w-5 text-center tabular-nums">
+                            #{index + 1}
+                          </span>
+                          <div className="relative">
+                            <AnimatedAvatar avatarId={friend.avatar || "cosmic-cat"} size="sm" />
+                            <div
+                              className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-card ${
+                                friend.streak > 0 ? "bg-green-500" : "bg-muted-foreground/30"
+                              }`}
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{friend.username}</p>
+                          </div>
+                          <div className="flex items-center gap-2.5 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Sparkles className="w-3 h-3 text-primary" />
+                              {friend.moneyHealth}
+                            </span>
+                            {friend.streak > 0 && (
+                              <span className="flex items-center gap-1">
+                                <Flame className="w-3 h-3 text-orange-500" />
+                                {friend.streak}d
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-6">
+                    <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-muted flex items-center justify-center">
+                      <Users className="w-5 h-5 text-muted-foreground" />
+                    </div>
+                    <p className="text-sm font-medium mb-0.5">No friends yet</p>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Add friends to compare scores
+                    </p>
+                    <Button
+                      size="sm"
+                      className="gap-1.5"
+                      onClick={() => navigate("/friends")}
+                    >
+                      <UserPlus className="w-3.5 h-3.5" />
+                      Add Friends
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </Card>
+          </div>
+        )}
+
         {/* ─── About & Support ──────────────────────────────── */}
         <div>
           <SectionHeader>About & Support</SectionHeader>
@@ -548,7 +643,7 @@ export default function Settings() {
               description="Help us grow with a review"
               onClick={() => {
                 // Will link to actual app store URL when published
-                toast({ title: "Coming soon!", description: "App Store rating link will be available soon" });
+                toast({ title: "Coming soon!", description: "App Store rating link will be available soon." });
               }}
             />
             <Separator />
@@ -605,7 +700,7 @@ export default function Settings() {
                   window.location.href = "/api/export-data";
                   toast({
                     title: "Downloading data",
-                    description: "Your data export will download shortly",
+                    description: "Your data export will download shortly.",
                   });
                 }}
                 data-testid="button-export-data"

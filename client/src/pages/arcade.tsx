@@ -523,7 +523,7 @@ export default function Arcade() {
           <div className="container max-w-3xl mx-auto px-4 py-3">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <Button variant="ghost" size="icon" onClick={() => navigate("/")} data-testid="button-back">
+                <Button variant="ghost" size="icon" onClick={() => navigate("/play-hub")} data-testid="button-back">
                   <ArrowLeft className="w-5 h-5" />
                 </Button>
                 <AppLogo size="sm" />

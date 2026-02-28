@@ -57,7 +57,7 @@ export function StreakCalendar({ user, showMilestoneAnimation = false }: StreakC
     onError: (error: any) => {
       toast({
         title: "Could not use freeze",
-        description: error.message || "Try again later",
+        description: error.message || "Try again later.",
         variant: "destructive",
       });
     },

@@ -175,9 +175,9 @@ export default function SurvivalResults() {
         >
           <Trophy className="w-12 h-12 text-muted-foreground mx-auto animate-pulse" />
           <p className="text-muted-foreground">Loading results...</p>
-          <Button variant="outline" onClick={() => navigate("/")}>
+          <Button variant="outline" onClick={() => navigate("/play-hub")}>
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Go Home
+            Back
           </Button>
         </motion.div>
       </div>
@@ -401,11 +401,11 @@ export default function SurvivalResults() {
             variant="outline"
             size="lg"
             className="w-full h-12 text-base"
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/play-hub")}
             data-testid="button-go-home"
           >
             <ArrowLeft className="w-5 h-5 mr-2" />
-            Home
+            Back to Play
           </Button>
         </motion.div>
       </main>

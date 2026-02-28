@@ -534,6 +534,9 @@ export class MemStorage implements IStorage {
         survivalWins: 0,
         survivalPlayed: 0,
         survivalBestPlacement: null,
+        createdAt: new Date().toISOString(),
+        claimedMissions: [],
+        bonusArcadePlays: 0,
       };
       this.users.set(sessionId, user);
     }
@@ -2125,7 +2128,8 @@ export class MemStorage implements IStorage {
       playsToday = 0;
     }
 
-    const maxPlays = ARCADE_LIMITS[user.membershipTier] || 1;
+    const baseMax = ARCADE_LIMITS[user.membershipTier] || 1;
+    const maxPlays = baseMax + (user.bonusArcadePlays || 0);
     const playsRemaining = Math.max(0, maxPlays - playsToday);
 
     return {

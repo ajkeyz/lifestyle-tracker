@@ -59,7 +59,7 @@ export default function NotificationsPrefs() {
     onError: () => {
       toast({
         title: "Error",
-        description: "Failed to save preferences",
+        description: "Failed to save preferences.",
         variant: "destructive",
       });
     },

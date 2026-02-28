@@ -9,7 +9,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { useConfetti } from "@/components/confetti";
 import { useSound } from "@/hooks/use-sound";
 import { QuickWinsPopup } from "@/components/quick-wins-popup";
-import { ArrowLeft, Home, Trophy, Calendar, Share2, BookOpen, Sparkles, Flame, Brain } from "lucide-react";
+import { ArrowLeft, Home, Trophy, Calendar, Share2, BookOpen, Sparkles, Flame, Brain, RefreshCw } from "lucide-react";
 import { AppLogo } from "@/components/app-logo";
 import { Mascot, getMascotMoodForScore, getMascotScoreMessage, getMascotContextDialogue, CelebrationBurst, BODY_COLORS, type MascotContext } from "@/components/mascot";
 import { CleoCongratsPeek } from "@/components/cleo-edge-presence";
@@ -439,6 +439,23 @@ export default function Results() {
                 </div>
               </div>
             </Card>
+
+            <Button
+              className="w-full gap-2 btn-premium border-0"
+              onClick={async () => {
+                try {
+                  const res = await fetch("/api/daily-drop/replay", { method: "POST" });
+                  if (res.ok) {
+                    queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+                    navigate("/play");
+                  }
+                } catch {}
+              }}
+              data-testid="button-replay"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Replay Today's Drop
+            </Button>
 
             <Button
               variant="outline"

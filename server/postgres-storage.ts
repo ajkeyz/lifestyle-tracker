@@ -228,6 +228,9 @@ export class PostgresStorage implements IStorage {
       survivalWins: 0,
       survivalPlayed: 0,
       survivalBestPlacement: null,
+      createdAt: new Date().toISOString(),
+      claimedMissions: [],
+      bonusArcadePlays: 0,
     };
 
     await db.insert(appSchema.lifestyleUsers).values(newUser);
@@ -543,6 +546,11 @@ export class PostgresStorage implements IStorage {
       survivalWins: dbUser.survivalWins ?? 0,
       survivalPlayed: dbUser.survivalPlayed ?? 0,
       survivalBestPlacement: dbUser.survivalBestPlacement ?? null,
+      createdAt: dbUser.createdAt instanceof Date
+        ? dbUser.createdAt.toISOString()
+        : (dbUser.createdAt ?? new Date().toISOString()),
+      claimedMissions: dbUser.claimedMissions || [],
+      bonusArcadePlays: dbUser.bonusArcadePlays ?? 0,
     };
   }
 
@@ -2903,7 +2911,8 @@ export class PostgresStorage implements IStorage {
     }
 
     const membershipTier = user.membershipTier || "free";
-    const maxPlays = ARCADE_LIMITS[membershipTier] || 1;
+    const baseMax = ARCADE_LIMITS[membershipTier] || 1;
+    const maxPlays = baseMax + (user.bonusArcadePlays || 0);
     const playsRemaining = Math.max(0, maxPlays - playsToday);
 
     return {

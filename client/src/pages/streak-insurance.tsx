@@ -36,7 +36,7 @@ export default function StreakInsurance() {
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       toast({
         title: "Status updated",
-        description: "Your membership status has been updated",
+        description: "Your membership status has been updated.",
       });
     },
   });

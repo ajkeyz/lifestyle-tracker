@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AnimatedAvatar } from "@/components/animated-avatar";
 import { AppLogo } from "@/components/app-logo";
+import { AmbientBackground } from "@/components/ambient-background";
+import { Mascot, type MascotContext } from "@/components/mascot";
 import {
   ArrowLeft,
   Users,
@@ -185,12 +187,13 @@ export default function CoopLobby() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-        <div className="container flex h-14 items-center gap-4 px-4">
+      <AmbientBackground variant="default" />
+      <header className="flex items-center justify-between px-4 h-14 border-b bg-card/80 backdrop-blur-xl sticky top-0 z-50 border-white/10">
+        <div className="flex items-center gap-4">
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/play-hub")}
             data-testid="button-back"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -261,7 +264,8 @@ export default function CoopLobby() {
             className="space-y-4"
           >
             {/* Mode Selection */}
-            <Card>
+            <Card className="relative overflow-hidden">
+              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-indigo-400 via-purple-500 to-indigo-600 rounded-t-2xl" />
               <CardHeader className="text-center pb-3">
                 <div className="mx-auto w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mb-3">
                   <Users className="h-7 w-7 text-primary" />
@@ -275,6 +279,7 @@ export default function CoopLobby() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Mode Toggle */}
+                <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.3 }}>
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">Select Mode</Label>
                   <div className="grid grid-cols-2 gap-3">
@@ -372,8 +377,23 @@ export default function CoopLobby() {
                     </motion.div>
                   </div>
                 </div>
+                </motion.div>
+
+                {/* Mascot */}
+                <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.3 }}>
+                <div className="flex justify-center mb-4">
+                  <Mascot
+                    mood="happy"
+                    size="md"
+                    showBubble={true}
+                    message="Pick your partner wisely!"
+                    context={{ screen: "coop-lobby", username: "", streak: 0 } satisfies MascotContext}
+                  />
+                </div>
+                </motion.div>
 
                 {/* Friend Picker */}
+                <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.3 }}>
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">Pick a Friend</Label>
 
@@ -561,6 +581,7 @@ export default function CoopLobby() {
                     )}
                   </AnimatePresence>
                 </div>
+                </motion.div>
 
                 {/* Selected Friend Indicator + Send Invite Button */}
                 <AnimatePresence>
@@ -611,7 +632,8 @@ export default function CoopLobby() {
             animate={{ opacity: 1, y: 0 }}
             className="space-y-6"
           >
-            <Card>
+            <Card className="relative overflow-hidden">
+              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-indigo-400 via-purple-500 to-indigo-600 rounded-t-2xl" />
               <CardHeader className="text-center">
                 <CardTitle className="font-display text-xl tracking-tight">
                   {invitedFriendName ? "Invite Sent!" : "Waiting for Player"}

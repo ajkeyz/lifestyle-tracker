@@ -97,7 +97,7 @@ export function StatsExport({ data, onExport }: StatsExportProps) {
 
       toast({
         title: "Export Successful!",
-        description: `Your stats have been exported as ${format.toUpperCase()}`,
+        description: `Your stats have been exported as ${format.toUpperCase()}.`,
       });
 
       setTimeout(() => setExportedFormat(null), 2000);

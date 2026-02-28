@@ -54,6 +54,7 @@ import {
   Save,
   X,
   ChevronDown,
+  ChevronRight,
   Trophy,
   Crown,
 } from "lucide-react";
@@ -567,48 +568,96 @@ export default function Profile() {
           ))}
         </motion.div>
 
-        {/* === ACHIEVEMENT SHOWCASE === */}
-        {isOwnProfile && user.badges && (() => {
-          const unlockedBadges = user.badges
-            .filter((b) => b.unlocked)
-            .slice(-3)
-            .map((b) => {
-              const def = BADGE_DEFINITIONS.find((d) => d.id === b.badgeId);
-              return def ? { badgeId: b.badgeId, name: def.name, iconName: def.icon } : null;
-            })
-            .filter(Boolean) as { badgeId: string; name: string; iconName: string }[];
-
-          if (unlockedBadges.length === 0) return null;
-
-          return (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15 }}
-              className="flex flex-col items-center gap-2"
-            >
-              <div className="flex items-center gap-3">
-                {unlockedBadges.map((badge, i) => (
-                  <motion.div
-                    key={badge.badgeId}
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 0.2 + i * 0.1, type: "spring" }}
-                    className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/30 flex items-center justify-center"
-                    title={badge.name}
-                  >
-                    <Trophy className="w-4 h-4 text-primary" />
-                  </motion.div>
-                ))}
+        {/* === ACHIEVEMENTS === */}
+        {isOwnProfile && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+          >
+            <Card className="p-4 space-y-3" data-testid="card-achievements">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Trophy className="w-4 h-4 text-primary" />
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">
+                    Achievements
+                  </p>
+                  <Badge variant="outline" className="text-[10px] h-4 px-1.5">
+                    {user.badges?.filter((b) => b.unlocked).length ?? 0}/{BADGE_DEFINITIONS.length}
+                  </Badge>
+                </div>
               </div>
-              <Link href="/achievements">
-                <Button variant="link" size="sm" className="text-[11px] text-muted-foreground h-auto p-0">
-                  View all {user.badges.filter((b) => b.unlocked).length} badges →
-                </Button>
-              </Link>
-            </motion.div>
-          );
-        })()}
+
+              {(() => {
+                const unlockedBadges = (user.badges ?? [])
+                  .filter((b) => b.unlocked)
+                  .slice(-3)
+                  .map((b) => {
+                    const def = BADGE_DEFINITIONS.find((d) => d.id === b.badgeId);
+                    return def ? { badgeId: b.badgeId, name: def.name, iconName: def.icon } : null;
+                  })
+                  .filter(Boolean) as { badgeId: string; name: string; iconName: string }[];
+
+                const nextBadge = (user.badges ?? [])
+                  .filter((b) => !b.unlocked && b.progress > 0)
+                  .sort((a, b) => {
+                    const aDef = BADGE_DEFINITIONS.find((d) => d.id === a.badgeId);
+                    const bDef = BADGE_DEFINITIONS.find((d) => d.id === b.badgeId);
+                    if (!aDef || !bDef) return 0;
+                    return (b.progress / bDef.maxProgress) - (a.progress / aDef.maxProgress);
+                  })[0];
+                const nextDef = nextBadge ? BADGE_DEFINITIONS.find((d) => d.id === nextBadge.badgeId) : null;
+
+                return (
+                  <>
+                    {unlockedBadges.length > 0 ? (
+                      <div className="flex items-center justify-center gap-3">
+                        {unlockedBadges.map((badge, i) => (
+                          <motion.div
+                            key={badge.badgeId}
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ delay: 0.2 + i * 0.1, type: "spring" }}
+                            className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/30 flex items-center justify-center"
+                            title={badge.name}
+                          >
+                            <Trophy className="w-4 h-4 text-primary" />
+                          </motion.div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-1">
+                        Start playing to earn badges.
+                      </p>
+                    )}
+
+                    {nextDef && nextBadge && (
+                      <div className="flex items-center gap-2 px-2.5 py-2 rounded-lg bg-primary/5 border border-primary/10">
+                        <Sparkles className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                        <span className="text-xs text-muted-foreground flex-1">
+                          Next: <span className="font-medium text-foreground">{nextDef.name}</span>{" "}
+                          ({nextBadge.progress}/{nextDef.maxProgress})
+                        </span>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full gap-2"
+                onClick={() => navigate("/achievements")}
+                data-testid="button-view-badges"
+              >
+                <Trophy className="w-3.5 h-3.5" />
+                View All Badges
+                <ChevronRight className="w-3 h-3" />
+              </Button>
+            </Card>
+          </motion.div>
+        )}
 
         {/* === ACTIVITY SPARKLINE (Last 14 Days) === */}
         {isOwnProfile && user.gameHistory && user.gameHistory.length > 0 && (

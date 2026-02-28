@@ -418,7 +418,7 @@ export default function ArcadeResults() {
               variant="outline"
               size="lg"
               className="w-full h-12 text-base"
-              onClick={() => navigate("/")}
+              onClick={() => navigate("/play-hub")}
               data-testid="button-go-home"
             >
               <Home className="w-5 h-5 mr-2" />

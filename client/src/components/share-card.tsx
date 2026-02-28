@@ -133,7 +133,7 @@ Play at: lifestyle-creep.replit.app`;
             }}
             className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg font-bold shadow-md ${
               correct
-                ? "bg-primary text-primary-foreground"
+                ? "bg-emerald-500 text-white"
                 : "bg-destructive text-destructive-foreground"
             }`}
             data-testid={`answer-result-${i}`}

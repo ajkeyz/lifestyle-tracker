@@ -5,7 +5,9 @@ import webpush from "web-push";
 import { WebSocketServer, WebSocket } from "ws";
 import { randomUUID } from "crypto";
 import { storage } from "./storage";
-import { submitGameSchema, setModeSchema, updateProfileSchema, createLeagueSchema, joinLeagueSchema, createChallengeSchema, addFreezeTokenSchema, adminScenarioSchema, banUserSchema, addModeratorSchema, createCoopSessionSchema, joinCoopSessionSchema, submitArcadeGameSchema, createSurvivalLobbySchema, survivalAnswerSchema, type CoopMessage, type SurvivalMessage } from "@shared/schema";
+import { submitGameSchema, setModeSchema, updateProfileSchema, createLeagueSchema, joinLeagueSchema, createChallengeSchema, addFreezeTokenSchema, adminScenarioSchema, banUserSchema, addModeratorSchema, createCoopSessionSchema, joinCoopSessionSchema, submitArcadeGameSchema, createSurvivalLobbySchema, survivalAnswerSchema, createSimRunSchema, saveSimRunSchema, type CoopMessage, type SurvivalMessage, type SimulationRun } from "@shared/schema";
+import { MISSION_POOL, buildMissionContext } from "@shared/lib/progression";
+import { getTemplate, getAllTemplates, type SimulationResult } from "@shared/lib/simlab";
 import { getDailyScenarios, getArcadeScenarios } from "./static-scenarios";
 import { SurvivalMatchmaking } from "./survival-matchmaking";
 import type { SurvivalRoom } from "./survival-room";
@@ -827,6 +829,43 @@ export async function registerRoutes(
     }
   });
 
+  // ── Social: unread indicator ──────────────────────────────────────
+  app.get("/api/social/unread", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const user = await storage.getUser(sessionId);
+      if (!user) return res.json({ hasUnread: false });
+
+      const friends = await storage.getFriends(sessionId);
+      const today = new Date().toISOString().split("T")[0];
+
+      // Consider "unread" if any friend has played today since last social visit
+      const lastSocialVisit = (user as any).lastSocialVisit || "";
+      const hasUnread = friends.some(
+        (f) => f.lastPlayedDate === today && f.lastPlayedDate > lastSocialVisit
+      );
+
+      res.json({ hasUnread });
+    } catch (error) {
+      console.error("Error checking social unread:", error);
+      res.json({ hasUnread: false });
+    }
+  });
+
+  app.post("/api/social/mark-read", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      // Store the current timestamp as last social visit
+      await storage.updateUser(sessionId, {
+        lastSocialVisit: new Date().toISOString(),
+      } as any);
+      res.json({ ok: true });
+    } catch (error) {
+      console.error("Error marking social read:", error);
+      res.json({ ok: true });
+    }
+  });
+
   app.get("/api/challenges", requireAuth, async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
@@ -953,6 +992,170 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error adding freeze token:", error);
       res.status(500).json({ error: "Failed to add freeze token" });
+    }
+  });
+
+  // ── Mission reward claiming ───────────────────────────────────────────────
+  app.post("/api/missions/claim", requireAuth, rateLimit("mission-claim", 15, 60000), async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const { missionId } = req.body;
+
+      if (!missionId || typeof missionId !== "string") {
+        return res.status(400).json({ error: "missionId is required" });
+      }
+
+      // Validate mission exists
+      const mission = MISSION_POOL.find((m) => m.id === missionId);
+      if (!mission) {
+        return res.status(400).json({ error: "Unknown mission" });
+      }
+
+      const user = await storage.getOrCreateUser(sessionId);
+
+      // Check if already claimed
+      const claimed = user.claimedMissions || [];
+      if (claimed.includes(missionId)) {
+        return res.status(200).json({ already: true, user });
+      }
+
+      // Server-side validation: re-check mission condition using DB data
+      const serverContext = buildMissionContext(user);
+      if (!mission.check(serverContext)) {
+        return res.status(400).json({ error: "Mission conditions not yet met" });
+      }
+
+      // Build reward updates
+      const updates: Record<string, any> = {
+        claimedMissions: [...claimed, missionId],
+      };
+
+      let rewardSummary = { type: "xp" as string, amount: mission.xp };
+
+      if (mission.reward) {
+        rewardSummary = { type: mission.reward.type, amount: mission.reward.amount };
+
+        switch (mission.reward.type) {
+          case "xp":
+            updates.totalScore = (user.totalScore || 0) + mission.reward.amount;
+            break;
+          case "streak_shield":
+            updates.freezeTokens = (user.freezeTokens || 0) + mission.reward.amount;
+            break;
+          case "arcade_token":
+            updates.bonusArcadePlays = (user.bonusArcadePlays || 0) + mission.reward.amount;
+            break;
+        }
+      } else {
+        // Default: credit XP to totalScore
+        updates.totalScore = (user.totalScore || 0) + mission.xp;
+      }
+
+      const updated = await storage.updateUser(sessionId, updates);
+      res.json({ claimed: true, reward: rewardSummary, user: updated });
+    } catch (error) {
+      console.error("Error claiming mission reward:", error);
+      res.status(500).json({ error: "Failed to claim reward" });
+    }
+  });
+
+  // ─── Debug endpoints (dev only) ─────────────────────────────────────────────
+  const isDevMode = process.env.DEV_AUTH_BYPASS === "true";
+
+  app.post("/api/debug/unlock-all", requireAuth, async (req: Request, res: Response) => {
+    if (!isDevMode) return res.status(403).json({ error: "Debug endpoints disabled" });
+    try {
+      const sessionId = getSessionId(req);
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      const updated = await storage.updateUser(sessionId, {
+        gamesPlayed: 100,
+        createdAt: thirtyDaysAgo,
+      });
+      res.json({ success: true, user: updated });
+    } catch (error) {
+      console.error("Debug unlock-all error:", error);
+      res.status(500).json({ error: "Failed to unlock all modes" });
+    }
+  });
+
+  app.post("/api/debug/reset-user", requireAuth, async (req: Request, res: Response) => {
+    if (!isDevMode) return res.status(403).json({ error: "Debug endpoints disabled" });
+    try {
+      const sessionId = getSessionId(req);
+      const updated = await storage.updateUser(sessionId, {
+        gamesPlayed: 0,
+        streak: 0,
+        highestStreak: 0,
+        totalScore: 0,
+        moneyHealth: 50,
+        freezeTokens: 0,
+        bonusArcadePlays: 0,
+        claimedMissions: [],
+        todayResult: null,
+        perfectGames: 0,
+        arcadePlaysToday: 0,
+        gameHistory: [],
+        categoryStats: [],
+        friendIds: [],
+        badges: [],
+        referralCount: 0,
+      });
+      res.json({ success: true, user: updated });
+    } catch (error) {
+      console.error("Debug reset-user error:", error);
+      res.status(500).json({ error: "Failed to reset user" });
+    }
+  });
+
+  app.post("/api/debug/populate-user", requireAuth, async (req: Request, res: Response) => {
+    if (!isDevMode) return res.status(403).json({ error: "Debug endpoints disabled" });
+    try {
+      const sessionId = getSessionId(req);
+      const tenDaysAgo = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString();
+      const sampleHistory = Array.from({ length: 15 }, (_, i) => ({
+        date: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+        score: 250 + Math.floor(Math.random() * 250),
+        correctAnswers: 2 + Math.floor(Math.random() * 3),
+        totalQuestions: 5,
+        iq: 80 + Math.floor(Math.random() * 40),
+        theme: ["travel", "scam", "lifestyle", "tech", "investing"][i % 5],
+      }));
+      const updated = await storage.updateUser(sessionId, {
+        gamesPlayed: 25,
+        streak: 7,
+        highestStreak: 12,
+        totalScore: 2500,
+        moneyHealth: 75,
+        freezeTokens: 3,
+        bonusArcadePlays: 5,
+        perfectGames: 3,
+        createdAt: tenDaysAgo,
+        gameHistory: sampleHistory,
+        claimedMissions: ["complete_daily", "play_arcade"],
+      });
+      res.json({ success: true, user: updated });
+    } catch (error) {
+      console.error("Debug populate-user error:", error);
+      res.status(500).json({ error: "Failed to populate user" });
+    }
+  });
+
+  // ─── Daily Drop Replay ──────────────────────────────────────────────────────
+  app.post("/api/daily-drop/replay", requireAuth, rateLimit("replay", 3, 60000), async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const user = await storage.getOrCreateUser(sessionId, "player");
+      if (!user.todayResult) {
+        return res.status(400).json({ error: "No result to replay — play first" });
+      }
+      // Clear todayResult so user can play again (don't affect streak or gamesPlayed)
+      const updated = await storage.updateUser(sessionId, {
+        todayResult: null,
+      });
+      res.json({ success: true, user: updated });
+    } catch (error) {
+      console.error("Replay error:", error);
+      res.status(500).json({ error: "Failed to start replay" });
     }
   });
 
@@ -1981,6 +2184,208 @@ export async function registerRoutes(
       res.json(room.getState());
     } catch (error) {
       res.status(500).json({ error: "Failed to get match" });
+    }
+  });
+
+  // ==================== SIM LAB API ====================
+
+  /** Server-side premium check placeholder. */
+  function hasPremium(user: { membershipTier: string }): boolean {
+    return user.membershipTier === "plus" || user.membershipTier === "pro";
+  }
+
+  // In-memory sim run storage (sufficient for MVP; migrate to DB later)
+  const simRuns = new Map<string, SimulationRun>();
+  const previewUsage = new Map<string, Set<string>>(); // userId -> Set<templateId>
+
+  // GET /api/simlab/templates — list available templates
+  app.get("/api/simlab/templates", requireAuth, (_req: Request, res: Response) => {
+    // Initialize templates on first call
+    import("@shared/lib/simlab/index").catch(() => {});
+    res.json(getAllTemplates());
+  });
+
+  // POST /api/simlab/run — create and execute a simulation run
+  app.post("/api/simlab/run", requireAuth, rateLimit("simlab-run", 10, 60000), async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const user = await storage.getOrCreateUser(sessionId);
+
+      const parsed = createSimRunSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid input", details: parsed.error.flatten() });
+      }
+
+      const { templateId, input, seed: userSeed, decisions, isPreview } = parsed.data;
+
+      // Ensure templates are loaded
+      await import("@shared/lib/simlab/index").catch(() => {});
+
+      const template = getTemplate(templateId as any);
+      if (!template) {
+        return res.status(404).json({ error: "Template not found" });
+      }
+
+      // Preview gating: free users get 1 preview per template
+      if (isPreview) {
+        const userPreviews = previewUsage.get(user.id) || new Set();
+        if (userPreviews.has(templateId) && !hasPremium(user)) {
+          return res.status(403).json({
+            error: "Preview limit reached",
+            message: "Free users can run 1 preview per template. Upgrade for unlimited runs.",
+          });
+        }
+      }
+
+      // Non-preview runs require premium
+      if (!isPreview && !hasPremium(user)) {
+        return res.status(403).json({
+          error: "Premium required",
+          message: "Unlimited simulation runs require a premium membership.",
+        });
+      }
+
+      // Validate inputs
+      const errors = template.validate(input as any);
+      if (Object.keys(errors).length > 0) {
+        return res.status(400).json({ error: "Validation failed", fields: errors });
+      }
+
+      // Generate seed
+      const seed = userSeed ?? Math.floor(Math.random() * 2147483647);
+
+      // Run simulation
+      const result: SimulationResult = template.run(input as any, seed, decisions);
+
+      // Store run
+      const run: SimulationRun = {
+        id: result.runId,
+        userId: user.id,
+        templateId,
+        templateVersion: result.templateVersion,
+        inputJSON: input as Record<string, unknown>,
+        seed,
+        resultJSON: result as unknown as Record<string, unknown>,
+        isPreview,
+        savedName: null,
+        tags: [],
+        createdAt: result.computedAt,
+      };
+      simRuns.set(run.id, run);
+
+      // Track preview usage
+      if (isPreview) {
+        if (!previewUsage.has(user.id)) previewUsage.set(user.id, new Set());
+        previewUsage.get(user.id)!.add(templateId);
+      }
+
+      console.log(`[SimLab] Run created: ${run.id} (template=${templateId}, preview=${isPreview}, user=${user.id})`);
+
+      res.json({ run, result });
+    } catch (error) {
+      console.error("[SimLab] Run error:", error);
+      res.status(500).json({ error: "Failed to run simulation" });
+    }
+  });
+
+  // GET /api/simlab/runs — list user's runs (premium only)
+  app.get("/api/simlab/runs", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const user = await storage.getOrCreateUser(sessionId);
+
+      const userRuns = Array.from(simRuns.values())
+        .filter((r) => r.userId === user.id)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+      res.json(userRuns);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch runs" });
+    }
+  });
+
+  // GET /api/simlab/runs/:id — get a specific run
+  app.get("/api/simlab/runs/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const user = await storage.getOrCreateUser(sessionId);
+      const run = simRuns.get(req.params.id);
+
+      if (!run || run.userId !== user.id) {
+        return res.status(404).json({ error: "Run not found" });
+      }
+
+      res.json(run);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch run" });
+    }
+  });
+
+  // POST /api/simlab/runs/:id/save — save/name a run (premium only)
+  app.post("/api/simlab/runs/:id/save", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const user = await storage.getOrCreateUser(sessionId);
+
+      if (!hasPremium(user)) {
+        return res.status(403).json({ error: "Premium required to save runs" });
+      }
+
+      const run = simRuns.get(req.params.id);
+      if (!run || run.userId !== user.id) {
+        return res.status(404).json({ error: "Run not found" });
+      }
+
+      const parsed = saveSimRunSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid input" });
+      }
+
+      run.savedName = parsed.data.name;
+      run.tags = parsed.data.tags || [];
+      run.isPreview = false; // Saving promotes from preview
+      simRuns.set(run.id, run);
+
+      res.json({ success: true, run });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to save run" });
+    }
+  });
+
+  // POST /api/simlab/compare — compare two runs (client-side diff, server just validates access)
+  app.post("/api/simlab/compare", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const user = await storage.getOrCreateUser(sessionId);
+
+      if (!hasPremium(user)) {
+        return res.status(403).json({ error: "Premium required to compare runs" });
+      }
+
+      const { runIdA, runIdB } = req.body;
+      const runA = simRuns.get(runIdA);
+      const runB = simRuns.get(runIdB);
+
+      if (!runA || runA.userId !== user.id || !runB || runB.userId !== user.id) {
+        return res.status(404).json({ error: "One or both runs not found" });
+      }
+
+      res.json({ runA, runB });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to compare runs" });
+    }
+  });
+
+  // GET /api/simlab/preview-usage — check preview availability per template
+  app.get("/api/simlab/preview-usage", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const user = await storage.getOrCreateUser(sessionId);
+      const used = previewUsage.get(user.id);
+      const usage = used ? Array.from(used) : [];
+      res.json({ usedTemplates: usage });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to check preview usage" });
     }
   });
 

@@ -26,7 +26,7 @@ export type MascotMood =
 
 // Rich context passed to mascot for context-aware dialogue
 export interface MascotContext {
-  screen?: "home" | "game" | "results";
+  screen?: "home" | "game" | "results" | "coop-lobby" | "survival-lobby" | "arcade" | "play-hub";
   // Game context
   wasCorrect?: boolean;
   wasTimeout?: boolean;
@@ -1754,6 +1754,54 @@ const CONTEXT_DIALOGUE: Record<string, string[]> = {
     "Brand new player. Brand new potential. Let's go.",
     "Everyone starts at zero, {name}. Legends start today.",
   ],
+
+  // ── Game mode lobbies ────────────────────────────────────────
+  coop_lobby: [
+    "Teamwork makes the dream work.",
+    "Two heads, one wallet. Let's go.",
+    "Pick your partner wisely, {name}.",
+    "Co-op mode: where friendships get financially tested.",
+    "Ready to show your friend who's smarter with money?",
+    "Tag team time. Your partner better keep up.",
+    "Together you'll make smarter choices. Or blame each other.",
+    "Co-op unlocked. Now pick someone you trust with money decisions.",
+    "Best duos in history: peanut butter and jelly. You and your friend.",
+    "Friendly competition or friendly cooperation? Both, honestly.",
+  ],
+  survival_lobby: [
+    "Only the savviest survive.",
+    "Last spender standing. No pressure.",
+    "Survival mode: where financial discipline meets battle royale.",
+    "May the best money brain win.",
+    "One wrong move and you're out. Stay sharp.",
+    "The arena awaits, {name}. Show them what smart looks like.",
+    "Survival isn't about being perfect. It's about being last.",
+    "Everyone thinks they're the smartest until survival mode.",
+    "Don't let lifestyle creep eliminate you.",
+    "Nerves of steel, wallet of gold. Let's do this.",
+  ],
+  arcade_lobby: [
+    "Arcade mode! Let's rack up some points.",
+    "Speed rounds and bonuses. Your kind of party.",
+    "How fast can you make smart money decisions?",
+    "Arcade vibes only. No time to overthink.",
+    "Quick thinking pays off here, {name}.",
+    "Ready to speed-run some financial wisdom?",
+    "Arcade mode: where fast meets financially savvy.",
+    "Bonus points await. Show Cleo what you've got.",
+    "Think fast, earn faster. That's the arcade way.",
+    "Your reflexes vs. lifestyle creep. Game on.",
+  ],
+  play_hub: [
+    "So many modes, so little time.",
+    "Pick your challenge, {name}.",
+    "Every mode makes you sharper with money.",
+    "Ready to level up? Choose wisely.",
+    "The game hub awaits. What's your mood?",
+    "Daily, arcade, co-op, survival... decisions, decisions.",
+    "Your training grounds. Pick a mode and let's go.",
+    "Every mode is a new way to outsmart lifestyle creep.",
+  ],
 };
 
 // ============================================================
@@ -1863,6 +1911,11 @@ function resolveContextKey(ctx: MascotContext): string | null {
     if (streak && streak > 0) return "home_streak_reminder";
     if (streak === 0) return "home_first_time";
   }
+
+  if (screen === "coop-lobby") return "coop_lobby";
+  if (screen === "survival-lobby") return "survival_lobby";
+  if (screen === "arcade") return "arcade_lobby";
+  if (screen === "play-hub") return "play_hub";
 
   return null;
 }
@@ -2004,7 +2057,7 @@ function SpeechBubble({ message, position = "right", mood }: {
   return (
     <motion.div
       className={cn("absolute z-20", posClass[position])}
-      style={isVertical ? { maxWidth: "calc(100vw - 24px)", width: 280 } : undefined}
+      style={{ maxWidth: "calc(100vw - 40px)", width: isVertical ? 300 : "max-content" }}
       initial={enterFrom}
       animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
       exit={{ opacity: 0, scale: 0.8 }}
@@ -2022,7 +2075,7 @@ function SpeechBubble({ message, position = "right", mood }: {
           }}
         />
         <motion.div
-          className="rounded-2xl px-4 py-3 max-w-[280px] min-w-[100px] backdrop-blur-md"
+          className="rounded-2xl px-4 py-3 max-w-[320px] min-w-[100px] backdrop-blur-md"
           style={{
             background: "hsl(var(--card) / 0.96)",
             border: `1.5px solid ${accentColor}25`,

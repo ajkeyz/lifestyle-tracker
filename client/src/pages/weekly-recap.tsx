@@ -178,9 +178,18 @@ export default function WeeklyRecap() {
     }
   };
 
+  const handleClose = useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    setIsPaused(true);
+    navigate("/");
+  }, [navigate]);
+
   const handleDragEnd = (_: any, info: PanInfo) => {
     if (info.offset.y > 100 && info.velocity.y > 200) {
-      navigate("/");
+      handleClose();
     }
   };
 
@@ -194,7 +203,7 @@ export default function WeeklyRecap() {
   }
 
   if (!user || !recapData) {
-    navigate("/");
+    handleClose();
     return null;
   }
 
@@ -219,7 +228,7 @@ export default function WeeklyRecap() {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => navigate("/")}
+          onClick={handleClose}
           className="text-white hover:bg-white/10 h-8 w-8"
           data-testid="button-close-recap"
         >

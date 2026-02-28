@@ -7,6 +7,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { AnimatedAvatar } from "@/components/animated-avatar";
+import { AmbientBackground } from "@/components/ambient-background";
+import { Mascot, type MascotContext } from "@/components/mascot";
 import { cn } from "@/lib/utils";
 import {
   ArrowLeft,
@@ -87,6 +89,8 @@ export default function SurvivalLobby() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/40">
+      <AmbientBackground variant="default" />
+
       {/* Countdown Overlay */}
       <AnimatePresence>
         {match?.status === "countdown" && countdown !== null && (
@@ -113,12 +117,12 @@ export default function SurvivalLobby() {
       </AnimatePresence>
 
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+      <header className="flex items-center justify-between px-4 h-14 border-b bg-card/80 backdrop-blur-xl sticky top-0 z-50 border-white/10">
         <div className="container flex h-14 items-center gap-4 px-4">
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/play-hub")}
             data-testid="button-back"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -130,12 +134,24 @@ export default function SurvivalLobby() {
       </header>
 
       <main className="container px-4 py-6 max-w-md mx-auto space-y-4">
+        {/* Cleo Mascot */}
+        <div className="flex justify-center mb-4">
+          <Mascot
+            mood="hyped"
+            size="md"
+            showBubble={true}
+            message="Only the savviest survive!"
+            context={{ screen: "survival-lobby", username: "", streak: 0 } satisfies MascotContext}
+          />
+        </div>
+
         {/* Match Info Bar */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <Card>
+          <Card className="relative overflow-hidden">
+            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-red-400 via-orange-500 to-red-600 rounded-t-2xl" />
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 {match?.isPrivate && (
@@ -171,7 +187,8 @@ export default function SurvivalLobby() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <Card>
+          <Card className="relative overflow-hidden">
+            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-red-400 via-orange-500 to-red-600 rounded-t-2xl" />
             <CardContent className="p-4">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
                 Players
@@ -228,7 +245,8 @@ export default function SurvivalLobby() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
           >
-            <Card>
+            <Card className="relative overflow-hidden">
+              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-red-400 via-orange-500 to-red-600 rounded-t-2xl" />
               <CardContent className="p-4">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
                   Invite Friends

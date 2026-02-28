@@ -141,6 +141,10 @@ export interface User {
   survivalWins: number;
   survivalPlayed: number;
   survivalBestPlacement: number | null;
+  // Progression
+  createdAt: string;
+  claimedMissions: string[];
+  bonusArcadePlays: number;
 }
 
 export interface NotificationPrefs {
@@ -765,3 +769,44 @@ export const survivalAnswerSchema = z.object({
 
 export type CreateSurvivalLobby = z.infer<typeof createSurvivalLobbySchema>;
 export type SurvivalAnswer = z.infer<typeof survivalAnswerSchema>;
+
+// ============================================
+// SIM LAB TYPES
+// ============================================
+
+export interface SimulationRun {
+  id: string;
+  userId: string;
+  templateId: string;
+  templateVersion: string;
+  inputJSON: Record<string, unknown>;
+  seed: number;
+  resultJSON: Record<string, unknown>;
+  isPreview: boolean;
+  savedName: string | null;
+  tags: string[];
+  createdAt: string;
+}
+
+export interface SimLabPreviewUsage {
+  userId: string;
+  templateId: string;
+  used: boolean;
+  usedAt: string | null;
+}
+
+export const createSimRunSchema = z.object({
+  templateId: z.string(),
+  input: z.record(z.unknown()),
+  seed: z.number().optional(),
+  decisions: z.record(z.string()).optional(),
+  isPreview: z.boolean().default(false),
+});
+
+export const saveSimRunSchema = z.object({
+  name: z.string().min(1).max(100),
+  tags: z.array(z.string()).max(5).optional(),
+});
+
+export type CreateSimRun = z.infer<typeof createSimRunSchema>;
+export type SaveSimRun = z.infer<typeof saveSimRunSchema>;

@@ -301,7 +301,7 @@ export default function Achievements() {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => navigate("/")}
+          onClick={() => window.history.length > 1 ? window.history.back() : navigate("/")}
           data-testid="button-back"
         >
           <ArrowLeft className="h-5 w-5" />
