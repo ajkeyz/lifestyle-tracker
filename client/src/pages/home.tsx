@@ -40,9 +40,11 @@ import {
   Flame,
   MessageSquare,
   TrendingUp,
+  Users,
+  UserPlus,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import type { User as UserType, DailyDrop, LeaderboardEntry, CommunityScenario } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -180,6 +182,10 @@ export default function Home() {
       const res = await fetch("/api/community/scenarios?sortBy=hot");
       return res.json();
     },
+  });
+
+  const { data: friends } = useQuery<{ id: string; username: string; avatar: string; moneyHealth: number; streak: number }[]>({
+    queryKey: ["/api/friends"],
   });
 
   const { data: friendsActivity } = useQuery<{
@@ -560,6 +566,109 @@ export default function Home() {
                     info={nextUnlock.info}
                     level={levelInfo.level}
                   />
+                </motion.div>
+              )}
+
+              {/* Friends Ranking Row */}
+              {!user.lowPressureMode && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.12 }}
+                >
+                  <Card className="p-4 rounded-xl" data-testid="card-friends-ranking">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+                          <Trophy className="w-4 h-4 text-primary" />
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-semibold">Friends</h3>
+                          <p className="text-[11px] text-muted-foreground">Rankings</p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs gap-1 text-muted-foreground"
+                        onClick={() => navigate("/friends")}
+                        data-testid="button-view-friends"
+                      >
+                        View All
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+
+                    {friends && friends.length > 0 ? (
+                      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+                        {friends.slice(0, 8).map((friend, index) => (
+                          <Link
+                            key={friend.id}
+                            href={`/profile/${friend.id}`}
+                            data-testid={`friend-rank-home-${friend.id}`}
+                          >
+                            <motion.div
+                              initial={{ opacity: 0, scale: 0.9 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              transition={{ delay: index * 0.04 }}
+                              className="flex flex-col items-center gap-1 min-w-[60px] px-1.5 py-2 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer"
+                            >
+                              <div className="relative">
+                                <AnimatedAvatar
+                                  avatarId={friend.avatar || "cosmic-cat"}
+                                  size="sm"
+                                  isAnimated={false}
+                                />
+                                {/* Rank badge overlay */}
+                                <div className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-sm border-2 border-card">
+                                  <span className="text-[9px] font-bold text-white">{index + 1}</span>
+                                </div>
+                                {/* Activity dot */}
+                                <div
+                                  className={cn(
+                                    "absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-card",
+                                    friend.streak > 0 ? "bg-green-500" : "bg-muted-foreground/30"
+                                  )}
+                                />
+                              </div>
+                              <span className="text-[10px] font-medium truncate w-full text-center">
+                                {friend.username.length > 7
+                                  ? friend.username.slice(0, 6) + "…"
+                                  : friend.username}
+                              </span>
+                              <div className="flex items-center gap-0.5">
+                                <Sparkles className="w-2.5 h-2.5 text-primary" />
+                                <span className="text-[9px] text-muted-foreground font-medium tabular-nums">
+                                  {friend.moneyHealth}
+                                </span>
+                              </div>
+                            </motion.div>
+                          </Link>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+                        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                          <Users className="w-5 h-5 text-muted-foreground" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium">No friends yet</p>
+                          <p className="text-xs text-muted-foreground">
+                            Add friends to compare scores
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          className="gap-1 flex-shrink-0"
+                          onClick={() => navigate("/friends")}
+                          data-testid="button-add-friends-home"
+                        >
+                          <UserPlus className="w-3.5 h-3.5" />
+                          Add
+                        </Button>
+                      </div>
+                    )}
+                  </Card>
                 </motion.div>
               )}
 
