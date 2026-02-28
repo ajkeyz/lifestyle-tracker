@@ -11,6 +11,7 @@ import { AmbientBackground } from "@/components/ambient-background";
 import { Mascot, type MascotContext } from "@/components/mascot";
 import { AppLogo } from "@/components/app-logo";
 import { GradientText } from "@/components/gradient-text";
+import { RollingNumber } from "@/components/animated-counter";
 import { cn } from "@/lib/utils";
 import {
   ArrowLeft,
@@ -177,7 +178,7 @@ export default function SurvivalLobby() {
                     <Users className="h-3.5 w-3.5 text-orange-500" />
                   </div>
                   <span className="text-sm font-semibold tabular-nums">
-                    {playerCount}/20
+                    <RollingNumber value={playerCount} />/20
                   </span>
                   <span className="text-xs text-muted-foreground">players</span>
                 </div>
