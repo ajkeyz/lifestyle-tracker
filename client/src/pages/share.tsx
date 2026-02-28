@@ -113,13 +113,13 @@ export default function SharePage() {
       } catch {
         toast({ 
           title: "Share to Instagram", 
-          description: "Take a screenshot of your results card and share to Instagram Stories" 
+          description: "Take a screenshot of your results card and share to Instagram Stories."
         });
       }
     } else {
-      toast({ 
-        title: "Share to Instagram", 
-        description: "Take a screenshot of your results card and share to Instagram Stories" 
+      toast({
+        title: "Share to Instagram",
+        description: "Take a screenshot of your results card and share to Instagram Stories."
       });
     }
   };

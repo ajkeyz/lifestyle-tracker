@@ -1,0 +1,106 @@
+{
+  "name": "Load Test",
+  "description": "Stress test with many concurrent matches to validate scalability",
+  "matches": [
+    {
+      "lobbySize": 8,
+      "bots": [
+        { "profile": "PERFECT", "count": 3 },
+        { "profile": "RANDOM", "count": 3 },
+        { "profile": "SLOW", "count": 2 }
+      ],
+      "usePrivateLobby": true,
+      "record": false
+    },
+    {
+      "lobbySize": 8,
+      "bots": [
+        { "profile": "PERFECT", "count": 4 },
+        { "profile": "RANDOM", "count": 4 }
+      ],
+      "usePrivateLobby": true,
+      "record": false
+    },
+    {
+      "lobbySize": 6,
+      "bots": [
+        { "profile": "RANDOM", "count": 4 },
+        { "profile": "PERFECT", "count": 2 }
+      ],
+      "usePrivateLobby": true,
+      "record": false
+    },
+    {
+      "lobbySize": 10,
+      "bots": [
+        { "profile": "PERFECT", "count": 4 },
+        { "profile": "RANDOM", "count": 4 },
+        { "profile": "SLOW", "count": 2 }
+      ],
+      "usePrivateLobby": true,
+      "record": false
+    },
+    {
+      "lobbySize": 8,
+      "bots": [
+        { "profile": "RANDOM", "count": 6 },
+        { "profile": "PERFECT", "count": 2 }
+      ],
+      "usePrivateLobby": true,
+      "record": false
+    },
+    {
+      "lobbySize": 6,
+      "bots": [
+        { "profile": "PERFECT", "count": 3 },
+        { "profile": "RANDOM", "count": 3 }
+      ],
+      "usePrivateLobby": true,
+      "record": false
+    },
+    {
+      "lobbySize": 8,
+      "bots": [
+        { "profile": "PERFECT", "count": 2 },
+        { "profile": "RANDOM", "count": 4 },
+        { "profile": "SLOW", "count": 2 }
+      ],
+      "usePrivateLobby": true,
+      "record": false
+    },
+    {
+      "lobbySize": 10,
+      "bots": [
+        { "profile": "RANDOM", "count": 5 },
+        { "profile": "PERFECT", "count": 5 }
+      ],
+      "usePrivateLobby": true,
+      "record": false
+    },
+    {
+      "lobbySize": 8,
+      "bots": [
+        { "profile": "PERFECT", "count": 4 },
+        { "profile": "SLOW", "count": 4 }
+      ],
+      "usePrivateLobby": true,
+      "record": false
+    },
+    {
+      "lobbySize": 8,
+      "bots": [
+        { "profile": "RANDOM", "count": 8 }
+      ],
+      "usePrivateLobby": true,
+      "record": false
+    }
+  ],
+  "concurrency": 5,
+  "seed": 99999,
+  "serverUrl": "http://localhost:5000",
+  "thresholds": {
+    "maxErrorRate": 0.05,
+    "maxLatencyP99Ms": 8000,
+    "maxMemoryGrowthMB": 500
+  }
+}

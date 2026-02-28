@@ -15,7 +15,7 @@ export function useConfetti() {
       particleCount: 100,
       spread: 70,
       origin: { x: 0.5, y: 0.6 },
-      colors: ["#22c55e", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6"],
+      colors: ["#7c3aed", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6"],
     };
 
     confetti({
@@ -73,7 +73,7 @@ export function useConfetti() {
         : milestone >= 30
           ? ["#8b5cf6", "#6366f1", "#3b82f6"]
           : milestone >= 14
-            ? ["#22c55e", "#10b981", "#059669"]
+            ? ["#7c3aed", "#8b5cf6", "#6d28d9"]
             : ["#f59e0b", "#f97316", "#ef4444"];
 
     const particleMultiplier = isExperimental ? 1.5 : 1;
@@ -131,7 +131,7 @@ export function useConfetti() {
       particleCount: 25,
       spread: 45,
       origin: { x: 0.5, y: 0.7 },
-      colors: ["#22c55e", "#10b981", "#34d399"],
+      colors: ["#7c3aed", "#8b5cf6", "#a78bfa"],
       gravity: 1.2,
       scalar: 0.8,
       ticks: 100,
@@ -156,7 +156,7 @@ export function useConfetti() {
     const count = 200;
     const defaults = {
       origin: { y: 0.7 },
-      colors: ["#22c55e", "#10b981", "#f59e0b", "#8b5cf6"],
+      colors: ["#7c3aed", "#8b5cf6", "#f59e0b", "#a78bfa"],
     };
 
     function fire(particleRatio: number, opts: confetti.Options) {
@@ -212,7 +212,7 @@ export function useConfetti() {
         angle: 90,
         spread: 160,
         origin: { x: Math.random(), y: -0.1 },
-        colors: ["#22c55e", "#10b981", "#059669", "#047857"],
+        colors: ["#7c3aed", "#8b5cf6", "#6d28d9", "#5b21b6"],
         shapes: ["square"],
         gravity: 0.8,
         scalar: 1.5,
@@ -229,7 +229,7 @@ export function useConfetti() {
 
   // Side cannons - shoot from both sides
   const fireSideCannons = useCallback(() => {
-    const colors = ["#22c55e", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899"];
+    const colors = ["#7c3aed", "#8b5cf6", "#f59e0b", "#a78bfa", "#ec4899"];
     
     // Left cannon
     confetti({

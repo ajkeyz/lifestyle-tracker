@@ -34,7 +34,7 @@ export function ReferralCard() {
     onError: (error: Error) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to apply referral code",
+        description: error.message || "Failed to apply referral code.",
         variant: "destructive",
       });
     },
@@ -54,7 +54,7 @@ export function ReferralCard() {
     } catch {
       toast({
         title: "Failed to copy",
-        description: "Please copy the code manually",
+        description: "Please copy the code manually.",
         variant: "destructive",
       });
     }
@@ -75,7 +75,7 @@ export function ReferralCard() {
       await navigator.clipboard.writeText(shareText);
       toast({
         title: "Link copied!",
-        description: "Share it with your friends",
+        description: "Share it with your friends.",
       });
     }
   };

@@ -144,7 +144,7 @@ export default function Leagues() {
       toast({ title: "Joined league!", description: `Welcome to ${league.name}` });
     },
     onError: () => {
-      toast({ title: "Invalid code", description: "No league found with that code", variant: "destructive" });
+      toast({ title: "Invalid code", description: "No league found with that code.", variant: "destructive" });
     },
   });
 
@@ -170,7 +170,7 @@ export default function Leagues() {
 
   const handleCreateLeague = () => {
     if (newLeagueName.length < 3) {
-      toast({ title: "Name too short", description: "League name must be at least 3 characters", variant: "destructive" });
+      toast({ title: "Name too short", description: "League name must be at least 3 characters.", variant: "destructive" });
       return;
     }
     createMutation.mutate({ name: newLeagueName, emoji: newLeagueIcon, privacy: newLeaguePrivacy });
@@ -178,7 +178,7 @@ export default function Leagues() {
 
   const handleJoinLeague = () => {
     if (joinCode.length < 6) {
-      toast({ title: "Invalid code", description: "Enter a valid 6-character invite code", variant: "destructive" });
+      toast({ title: "Invalid code", description: "Enter a valid 6-character invite code.", variant: "destructive" });
       return;
     }
     joinMutation.mutate(joinCode.toUpperCase());

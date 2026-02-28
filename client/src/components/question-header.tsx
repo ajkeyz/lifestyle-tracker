@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { ScenarioCategory } from "@shared/schema";
-import { getContextBuffer } from "@/lib/game-insights";
+import { getContextBuffer, classifyDifficulty } from "@/lib/game-insights";
 import {
   Laptop, Plane, ShoppingBag, ShieldAlert, TrendingUp, CreditCard,
   Briefcase, Heart, Home, Shield, Receipt, Wallet, AlertTriangle,
@@ -54,17 +54,54 @@ const categoryColors: Record<ScenarioCategory, string> = {
   windfall: "bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800",
 };
 
+// #2: Category ambient glow color mapping (HSL values for CSS custom property)
+const categoryGlowColors: Record<ScenarioCategory, string> = {
+  tech: "hsl(217 91% 60% / 0.10)",
+  travel: "hsl(262 83% 58% / 0.10)",
+  lifestyle: "hsl(38 92% 50% / 0.10)",
+  scam: "hsl(0 72% 51% / 0.10)",
+  investing: "hsl(271 91% 65% / 0.10)",
+  debt: "hsl(25 95% 53% / 0.10)",
+  career: "hsl(217 91% 60% / 0.10)",
+  relationships: "hsl(330 81% 60% / 0.10)",
+  housing: "hsl(38 92% 50% / 0.10)",
+  insurance: "hsl(215 16% 47% / 0.08)",
+  tax: "hsl(152 69% 41% / 0.10)",
+  credit: "hsl(263 70% 50% / 0.10)",
+  emergency: "hsl(0 72% 51% / 0.10)",
+  budgeting: "hsl(187 85% 43% / 0.10)",
+  health: "hsl(142 71% 45% / 0.10)",
+  giving: "hsl(347 77% 50% / 0.10)",
+  saving: "hsl(170 77% 36% / 0.10)",
+  family: "hsl(239 84% 67% / 0.10)",
+  windfall: "hsl(48 96% 53% / 0.10)",
+};
+
+// #13: Difficulty badge colors
+const difficultyConfig = {
+  easy: { label: "Easy", className: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" },
+  medium: { label: "Medium", className: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20" },
+  hard: { label: "Hard", className: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20" },
+};
+
 interface QuestionHeaderProps {
   category: ScenarioCategory;
   context: string;
   question: string;
+  choices?: { points: number; isCorrect: boolean }[];  // #13: for difficulty classification
 }
 
-export function QuestionHeader({ category, context, question }: QuestionHeaderProps) {
+export function QuestionHeader({ category, context, question, choices }: QuestionHeaderProps) {
   const Icon = categoryIcons[category] || ShoppingBag;
+  const difficulty = choices ? classifyDifficulty(choices) : null;
+  const diffConfig = difficulty ? difficultyConfig[difficulty] : null;
 
   return (
-    <div className="grid grid-rows-[auto_auto] gap-3">
+    // #2: Category ambient glow wrapper
+    <div
+      className="category-glow grid grid-rows-[auto_auto] gap-3"
+      style={{ "--category-glow-color": categoryGlowColors[category] } as React.CSSProperties}
+    >
       {/* Zone A: Context — category + scenario setup */}
       <motion.div
         initial={{ opacity: 0, y: -8 }}
@@ -72,7 +109,7 @@ export function QuestionHeader({ category, context, question }: QuestionHeaderPr
         transition={{ duration: 0.3 }}
         className="space-y-2.5"
       >
-        <div className="flex items-center gap-2.5 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
           <Badge
             variant="outline"
             className={cn("border", categoryColors[category])}
@@ -81,6 +118,16 @@ export function QuestionHeader({ category, context, question }: QuestionHeaderPr
             <Icon className="w-3 h-3 mr-1.5" />
             <span className="capitalize">{category}</span>
           </Badge>
+          {/* #13: Difficulty indicator */}
+          {diffConfig && (
+            <Badge
+              variant="outline"
+              className={cn("border text-[10px] px-1.5 py-0", diffConfig.className)}
+              data-testid="difficulty-badge"
+            >
+              {diffConfig.label}
+            </Badge>
+          )}
           <span className="text-xs text-muted-foreground/60 italic" data-testid="text-context-buffer">
             {getContextBuffer(category)}
           </span>

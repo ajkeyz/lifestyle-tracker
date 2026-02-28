@@ -3,47 +3,46 @@ import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { StatBarGrid } from "@/components/stat-bar";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { StreakCalendar } from "@/components/streak-calendar";
+import { Badge } from "@/components/ui/badge";
 import { Onboarding } from "@/components/onboarding";
 import { QuickStatsBar } from "@/components/quick-stats-bar";
 import { StreakUrgencyBanner } from "@/components/streak-urgency-banner";
 import { SocialProofCounter } from "@/components/social-proof-counter";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LiveActivityTicker, PlayerCounter } from "@/components/live-activity-ticker";
+import { LiveActivityTicker } from "@/components/live-activity-ticker";
 import { TipCardCarousel } from "@/components/stories-tips";
-import { AnimatedCounter } from "@/components/animated-counter";
+import { AnimatedCounter, RollingNumber } from "@/components/animated-counter";
 import { AnimatedAvatar } from "@/components/animated-avatar";
 import { DebugScreen, useDebugGesture } from "@/components/debug-screen";
 import { AmbientBackground } from "@/components/ambient-background";
+import { AppLogo } from "@/components/app-logo";
 import { Mascot, getMascotMoodForStreak, type MascotContext } from "@/components/mascot";
-import { 
-  Play, 
-  Trophy, 
-  TrendingUp, 
-  Sparkles, 
-  Clock, 
+import { CleoPlayNudge } from "@/components/cleo-edge-presence";
+import { MissionBoard } from "@/components/mission-board";
+import { NextUnlockCard } from "@/components/next-unlock-card";
+import { LevelProgress } from "@/components/level-progress";
+import { ResourceBar } from "@/components/resource-bar";
+import { useProgression } from "@/hooks/use-progression";
+import type { MissionContext } from "@shared/lib/progression";
+import {
+  Play,
+  Trophy,
+  Sparkles,
+  Clock,
   Share2,
-  Lightbulb,
   Plane,
   AlertTriangle,
   Home as HomeIcon,
   Wallet,
   ChevronRight,
-  Users,
-  Swords,
   Gamepad2,
-  Award,
-  CalendarDays,
   Settings,
-  MessageSquare,
-  BarChart3,
   RefreshCw,
-  Flame
+  Flame,
+  MessageSquare,
+  TrendingUp,
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { useLocation, Link } from "wouter";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import type { User as UserType, DailyDrop, LeaderboardEntry, CommunityScenario } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -53,16 +52,16 @@ const THEME_CONFIG: Record<string, { label: string; icon: typeof Plane; color: s
   scam: { label: "Fraud Alert", icon: AlertTriangle, color: "text-red-500" },
   lifestyle: { label: "Lifestyle", icon: HomeIcon, color: "text-green-500" },
   tech: { label: "Tech Spending", icon: Sparkles, color: "text-purple-500" },
-  investing: { label: "Investing", icon: TrendingUp, color: "text-emerald-500" },
+  investing: { label: "Investing", icon: Sparkles, color: "text-emerald-500" },
   debt: { label: "Debt & Credit", icon: Wallet, color: "text-orange-500" },
 };
 
 const DAILY_TIPS = [
-  "Automate your savings — what you don't see, you won't spend.",
+  "Automate your savings \u2014 what you don't see, you won't spend.",
   "A 24-hour rule on big purchases prevents impulse regret.",
   "Track subscriptions monthly; small leaks sink big ships.",
   "Pay yourself first, then budget what's left.",
-  "Lifestyle creep happens slowly — review expenses quarterly.",
+  "Lifestyle creep happens slowly \u2014 review expenses quarterly.",
   "An emergency fund is peace of mind, not wasted money.",
   "Compare cost-per-use, not just price tags.",
 ];
@@ -76,44 +75,12 @@ const COMEBACK_MESSAGES = [
 ];
 
 const WHY_THIS_MATTERS: Record<string, string[]> = {
-  tech: [
-    "Today's choices mirror how people overspend on tech upgrades.",
-    "Tech purchases feel urgent but rarely are — today tests that instinct.",
-    "Shiny new gadgets are the fastest path to lifestyle creep.",
-  ],
-  travel: [
-    "Travel decisions reveal how we justify emotional spending.",
-    "Vacation spending is where budgets quietly unravel.",
-    "Today tests whether you can enjoy experiences without overspending.",
-  ],
-  scam: [
-    "Fraud costs people billions yearly — pattern recognition is your shield.",
-    "Today's scenarios train you to spot the red flags before it's too late.",
-    "Scammers rely on urgency — today tests your ability to pause.",
-  ],
-  lifestyle: [
-    "Small daily upgrades are how lifestyle creep starts unnoticed.",
-    "Today's choices reflect the quiet trade-offs we make without thinking.",
-    "Convenience spending adds up faster than most people realize.",
-  ],
-  investing: [
-    "Investment decisions test patience more than knowledge.",
-    "Today's scenarios mirror real moments where people panic-sell or FOMO-buy.",
-    "The best investors know when not to act — today tests that.",
-  ],
-  debt: [
-    "Debt decisions shape your financial freedom for years to come.",
-    "Today tests whether you can resist the minimum-payment trap.",
-    "Credit feels like freedom until it becomes a cage.",
-  ],
-  career: [
-    "Career money decisions often get overshadowed by emotions.",
-    "Today tests whether you'd trade short-term comfort for long-term growth.",
-  ],
-  relationships: [
-    "Money and relationships are deeply intertwined — today explores that.",
-    "Splitting costs, lending to friends — these test your boundaries.",
-  ],
+  tech: ["Today's choices mirror how people overspend on tech upgrades."],
+  travel: ["Travel decisions reveal how we justify emotional spending."],
+  scam: ["Fraud costs people billions yearly \u2014 pattern recognition is your shield."],
+  lifestyle: ["Today's choices reflect the quiet trade-offs we make without thinking."],
+  investing: ["Investment decisions test patience more than knowledge."],
+  debt: ["Debt decisions shape your financial freedom for years to come."],
 };
 
 const FIRST_WEEK_NARRATIVE: Record<number, { phase: string; message: string }> = {
@@ -121,9 +88,9 @@ const FIRST_WEEK_NARRATIVE: Record<number, { phase: string; message: string }> =
   2: { phase: "Awareness", message: "Building the habit of pausing before spending" },
   3: { phase: "Pattern spotting", message: "You're starting to see the patterns others miss" },
   4: { phase: "Pattern spotting", message: "Your instincts are sharpening with each decision" },
-  5: { phase: "Pattern spotting", message: "You're thinking before spending — that's rare" },
+  5: { phase: "Pattern spotting", message: "You're thinking before spending \u2014 that's rare" },
   6: { phase: "Identity shift", message: "You're becoming someone who makes intentional choices" },
-  7: { phase: "Identity shift", message: "One week in — your relationship with money is changing" },
+  7: { phase: "Identity shift", message: "One week in \u2014 your relationship with money is changing" },
 };
 
 function getStreakContextMessage(streak: number, hasPlayedToday: boolean): string | null {
@@ -133,51 +100,62 @@ function getStreakContextMessage(streak: number, hasPlayedToday: boolean): strin
   if (streak < 7) return `Tomorrow locks Day ${streak + 1} of your streak`;
   if (streak < 14) return `${14 - streak} days until your next milestone`;
   if (streak < 30) return `${30 - streak} days until Master status`;
-  return `Your consistency is building real financial intuition`;
+  return "Your consistency is building real financial intuition";
 }
 
 function getComebackMessage(highestStreak: number) {
-  const index = highestStreak % COMEBACK_MESSAGES.length;
-  return COMEBACK_MESSAGES[index];
+  return COMEBACK_MESSAGES[highestStreak % COMEBACK_MESSAGES.length];
 }
 
 function getTimeUntilMidnightUTC(): { hours: number; minutes: number; seconds: number } {
   const now = new Date();
-  const midnightUTC = new Date(Date.UTC(
-    now.getUTCFullYear(),
-    now.getUTCMonth(),
-    now.getUTCDate() + 1,
-    0, 0, 0, 0
-  ));
+  const midnightUTC = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0, 0)
+  );
   const diff = midnightUTC.getTime() - now.getTime();
-  
-  const hours = Math.floor(diff / (1000 * 60 * 60));
-  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-  
-  return { hours, minutes, seconds };
-}
-
-function getTodaysTip(): string {
-  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
-  return DAILY_TIPS[dayOfYear % DAILY_TIPS.length];
+  return {
+    hours: Math.floor(diff / (1000 * 60 * 60)),
+    minutes: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)),
+    seconds: Math.floor((diff % (1000 * 60)) / 1000),
+  };
 }
 
 export default function Home() {
   const [, navigate] = useLocation();
   const { user: authUser } = useAuth();
+  const qc = useQueryClient();
   const [countdown, setCountdown] = useState(getTimeUntilMidnightUTC());
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showDebugScreen, setShowDebugScreen] = useState(false);
   const { handleTap } = useDebugGesture(() => setShowDebugScreen(true));
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCountdown(getTimeUntilMidnightUTC());
-    }, 1000);
+  const {
+    unlocks,
+    nextUnlock,
+    levelInfo,
+    activeMissions,
+    completedMissionIds,
+    completeMission,
+  } = useProgression();
 
+  useEffect(() => {
+    const timer = setInterval(() => setCountdown(getTimeUntilMidnightUTC()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // P1-5: Invalidate daily drop and user data at midnight UTC
+  useEffect(() => {
+    const now = new Date();
+    const msToMidnight =
+      new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1)).getTime() -
+      now.getTime();
+    const midnightTimer = setTimeout(() => {
+      qc.invalidateQueries({ queryKey: ["/api/daily-drop"] });
+      qc.invalidateQueries({ queryKey: ["/api/user"] });
+      qc.invalidateQueries({ queryKey: ["/api/leaderboard"] });
+    }, msToMidnight + 2000);
+    return () => clearTimeout(midnightTimer);
+  }, [qc]);
 
   const { data: user, isLoading: userLoading } = useQuery<UserType>({
     queryKey: ["/api/user"],
@@ -189,10 +167,7 @@ export default function Home() {
     }
   }, [user, userLoading]);
 
-
-  const { data: dailyDrop, isLoading: dropLoading } = useQuery<DailyDrop>({
-    queryKey: ["/api/daily-drop"],
-  });
+  const { data: dailyDrop } = useQuery<DailyDrop>({ queryKey: ["/api/daily-drop"] });
 
   const { data: leaderboard } = useQuery<LeaderboardEntry[]>({
     queryKey: ["/api/leaderboard"],
@@ -206,8 +181,23 @@ export default function Home() {
     },
   });
 
-  const hasPlayedToday = user?.todayResult != null; // loose inequality handles both null and undefined (avoids true while user is loading)
-  const isInFirstWeek = user ? (user.gamesPlayed <= 7) : false;
+  const { data: friendsActivity } = useQuery<{
+    friendsPlayedToday: number;
+    totalFriends: number;
+    recentActivity: Array<{
+      id: string;
+      type: string;
+      username: string;
+      value?: number;
+      timestamp: string;
+    }>;
+  }>({
+    queryKey: ["/api/friends/activity"],
+    refetchInterval: 60000,
+  });
+
+  const hasPlayedToday = user?.todayResult != null;
+  const isInFirstWeek = user ? user.gamesPlayed <= 7 : false;
   const firstWeekDay = user ? Math.min(user.gamesPlayed + 1, 7) : 1;
   const firstWeekNarrative = FIRST_WEEK_NARRATIVE[firstWeekDay];
 
@@ -216,19 +206,32 @@ export default function Home() {
   const ThemeIcon = themeConfig.icon;
 
   const whyMattersLines = WHY_THIS_MATTERS[todaysTheme] || WHY_THIS_MATTERS.lifestyle;
-  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
+  const dayOfYear = Math.floor(
+    (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24)
+  );
   const whyThisMatters = whyMattersLines[dayOfYear % whyMattersLines.length];
   const streakContext = user ? getStreakContextMessage(user.streak, hasPlayedToday) : null;
   const isLastHour = countdown.hours === 0;
+
+  const [cleoGreeting, setCleoGreeting] = useState<string | undefined>(() => {
+    const hour = new Date().getHours();
+    const timeOfDay = hour < 12 ? "Morning" : hour < 17 ? "Afternoon" : "Evening";
+    return `${timeOfDay}, ${user?.username || authUser?.username || "there"}!`;
+  });
+
+  useEffect(() => {
+    if (!cleoGreeting) return;
+    const t = setTimeout(() => setCleoGreeting(undefined), 6000);
+    return () => clearTimeout(t);
+  }, [cleoGreeting]);
 
   const userRank = leaderboard?.findIndex((e) => e.id === user?.id);
   const displayRank = userRank !== undefined && userRank !== -1 ? userRank + 1 : null;
 
   const handleShare = () => {
-    const shareText = user?.todayResult 
+    const shareText = user?.todayResult
       ? `Lifestyle Creep Day ${dailyDrop?.dropNumber || "?"}\nScore: ${user.todayResult.score}/500\nMoney IQ: ${user.todayResult.iq}\n\nPlay now!`
       : `I'm on a ${user?.streak || 0} day streak in Lifestyle Creep! Can you beat my Money Health of ${user?.moneyHealth || 50}?`;
-    
     if (navigator.share) {
       navigator.share({ text: shareText }).catch(() => {});
     } else {
@@ -236,584 +239,534 @@ export default function Home() {
     }
   };
 
+  // Mission context for checking completions
+  const missionContext: MissionContext = useMemo(
+    () => ({
+      hasPlayedToday,
+      arcadePlaysToday: user?.arcadePlaysToday ?? 0,
+      streak: user?.streak ?? 0,
+      gamesPlayed: user?.gamesPlayed ?? 0,
+      friendCount: user?.friendIds?.length ?? 0,
+      coopPlayed: false,
+      survivalPlayed: false,
+      referralCount: user?.referralCount ?? 0,
+    }),
+    [hasPlayedToday, user]
+  );
+
   return (
     <>
-      {showOnboarding && (
-        <Onboarding onComplete={() => setShowOnboarding(false)} />
-      )}
-      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50 relative">
-      <AmbientBackground variant="default" />
-      <header className="flex items-center justify-between gap-2 p-4 border-b bg-card/80 backdrop-blur-xl sticky top-0 z-50 border-white/10">
-        <span className="font-display font-semibold text-sm tracking-[-0.02em]" data-testid="text-daily-drop-header">
-          {(() => {
-            const hour = new Date().getHours();
-            return hour < 12 ? "Morning," : hour < 17 ? "Afternoon," : "Evening,";
-          })()}{" "}
-          <motion.span
-            initial={{ opacity: 0, filter: "blur(4px)" }}
-            animate={{ opacity: 1, filter: "blur(0px)" }}
-            transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-            className="text-primary"
-          >
-            {user?.username || authUser?.username || "there"}
-          </motion.span>
-        </span>
-        <div className="flex items-center gap-2">
-          {authUser && (
-            <div className="flex items-center gap-2">
-              <Link href="/profile" data-testid="link-profile">
-                <AnimatedAvatar
-                  avatarId={user?.avatar || "cosmic-cat"}
-                  size="xs"
-                  isAnimated={false}
-                />
-              </Link>
-              <Button variant="ghost" size="icon" onClick={() => navigate("/stats")} data-testid="button-stats" aria-label="View statistics">
-                <BarChart3 className="w-4 h-4" />
-              </Button>
-              <Button variant="ghost" size="icon" onClick={() => navigate("/settings")} data-testid="button-settings" aria-label="Open settings">
-                <Settings className="w-4 h-4" />
-              </Button>
-            </div>
-          )}
-          <ThemeToggle />
-        </div>
-      </header>
-
-      <main className="container max-w-2xl mx-auto p-4 space-y-4">
-        {userLoading ? (
-          <div className="space-y-4">
-            <Skeleton className="h-40 w-full" />
-            <Skeleton className="h-24 w-full" />
-            <Skeleton className="h-48 w-full" />
+      {showOnboarding && <Onboarding onComplete={() => setShowOnboarding(false)} />}
+      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50 relative overflow-x-hidden">
+        <AmbientBackground variant="default" />
+        <header className="flex items-center justify-between px-4 h-14 border-b bg-card/80 backdrop-blur-xl sticky top-0 z-50 border-white/10">
+          <div className="flex items-center gap-2.5 min-h-[40px]">
+            <AppLogo size="sm" />
+            <span
+              className="font-display font-extrabold text-[15px] leading-none tracking-[-0.04em] text-white drop-shadow-[0_0_12px_rgba(255,255,255,0.15)]"
+              style={{ fontFeatureSettings: '"ss01", "ss02"' }}
+            >
+              Lifestyle Creep
+            </span>
           </div>
-        ) : user ? (
-          <>
-            {/* Streak Urgency Banner */}
-            <StreakUrgencyBanner hasPlayedToday={hasPlayedToday} streak={user.streak} />
-
-            {/* Quick Stats Bar - consolidated with streak context */}
-            <QuickStatsBar user={user} rank={displayRank} className="mb-2" />
-
-            {/* First-Week Narrative */}
-            {isInFirstWeek && firstWeekNarrative && !hasPlayedToday && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-              >
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/5 border border-primary/10" data-testid="card-first-week">
-                  <Sparkles className="w-4 h-4 text-primary flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <span className="text-xs font-medium text-primary">Day {firstWeekDay} — {firstWeekNarrative.phase}</span>
-                    <p className="text-xs text-muted-foreground">{firstWeekNarrative.message}</p>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-
-            {/* Streak Context - replaces redundant streak displays */}
-            {streakContext && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.02 }}
-              >
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-orange-500/5 border border-orange-500/10" data-testid="card-streak-context">
-                  <Flame className="w-4 h-4 text-orange-500 flex-shrink-0" />
-                  <span className="text-xs text-muted-foreground">{streakContext}</span>
-                </div>
-              </motion.div>
-            )}
-
-            {/* ===== PRIMARY FOCUS: Daily Drop CTA ===== */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
+          {authUser && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0"
+              onClick={() => navigate("/settings")}
+              data-testid="button-settings"
+              aria-label="Open settings"
             >
-            <Card
-              className="p-6 border-primary/25 overflow-visible relative shadow-lg hero-spotlight"
-              style={{
-                background: "linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--card)) 60%, hsl(var(--primary) / 0.06) 100%)",
-              }}
-              data-testid="card-daily-drop-cta"
-            >
-              {/* Ambient top-left glow orb */}
-              <div
-                className="pointer-events-none absolute -top-8 -left-8 w-48 h-48 rounded-full opacity-30 dark:opacity-20 ambient-orb"
-                style={{ background: "radial-gradient(circle, hsl(var(--primary) / 0.35) 0%, transparent 70%)" }}
-                aria-hidden="true"
+              <Settings className="w-4 h-4" />
+            </Button>
+          )}
+        </header>
+
+        <main className="container max-w-2xl mx-auto p-4 space-y-4">
+          {userLoading ? (
+            <div className="space-y-4">
+              <Skeleton className="h-40 w-full" />
+              <Skeleton className="h-24 w-full" />
+              <Skeleton className="h-48 w-full" />
+            </div>
+          ) : user ? (
+            <>
+              <StreakUrgencyBanner hasPlayedToday={hasPlayedToday} streak={user.streak} />
+
+              <QuickStatsBar
+                user={user}
+                rank={displayRank}
+                streakContext={streakContext}
+                className="mb-2"
               />
-              {/* Accent corner glow */}
-              <div
-                className="pointer-events-none absolute -bottom-6 -right-6 w-36 h-36 rounded-full opacity-20 dark:opacity-15"
-                style={{ background: "radial-gradient(circle, hsl(var(--accent) / 0.4) 0%, transparent 70%)" }}
-                aria-hidden="true"
-              />
-              <div className="flex items-start justify-between gap-4 flex-wrap">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-2 flex-wrap">
-                    <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-muted/50 ${themeConfig.color}`}>
-                      <ThemeIcon className="w-3.5 h-3.5" />
-                      <span className="text-xs font-medium">{themeConfig.label}</span>
+
+              {/* First-Week Narrative */}
+              {isInFirstWeek && firstWeekNarrative && !hasPlayedToday && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/5 border border-primary/10"
+                    data-testid="card-first-week"
+                  >
+                    <Sparkles className="w-4 h-4 text-primary flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <span className="text-xs font-medium text-primary">
+                        Day {firstWeekDay} — {firstWeekNarrative.phase}
+                      </span>
+                      <p className="text-xs text-muted-foreground">
+                        {firstWeekNarrative.message}
+                      </p>
                     </div>
                   </div>
-                  <p className="text-muted-foreground text-sm mb-1" data-testid="text-tagline">
-                    5 real-life money decisions in 2-4 minutes
-                  </p>
-                  <p className="text-xs text-muted-foreground/80 italic mb-3" data-testid="text-why-matters">
-                    {whyThisMatters}
-                  </p>
-                  <div className="mb-2">
-                    <SocialProofCounter />
-                  </div>
-                  <div className="mb-3">
-                    <LiveActivityTicker className="text-xs" />
-                  </div>
-                  <Button
-                    size="lg"
-                    className={cn(
-                      "gap-2 relative overflow-hidden font-bold",
-                      hasPlayedToday ? "" : "btn-premium border-0"
-                    )}
-                    onClick={() => {
-                      if (hasPlayedToday) {
-                        navigate("/results");
-                      } else if (!user.mode) {
-                        navigate("/setup");
-                      } else {
-                        navigate("/play");
-                      }
-                    }}
-                    data-testid="button-play-today"
-                  >
-                    {hasPlayedToday ? (
-                      <>
-                        <Trophy className="w-5 h-5" />
-                        View Results
-                      </>
-                    ) : (
-                      <>
-                        <Play className="w-5 h-5" />
-                        Play Now
-                      </>
-                    )}
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
-                </div>
-                <div className="flex flex-col items-center gap-2 flex-shrink-0">
-                  <div data-testid="mascot-home" onClick={handleTap} style={{ cursor: "pointer" }}>
-                    <Mascot
-                      mood={getMascotMoodForStreak(user.streak, hasPlayedToday)}
-                      size="md"
-                      showBubble={!hasPlayedToday}
-                      streakCount={user.streak}
-                      showStreakFlame={user.streak >= 3}
-                      context={{
-                        screen: "home",
-                        username: user.username,
-                        streak: user.streak,
-                        daysInactive: undefined, // could pass from user data if available
-                      } satisfies MascotContext}
-                    />
-                  </div>
-                  <motion.button
-                    onClick={() => {
-                      if (hasPlayedToday) {
-                        navigate("/results");
-                      } else if (!user.mode) {
-                        navigate("/setup");
-                      } else {
-                        navigate("/play");
-                      }
-                    }}
-                    whileHover={{ scale: 1.08 }}
-                    whileTap={{ scale: 0.93 }}
-                    className={cn(
-                      "w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 cursor-pointer relative overflow-hidden",
-                      hasPlayedToday
-                        ? "bg-gradient-to-br from-accent to-amber-500 glow-accent"
-                        : "bg-gradient-to-br from-primary to-emerald-400 dark:from-primary dark:to-emerald-300 glow-primary btn-premium border-0"
-                    )}
-                    data-testid="button-play-icon"
-                    aria-label={hasPlayedToday ? "View Results" : "Play Now"}
-                  >
-                    {hasPlayedToday ? (
-                      <Trophy className="w-7 h-7 text-amber-900" />
-                    ) : (
-                      <Play className="w-7 h-7 text-white ml-0.5" />
-                    )}
-                  </motion.button>
-                </div>
-              </div>
-            </Card>
-            </motion.div>
+                </motion.div>
+              )}
 
-            {/* Comeback Encouragement - show when streak is 0 but user has played before */}
-            {user.streak === 0 && user.highestStreak > 0 && !hasPlayedToday && (
+              {/* ===== PRIMARY CTA: Play Today's Drop ===== */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.05, ease: "easeOut" }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
               >
-                <Card className="p-4 border-accent/30 bg-accent/5" data-testid="card-comeback">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0">
-                      <RefreshCw className="w-5 h-5 text-accent" />
-                    </div>
+                <Card
+                  className="p-6 overflow-visible relative shadow-lg shadow-primary/5 hero-spotlight rounded-xl border-primary/25 transition-all duration-300 hover:shadow-xl hover:shadow-primary/10 hover:border-primary/35"
+                  style={{
+                    background:
+                      "linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--card)) 60%, hsl(var(--primary) / 0.06) 100%)",
+                  }}
+                  data-testid="card-daily-drop-cta"
+                >
+                  <div
+                    className="pointer-events-none absolute -top-8 -left-8 w-48 h-48 rounded-full opacity-30 dark:opacity-20 ambient-orb"
+                    style={{
+                      background:
+                        "radial-gradient(circle, hsl(var(--primary) / 0.35) 0%, transparent 70%)",
+                    }}
+                    aria-hidden="true"
+                  />
+                  <div
+                    className="pointer-events-none absolute -bottom-6 -right-6 w-36 h-36 rounded-full opacity-20 dark:opacity-15"
+                    style={{
+                      background:
+                        "radial-gradient(circle, hsl(var(--accent) / 0.4) 0%, transparent 70%)",
+                    }}
+                    aria-hidden="true"
+                  />
+                  <div className="flex items-start justify-between gap-4 flex-wrap">
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold" data-testid="text-comeback-title">
-                        {getComebackMessage(user.highestStreak).title}
-                      </h3>
-                      <p className="text-sm text-muted-foreground" data-testid="text-comeback-message">
-                        {getComebackMessage(user.highestStreak).message}
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                        <div
+                          className={`flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-muted/50 ${themeConfig.color}`}
+                        >
+                          <ThemeIcon className="w-3.5 h-3.5" />
+                          <span className="text-xs font-medium">{themeConfig.label}</span>
+                        </div>
+                      </div>
+                      <p className="text-muted-foreground text-sm mb-1" data-testid="text-tagline">
+                        5 real-life money decisions in 2-4 minutes
                       </p>
-                      {user.highestStreak >= 7 && (
-                        <p className="text-xs text-accent mt-2" data-testid="text-comeback-streak">
-                          Your best streak was {user.highestStreak} days — you can get there again!
-                        </p>
+                      <p
+                        className="text-xs text-muted-foreground/80 italic mb-3"
+                        data-testid="text-why-matters"
+                      >
+                        {whyThisMatters}
+                      </p>
+                      <div className="mb-2">
+                        <SocialProofCounter />
+                      </div>
+                      <div className="mb-3">
+                        <LiveActivityTicker
+                          activities={friendsActivity?.recentActivity as any}
+                          className="text-xs"
+                        />
+                      </div>
+                      <Button
+                        size="lg"
+                        className={cn(
+                          "gap-2 relative overflow-hidden font-bold",
+                          hasPlayedToday ? "" : "btn-premium border-0"
+                        )}
+                        onClick={() => {
+                          if (hasPlayedToday) navigate("/results");
+                          else if (!user.mode) navigate("/setup");
+                          else navigate("/play");
+                        }}
+                        data-testid="button-play-today"
+                      >
+                        {hasPlayedToday ? (
+                          <>
+                            <Trophy className="w-5 h-5" />
+                            View Results
+                          </>
+                        ) : (
+                          <>
+                            <Play className="w-5 h-5" />
+                            Play Today's Drop
+                          </>
+                        )}
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+
+                      {unlocks.playHub.unlocked && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-2 mt-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5 transition-all"
+                          onClick={() => navigate("/play-hub")}
+                          data-testid="button-explore-modes"
+                        >
+                          <Gamepad2 className="w-4 h-4" />
+                          Explore Game Modes
+                          <ChevronRight className="w-3 h-3" />
+                        </Button>
                       )}
+
+                      {hasPlayedToday && user.todayResult && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.3 }}
+                          className="flex items-center gap-2.5 mt-3 p-2 rounded-lg bg-muted/30 border border-border/30"
+                          data-testid="card-today-score-summary"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold leading-tight">
+                              <AnimatedCounter value={user.todayResult.score} duration={1.2} />
+                              <span className="text-muted-foreground font-normal text-xs">
+                                /500
+                              </span>
+                            </p>
+                            <p className="text-[11px] text-muted-foreground">
+                              IQ:{" "}
+                              <span className="font-medium text-primary">
+                                {user.todayResult.iq}
+                              </span>
+                            </p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="gap-1 flex-shrink-0 h-7 px-2"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleShare();
+                            }}
+                            data-testid="button-share-inline"
+                          >
+                            <Share2 className="w-3 h-3" />
+                            Share
+                          </Button>
+                        </motion.div>
+                      )}
+                    </div>
+                    <div className="flex flex-col items-center flex-shrink-0 relative">
+                      <motion.div
+                        data-testid="mascot-home"
+                        onClick={handleTap}
+                        style={{ cursor: "pointer" }}
+                        animate={{
+                          y: [0, -6, 0],
+                          rotate: [0, 1.5, 0, -1.5, 0],
+                        }}
+                        transition={{
+                          y: { duration: 3, repeat: Infinity, ease: "easeInOut" },
+                          rotate: { duration: 5, repeat: Infinity, ease: "easeInOut" },
+                        }}
+                      >
+                        <Mascot
+                          mood={
+                            cleoGreeting
+                              ? "waving"
+                              : getMascotMoodForStreak(user.streak, hasPlayedToday)
+                          }
+                          size="lg"
+                          message={cleoGreeting}
+                          showBubble={!!cleoGreeting || !hasPlayedToday}
+                          streakCount={user.streak}
+                          showStreakFlame={user.streak >= 3}
+                          context={
+                            {
+                              screen: "home",
+                              username: user.username,
+                              streak: user.streak,
+                              daysInactive: undefined,
+                            } satisfies MascotContext
+                          }
+                        />
+                      </motion.div>
                     </div>
                   </div>
                 </Card>
               </motion.div>
-            )}
 
-            {/* Next Drop Countdown - with emotional framing */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.05, ease: "easeOut" }}
-            >
-            <Card
-              className={cn(
-                "p-3 transition-colors duration-500",
-                isLastHour
-                  ? "border-primary/35 bg-primary/5"
-                  : "border-border/60"
+              {/* Comeback Encouragement */}
+              {user.streak === 0 && user.highestStreak > 0 && !hasPlayedToday && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.05 }}
+                >
+                  <Card className="p-4 border-accent/30 bg-accent/5" data-testid="card-comeback">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0">
+                        <RefreshCw className="w-5 h-5 text-accent" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold">
+                          {getComebackMessage(user.highestStreak).title}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          {getComebackMessage(user.highestStreak).message}
+                        </p>
+                        {user.highestStreak >= 7 && (
+                          <p className="text-xs text-accent mt-2">
+                            Your best streak was {user.highestStreak} days — you can get there
+                            again!
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                </motion.div>
               )}
-              data-testid="card-countdown"
-            >
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <motion.div
-                    animate={isLastHour ? { scale: [1, 1.2, 1] } : { scale: 1 }}
-                    transition={isLastHour ? { duration: 1.2, repeat: Infinity } : {}}
-                  >
-                    <Clock className={cn("w-4 h-4", isLastHour ? "text-primary" : "text-muted-foreground")} />
-                  </motion.div>
-                  <span className="text-sm text-muted-foreground">
-                    {hasPlayedToday ? "Next decision test unlocks in..." : "Today's drop expires in..."}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div
-                    className={cn(
-                      "text-lg font-bold font-mono tabular-nums transition-colors duration-500",
-                      isLastHour ? "text-primary" : "text-foreground"
-                    )}
-                    data-testid="text-countdown"
-                  >
-                    {String(countdown.hours).padStart(2, '0')}:{String(countdown.minutes).padStart(2, '0')}:{String(countdown.seconds).padStart(2, '0')}
-                  </div>
-                </div>
-              </div>
-            </Card>
-            </motion.div>
 
-            {/* ===== SECONDARY SECTION: Explore More ===== */}
-            <div className="pt-2">
-              <p className="text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-[0.12em] mb-3 px-1">Explore</p>
-            </div>
+              {/* Money IQ Level */}
+              <LevelProgress totalXP={user.totalScore} />
 
-            {/* Quick Tip - Enhanced Carousel */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
-            >
-            <TipCardCarousel
-              tips={DAILY_TIPS.map((content, index) => ({
-                id: String(index),
-                content,
-              }))}
-              data-testid="card-daily-tip"
-            />
-            </motion.div>
+              {/* Resource Bar */}
+              <ResourceBar
+                totalScore={user.totalScore}
+                freezeTokens={user.freezeTokens}
+                bonusArcadePlays={user.bonusArcadePlays ?? 0}
+              />
 
-            {/* Game Modes Row */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.12, ease: "easeOut" }}
-            >
-            <div className="grid grid-cols-2 gap-3">
-              <Card 
-                className="p-4 cursor-pointer hover-elevate" 
-                onClick={() => navigate("/coop-lobby")}
-                data-testid="card-coop-play"
-              >
-                <div className="flex flex-col items-center gap-2 text-center">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
-                    <Swords className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-sm">Co-op Play</h3>
-                    <p className="text-[11px] text-muted-foreground">Play with a friend</p>
-                  </div>
-                </div>
-              </Card>
-              <Card 
-                className="p-4 cursor-pointer hover-elevate" 
-                onClick={() => navigate("/arcade")}
-                data-testid="card-arcade"
-              >
-                <div className="flex flex-col items-center gap-2 text-center">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                    <Gamepad2 className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-sm">Arcade</h3>
-                    <p className="text-[11px] text-muted-foreground">Extra rounds</p>
-                  </div>
-                </div>
-              </Card>
-            </div>
-            </motion.div>
+              {/* Mission Board */}
+              {activeMissions.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.1 }}
+                >
+                  <MissionBoard
+                    missions={activeMissions}
+                    context={missionContext}
+                    completedIds={completedMissionIds}
+                    onComplete={completeMission}
+                  />
+                </motion.div>
+              )}
 
-            {/* Friends - more subtle */}
-            {!user.lowPressureMode && (
+              {/* Next Unlock Card */}
+              {nextUnlock && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.15 }}
+                >
+                  <NextUnlockCard
+                    mode={nextUnlock.mode}
+                    label={nextUnlock.label}
+                    info={nextUnlock.info}
+                    level={levelInfo.level}
+                  />
+                </motion.div>
+              )}
+
+              {/* Community - Hot Posts Preview */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.14, ease: "easeOut" }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: 0.05, ease: "easeOut" }}
               >
-              <Card 
-                className="p-4 cursor-pointer hover-elevate" 
-                onClick={() => navigate("/friends")}
-                data-testid="card-friends"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
-                      <Users className="w-4 h-4 text-muted-foreground" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-sm">Friends</h3>
-                      <p className="text-xs text-muted-foreground">Leagues, challenges & leaderboards</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                </div>
-              </Card>
-              </motion.div>
-            )}
-
-            {/* Community - Hot Posts Preview */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.16, ease: "easeOut" }}
-            >
-            <Card className="p-4" data-testid="card-community">
-              <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                    <MessageSquare className="w-4 h-4 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-sm">Community</h3>
-                    <p className="text-xs text-muted-foreground">Real scenarios, real advice</p>
-                  </div>
-                </div>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="gap-1"
-                  onClick={() => navigate("/community")}
-                  data-testid="button-view-community"
-                >
-                  View All
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              </div>
-              
-              {hotPosts && hotPosts.length > 0 ? (
-                <div className="space-y-2">
-                  {hotPosts.slice(0, 2).map((post) => (
-                    <div 
-                      key={post.id}
-                      className="p-3 rounded-lg bg-muted/30 cursor-pointer hover-elevate"
-                      onClick={() => navigate(`/community/${post.id}`)}
-                      data-testid={`community-post-${post.id}`}
-                    >
-                      <div className="flex items-start gap-2">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium line-clamp-1">{post.title}</p>
-                          <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{post.context}</p>
-                        </div>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground flex-shrink-0">
-                          <TrendingUp className="w-3 h-3 text-primary" />
-                          <span>{post.upvotes}</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                        <span>by {post.authorUsername}</span>
-                        <span>·</span>
-                        <span>{post.commentCount} comments</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-4 text-sm text-muted-foreground" data-testid="community-empty-state">
-                  <p className="mb-1">Your question might save someone money tonight.</p>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="mt-1"
-                    onClick={() => navigate("/community/submit")}
-                    data-testid="button-submit-community"
-                  >
-                    Share a real scenario
-                  </Button>
-                </div>
-              )}
-            </Card>
-            </motion.div>
-
-            {/* Streak Calendar with Protection */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.18, ease: "easeOut" }}
-            >
-            <StreakCalendar user={user} />
-            </motion.div>
-
-            {/* Friend League Preview - hidden in low pressure mode */}
-            {!user.lowPressureMode && (
-              <Card className="p-4" data-testid="card-friend-league-preview">
+              <Card className="p-4 rounded-xl" data-testid="card-community">
                 <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
                   <div className="flex items-center gap-2">
-                    <Users className="w-5 h-5 text-accent" />
-                    <h3 className="font-semibold text-sm">Friend Leagues</h3>
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                      <MessageSquare className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-sm">Community</h3>
+                      <p className="text-xs text-muted-foreground">Real scenarios, real advice</p>
+                    </div>
                   </div>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     className="gap-1"
-                    onClick={() => navigate("/leagues")}
-                    data-testid="button-view-leagues"
+                    onClick={() => navigate("/community")}
+                    data-testid="button-view-community"
                   >
-                    Manage Leagues
+                    View All
                     <ChevronRight className="w-4 h-4" />
                   </Button>
                 </div>
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <Trophy className="w-6 h-6 text-accent" />
-                    <div>
-                      <p className="text-2xl font-bold" data-testid="text-user-rank">
-                        {displayRank ? `#${displayRank}` : "—"}
-                      </p>
-                      <p className="text-xs text-muted-foreground">Your rank</p>
-                    </div>
-                  </div>
-                  {leaderboard && leaderboard.length > 0 && (
-                    <div className="flex-1 flex items-center gap-1 overflow-x-auto">
-                      {leaderboard.slice(0, 5).map((entry, i) => (
-                        <div 
-                          key={entry.id} 
-                          className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
-                            entry.id === user.id 
-                              ? "bg-primary text-primary-foreground" 
-                              : "bg-muted text-muted-foreground"
-                          }`}
-                          title={entry.username}
-                          data-testid={`avatar-rank-${i + 1}`}
-                        >
-                          {i + 1}
+
+                {hotPosts && hotPosts.length > 0 ? (
+                  <div className="space-y-2">
+                    {hotPosts.slice(0, 2).map((post, i) => (
+                      <motion.div
+                        key={post.id}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.08 }}
+                        className="p-3 rounded-lg bg-muted/30 cursor-pointer hover-elevate border border-transparent hover:border-border/50 transition-all"
+                        onClick={() => navigate(`/community/${post.id}`)}
+                        data-testid={`community-post-${post.id}`}
+                      >
+                        <div className="flex items-start gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium line-clamp-1">{post.title}</p>
+                            <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{post.context}</p>
+                          </div>
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            {post.upvotes + post.downvotes + post.commentCount >= 10 && (
+                              <Badge variant="outline" className="text-[10px] h-5 border-orange-500/30 text-orange-500 px-1.5">
+                                <Flame className="w-2.5 h-2.5 mr-0.5" />
+                                Hot
+                              </Badge>
+                            )}
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <TrendingUp className="w-3 h-3 text-primary" />
+                              <span>{post.upvotes}</span>
+                            </div>
+                          </div>
                         </div>
-                      ))}
-                    </div>
+                        <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                          <AnimatedAvatar avatarId={post.authorAvatar || "cosmic-cat"} size="xs" />
+                          <span>{post.authorUsername}</span>
+                          <span>·</span>
+                          <span>{post.commentCount} comments</span>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-4 text-sm text-muted-foreground" data-testid="community-empty-state">
+                    <p className="mb-1">Your question might save someone money tonight.</p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="mt-1"
+                      onClick={() => navigate("/community/submit")}
+                      data-testid="button-submit-community"
+                    >
+                      Share a real scenario
+                    </Button>
+                  </div>
+                )}
+              </Card>
+              </motion.div>
+
+              {/* Countdown */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.05 }}
+              >
+                <Card
+                  className={cn(
+                    "p-3 transition-colors duration-500",
+                    isLastHour ? "border-primary/35 bg-primary/5" : "border-border/60"
                   )}
-                </div>
-              </Card>
-            )}
+                  data-testid="card-countdown"
+                >
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <motion.div
+                        animate={isLastHour ? { scale: [1, 1.2, 1] } : { scale: 1 }}
+                        transition={isLastHour ? { duration: 1.2, repeat: Infinity } : {}}
+                      >
+                        <Clock
+                          className={cn(
+                            "w-4 h-4",
+                            isLastHour ? "text-primary" : "text-muted-foreground"
+                          )}
+                        />
+                      </motion.div>
+                      <span className="text-sm text-muted-foreground">
+                        {hasPlayedToday
+                          ? "Next decision test unlocks in..."
+                          : "Today's drop expires in..."}
+                      </span>
+                    </div>
+                    <div
+                      className={cn(
+                        "text-lg font-bold font-mono tabular-nums transition-colors duration-500 flex items-center",
+                        isLastHour ? "text-primary" : "text-foreground"
+                      )}
+                      data-testid="text-countdown"
+                    >
+                      <RollingNumber value={String(countdown.hours).padStart(2, "0")} />
+                      <span className="mx-0.5">:</span>
+                      <RollingNumber value={String(countdown.minutes).padStart(2, "0")} />
+                      <span className="mx-0.5">:</span>
+                      <RollingNumber value={String(countdown.seconds).padStart(2, "0")} />
+                    </div>
+                  </div>
+                </Card>
+              </motion.div>
 
-            {/* Secondary nav items */}
-            <div className="grid grid-cols-2 gap-3">
-              <Card 
-                className="p-4 cursor-pointer hover-elevate" 
-                onClick={() => navigate("/achievements")}
-                data-testid="card-achievements"
+              {/* Quick Tips */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: 0.05 }}
               >
-                <div className="flex flex-col items-center gap-2 text-center">
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center">
-                    <Award className="w-4 h-4 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-sm">Achievements</h3>
-                    <p className="text-[11px] text-muted-foreground">Badges & progress</p>
-                  </div>
-                </div>
-              </Card>
-              <Card 
-                className="p-4 cursor-pointer hover-elevate" 
-                onClick={() => navigate("/weekly-recap")}
-                data-testid="card-weekly-recap"
-              >
-                <div className="flex flex-col items-center gap-2 text-center">
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center">
-                    <CalendarDays className="w-4 h-4 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-sm">Weekly Recap</h3>
-                    <p className="text-[11px] text-muted-foreground">Your week in review</p>
-                  </div>
-                </div>
-              </Card>
-            </div>
+                <TipCardCarousel
+                  tips={DAILY_TIPS.map((content, index) => ({
+                    id: String(index),
+                    content,
+                  }))}
+                  data-testid="card-daily-tip"
+                />
+              </motion.div>
 
-            {/* Share Today's Results */}
-            {hasPlayedToday && (
-              <Button
-                variant="outline"
-                className="w-full gap-2"
-                onClick={handleShare}
-                data-testid="button-share-results"
-              >
-                <Share2 className="w-4 h-4" />
-                Share Today's Results
+              {hasPlayedToday && (
+                <Button
+                  variant="outline"
+                  className="w-full gap-2"
+                  onClick={handleShare}
+                  data-testid="button-share-results"
+                >
+                  <Share2 className="w-4 h-4" />
+                  Share Today's Results
+                </Button>
+              )}
+            </>
+          ) : (
+            <Card className="p-6 text-center" data-testid="card-welcome">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                <Play className="w-8 h-8 text-white" />
+              </div>
+              <h2 className="text-xl font-bold mb-2">Welcome to Lifestyle Creep</h2>
+              <p className="text-muted-foreground mb-6">
+                A daily money game that trains you to build wealth without falling into lifestyle
+                inflation traps.
+              </p>
+              <Button size="lg" className="w-full" onClick={() => navigate("/setup")}>
+                <Play className="w-5 h-5 mr-2" />
+                Start Playing
               </Button>
-            )}
-          </>
-        ) : (
-          <Card className="p-6 text-center" data-testid="card-welcome">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-              <TrendingUp className="w-8 h-8 text-white" />
-            </div>
-            <h2 className="text-xl font-bold mb-2" data-testid="text-welcome-title">Welcome to Lifestyle Creep</h2>
-            <p className="text-muted-foreground mb-6" data-testid="text-welcome-description">
-              A daily money game that trains you to build wealth without falling
-              into lifestyle inflation traps.
-            </p>
-            <Button
-              size="lg"
-              className="w-full"
-              onClick={() => navigate("/setup")}
-              data-testid="button-start-playing"
-            >
-              <Play className="w-5 h-5 mr-2" />
-              Start Playing
-            </Button>
-          </Card>
-        )}
-      </main>
+            </Card>
+          )}
+        </main>
       </div>
       <DebugScreen open={showDebugScreen} onOpenChange={setShowDebugScreen} />
+      {user && (
+        <CleoPlayNudge
+          hasPlayedToday={hasPlayedToday}
+          streak={user.streak}
+          onPlay={() => {
+            if (!user.mode) navigate("/setup");
+            else navigate("/play");
+          }}
+        />
+      )}
     </>
   );
 }

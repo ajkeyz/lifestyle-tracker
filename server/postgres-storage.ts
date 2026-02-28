@@ -1,4 +1,5 @@
-import { eq, and, or, desc, sql, like, ilike, inArray } from "drizzle-orm";
+import { randomBytes } from "crypto";
+import { eq, and, or, desc, sql, like, ilike, inArray, aliasedTable } from "drizzle-orm";
 import { db } from "./db";
 import { appSchema } from "./db";
 import type { IStorage } from "./storage";
@@ -68,10 +69,12 @@ function getDayNumber(): number {
 }
 
 function generateInviteCode(): string {
+  // P1-8: Use cryptographically secure random bytes instead of Math.random()
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const bytes = randomBytes(6);
   let code = "";
   for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
+    code += chars.charAt(bytes[i] % chars.length);
   }
   return code;
 }
@@ -190,7 +193,7 @@ export class PostgresStorage implements IStorage {
       isProfilePrivate: false,
       profileSetupComplete: false,
       onboardingComplete: true, // "Play First" onboarding - skip tutorial, let them play immediately
-      mode: "global" as const, // Default mode - users can change later in settings
+      mode: null, // null so new users go through mode selection on /setup
       streak: 0,
       highestStreak: 0,
       freezeTokens: 1,
@@ -222,6 +225,12 @@ export class PostgresStorage implements IStorage {
       moneyPhilosophy: "",
       whyImHere: "",
       friendVisibility: "trend" as const,
+      survivalWins: 0,
+      survivalPlayed: 0,
+      survivalBestPlacement: null,
+      createdAt: new Date().toISOString(),
+      claimedMissions: [],
+      bonusArcadePlays: 0,
     };
 
     await db.insert(appSchema.lifestyleUsers).values(newUser);
@@ -452,23 +461,26 @@ export class PostgresStorage implements IStorage {
       return { success: false, message: "Already friends" };
     }
 
-    // Add to both users' friend lists
-    await db
-      .update(appSchema.lifestyleUsers)
-      .set({
-        friendIds: [...friendIds, friendId],
-      })
-      .where(eq(appSchema.lifestyleUsers.id, userId));
-
-    const friendFriendIds = friend.friendIds || [];
-    if (!friendFriendIds.includes(userId)) {
-      await db
+    // P1-9: Wrap both user updates in a single transaction
+    await db.transaction(async (tx) => {
+      // Add to both users' friend lists
+      await tx
         .update(appSchema.lifestyleUsers)
         .set({
-          friendIds: [...friendFriendIds, userId],
+          friendIds: [...friendIds, friendId],
         })
-        .where(eq(appSchema.lifestyleUsers.id, friendId));
-    }
+        .where(eq(appSchema.lifestyleUsers.id, userId));
+
+      const friendFriendIds = friend.friendIds || [];
+      if (!friendFriendIds.includes(userId)) {
+        await tx
+          .update(appSchema.lifestyleUsers)
+          .set({
+            friendIds: [...friendFriendIds, userId],
+          })
+          .where(eq(appSchema.lifestyleUsers.id, friendId));
+      }
+    });
 
     return { success: true, message: "Friend added successfully" };
   }
@@ -531,6 +543,14 @@ export class PostgresStorage implements IStorage {
       moneyPhilosophy: dbUser.moneyPhilosophy || "",
       whyImHere: dbUser.whyImHere || "",
       friendVisibility: dbUser.friendVisibility || "trend",
+      survivalWins: dbUser.survivalWins ?? 0,
+      survivalPlayed: dbUser.survivalPlayed ?? 0,
+      survivalBestPlacement: dbUser.survivalBestPlacement ?? null,
+      createdAt: dbUser.createdAt instanceof Date
+        ? dbUser.createdAt.toISOString()
+        : (dbUser.createdAt ?? new Date().toISOString()),
+      claimedMissions: dbUser.claimedMissions || [],
+      bonusArcadePlays: dbUser.bonusArcadePlays ?? 0,
     };
   }
 
@@ -600,23 +620,22 @@ export class PostgresStorage implements IStorage {
     return newDrop;
   }
 
-  async submitGame(sessionId: string, submission: SubmitGame): Promise<UserGameResult> {
-    // P0 FIX: Wrap in transaction with row-level locking to prevent race conditions
-    return await db.transaction(async (tx) => {
-      // Get or create user with FOR UPDATE lock to prevent concurrent modifications
-      const user = await this.getOrCreateUser(sessionId);
-      const drop = await this.getDailyDrop();
+  async submitGame(sessionId: string, submission: SubmitGame, prefetchedDrop?: DailyDrop, prefetchedUser?: User): Promise<UserGameResult> {
+    const drop = prefetchedDrop || await this.getDailyDrop();
+    const user = prefetchedUser || await this.getOrCreateUser(sessionId);
 
-      // Prevent double submission on same date (idempotency at storage layer)
-      const today = getTodayDateString();
-      if (user.lastPlayedDate === today) {
-        throw new Error("Already played today");
-      }
+    // Idempotency check
+    const today = getTodayDateString();
+    if (user.lastPlayedDate === today) {
+      throw new Error("Already played today");
+    }
 
-      // SECURITY: Validate dropId matches today's drop to prevent replay attacks
-      if (submission.dropId !== drop.id) {
-        throw new Error("Invalid drop ID - answers must be for today's quiz");
-      }
+    // SECURITY: Validate dropId matches today's drop
+    if (submission.dropId !== drop.id) {
+      throw new Error("Invalid drop ID - answers must be for today's quiz");
+    }
+
+    // ── Pure CPU computation (no DB calls) ──────────────────────────
 
     let totalScore = 0;
     let correctCount = 0;
@@ -665,9 +684,7 @@ export class PostgresStorage implements IStorage {
       stats: newStats,
     };
 
-    // today already defined above for idempotency check
     const yesterday = getYesterdayDateString();
-
     const wasFrozenYesterday = user.frozenDates.includes(yesterday);
     const playedYesterday = user.lastPlayedDate === yesterday;
 
@@ -705,9 +722,10 @@ export class PostgresStorage implements IStorage {
       timeSpent: 0,
     };
 
-    const newGameHistory = [...user.gameHistory, historyEntry].slice(-30);
+    const existingHistory = Array.isArray(user.gameHistory) ? user.gameHistory : [];
+    const newGameHistory = [...existingHistory, historyEntry].slice(-30);
 
-    const newCategoryStats = [...user.categoryStats];
+    const newCategoryStats = [...(Array.isArray(user.categoryStats) ? user.categoryStats : [])];
     categoryBreakdown.forEach(({ category, correct, total }) => {
       const existingIndex = newCategoryStats.findIndex(c => c.category === category);
       if (existingIndex >= 0) {
@@ -730,28 +748,68 @@ export class PostgresStorage implements IStorage {
       }
     });
 
-    await this.updateUser(sessionId, {
-      streak: newStreak,
-      highestStreak: newHighestStreak,
-      streakCalendar: newStreakCalendar,
-      moneyHealth,
-      totalScore: user.totalScore + totalScore,
-      gamesPlayed: user.gamesPlayed + 1,
-      lastPlayedDate: today,
-      stats: newStats,
-      todayResult: result,
-      gameHistory: newGameHistory,
-      categoryStats: newCategoryStats,
-    });
+    // Compute badge updates inline (pure CPU, no DB)
+    const badges = [...user.badges];
 
-    await this.computeAndUpdateAllBadges(sessionId, {
-      correctCount,
-      totalQuestions: drop.scenarios.length,
-      categoryResults,
-    });
+    const spendingCategories = ["budgeting", "saving", "debt", "lifestyle", "credit"];
+    const spendingCorrect = (newCategoryStats || [])
+      .filter(c => spendingCategories.includes(c.category))
+      .reduce((sum, c) => sum + c.correctAnswers, 0);
+    this.applyBadgeProgress(badges, "no_spend_ninja", spendingCorrect);
+    this.applyBadgeProgress(badges, "credit_climber", moneyHealth);
+    this.applyBadgeProgress(badges, "emergency_fund_builder", user.gamesPlayed + 1);
+
+    const scamResults = categoryResults.get("scam");
+    let newScamStreak = user.scamStreak;
+    if (scamResults) {
+      if (scamResults.correct === scamResults.total && scamResults.total > 0) {
+        newScamStreak += scamResults.correct;
+      } else {
+        newScamStreak = 0;
+      }
+    }
+    this.applyBadgeProgress(badges, "scam_spotter", newScamStreak);
+
+    const isPerfect = correctCount === drop.scenarios.length && drop.scenarios.length > 0;
+    const newPerfectGames = isPerfect ? user.perfectGames + 1 : user.perfectGames;
+    this.applyBadgeProgress(badges, "budget_sniper", newPerfectGames);
+    this.applyBadgeProgress(badges, "streak_monster", newStreak);
+
+    if (user.hadPreviousStreak) {
+      this.applyBadgeProgress(badges, "comeback_king", newStreak);
+    }
+
+    // ── PERF: Fire-and-forget DB write ──────────────────────────────
+    // The client doesn't need to wait for the DB write to see their results.
+    // The route-level idempotency cache prevents double-processing.
+    // This turns a 1-5s blocking write into ~0ms from the client's perspective.
+    db.update(appSchema.lifestyleUsers)
+      .set({
+        streak: newStreak,
+        highestStreak: newHighestStreak,
+        streakCalendar: newStreakCalendar,
+        moneyHealth,
+        totalScore: user.totalScore + totalScore,
+        gamesPlayed: user.gamesPlayed + 1,
+        lastPlayedDate: today,
+        stats: newStats,
+        todayResult: result,
+        gameHistory: newGameHistory,
+        categoryStats: newCategoryStats,
+        badges,
+        scamStreak: newScamStreak,
+        perfectGames: newPerfectGames,
+        updatedAt: new Date(),
+      })
+      .where(eq(appSchema.lifestyleUsers.id, sessionId))
+      .then(() => {
+        console.log(`[submit-game] Saved results for ${sessionId} (score: ${totalScore})`);
+      })
+      .catch((err) => {
+        console.error(`[submit-game] FAILED to save results for ${sessionId}:`, err);
+      });
 
     return result;
-    }); // End transaction
   }
 
   async getLeaderboard(limit: number = 10): Promise<LeaderboardEntry[]> {
@@ -941,19 +999,20 @@ export class PostgresStorage implements IStorage {
   }
 
   async getUserLeagues(userId: string): Promise<League[]> {
-    // Get all league IDs where user is a member
+    // Get all league IDs where user is a member (single query)
     const membershipResults = await db
       .select({ leagueId: appSchema.leagueMembers.leagueId })
       .from(appSchema.leagueMembers)
       .where(eq(appSchema.leagueMembers.userId, userId));
 
-    const userLeagues: League[] = [];
-    for (const membership of membershipResults) {
-      const league = await this.getLeague(membership.leagueId);
-      if (league) userLeagues.push(league);
-    }
+    if (membershipResults.length === 0) return [];
 
-    return userLeagues;
+    // Batch-fetch all leagues in parallel instead of sequential N+1
+    const userLeagues = await Promise.all(
+      membershipResults.map((m) => this.getLeague(m.leagueId))
+    );
+
+    return userLeagues.filter((l): l is League => l !== undefined);
   }
 
   // ============================================
@@ -1061,9 +1120,34 @@ export class PostgresStorage implements IStorage {
   }
 
   async getUserChallenges(userId: string): Promise<Challenge[]> {
+    // Single query with JOINs for both challenger and challengee usernames/avatars
+    const challenger = aliasedTable(appSchema.lifestyleUsers, "challenger");
+    const challengee = aliasedTable(appSchema.lifestyleUsers, "challengee");
+
     const challengeResults = await db
-      .select({ id: appSchema.challenges.id })
+      .select({
+        id: appSchema.challenges.id,
+        challengerId: appSchema.challenges.challengerId,
+        challengerUsername: challenger.username,
+        challengerAvatar: challenger.avatar,
+        challengeeId: appSchema.challenges.challengeeId,
+        challengeeUsername: challengee.username,
+        challengeeAvatar: challengee.avatar,
+        type: appSchema.challenges.type,
+        trashTalk: appSchema.challenges.trashTalk,
+        customMessage: appSchema.challenges.customMessage,
+        status: appSchema.challenges.status,
+        challengerValue: appSchema.challenges.challengerValue,
+        challengeeValue: appSchema.challenges.challengeeValue,
+        winnerId: appSchema.challenges.winnerId,
+        createdAt: appSchema.challenges.createdAt,
+        expiresAt: appSchema.challenges.expiresAt,
+        completedAt: appSchema.challenges.completedAt,
+        badgeAwarded: appSchema.challenges.badgeAwarded,
+      })
       .from(appSchema.challenges)
+      .innerJoin(challenger, eq(appSchema.challenges.challengerId, challenger.id))
+      .innerJoin(challengee, eq(appSchema.challenges.challengeeId, challengee.id))
       .where(
         or(
           eq(appSchema.challenges.challengerId, userId),
@@ -1072,13 +1156,26 @@ export class PostgresStorage implements IStorage {
       )
       .orderBy(desc(appSchema.challenges.createdAt));
 
-    const challenges: Challenge[] = [];
-    for (const result of challengeResults) {
-      const challenge = await this.getChallenge(result.id);
-      if (challenge) challenges.push(challenge);
-    }
-
-    return challenges;
+    return challengeResults.map((c) => ({
+      id: c.id,
+      challengerId: c.challengerId,
+      challengerUsername: c.challengerUsername,
+      challengerAvatar: c.challengerAvatar,
+      challengeeId: c.challengeeId,
+      challengeeUsername: c.challengeeUsername,
+      challengeeAvatar: c.challengeeAvatar,
+      type: c.type as any,
+      trashTalk: c.trashTalk,
+      customMessage: c.customMessage,
+      status: c.status as any,
+      challengerValue: c.challengerValue,
+      challengeeValue: c.challengeeValue,
+      winnerId: c.winnerId,
+      createdAt: c.createdAt.toISOString(),
+      expiresAt: c.expiresAt.toISOString(),
+      completedAt: c.completedAt?.toISOString() || null,
+      badgeAwarded: c.badgeAwarded,
+    }));
   }
 
   async respondToChallenge(
@@ -1208,12 +1305,9 @@ export class PostgresStorage implements IStorage {
     const user = await this.getUser(userId);
     if (!user) return [];
 
-    const allZero = user.badges.every(b => b.progress === 0);
-    if (allZero && user.gamesPlayed > 0) {
-      await this.recomputeBadgeProgress(userId);
-      const updated = await this.getUser(userId);
-      return updated?.badges || user.badges;
-    }
+    // P1-8: Removed expensive recomputation that fired on every call when badges were zero.
+    // Badge progress is now computed in computeAndUpdateAllBadges() during submitGame(),
+    // so this getter should just return the stored badges without triggering recomputation.
 
     return user.badges;
   }
@@ -1237,6 +1331,25 @@ export class PostgresStorage implements IStorage {
     }
   }
 
+  // P1-4: In-memory badge progress helper — mutates the badges array without DB calls
+  private applyBadgeProgress(badges: UserBadge[], badgeId: BadgeId, progress: number): void {
+    const badgeIndex = badges.findIndex(b => b.badgeId === badgeId);
+    if (badgeIndex === -1) return;
+
+    const badge = badges[badgeIndex];
+    const badgeDef = BADGE_DEFINITIONS.find(d => d.id === badgeId);
+    if (!badgeDef) return;
+
+    const shouldUnlock = !badge.unlocked && progress >= badgeDef.maxProgress;
+    badges[badgeIndex] = {
+      ...badge,
+      progress,
+      unlocked: shouldUnlock || badge.unlocked,
+      unlockedAt: shouldUnlock ? new Date().toISOString() : badge.unlockedAt,
+    };
+  }
+
+  // P1-4: Compute all badge changes in memory, then persist with a single updateUser call
   private async computeAndUpdateAllBadges(
     userId: string,
     gameData: {
@@ -1248,15 +1361,17 @@ export class PostgresStorage implements IStorage {
     const user = await this.getUser(userId);
     if (!user) return;
 
+    const badges = [...user.badges];
+
     const spendingCategories = ["budgeting", "saving", "debt", "lifestyle", "credit"];
     const spendingCorrect = (user.categoryStats || [])
       .filter(c => spendingCategories.includes(c.category))
       .reduce((sum, c) => sum + c.correctAnswers, 0);
-    await this.updateBadgeProgress(userId, "no_spend_ninja", spendingCorrect);
+    this.applyBadgeProgress(badges, "no_spend_ninja", spendingCorrect);
 
-    await this.updateBadgeProgress(userId, "credit_climber", user.moneyHealth);
+    this.applyBadgeProgress(badges, "credit_climber", user.moneyHealth);
 
-    await this.updateBadgeProgress(userId, "emergency_fund_builder", user.gamesPlayed);
+    this.applyBadgeProgress(badges, "emergency_fund_builder", user.gamesPlayed);
 
     const scamResults = gameData.categoryResults.get("scam");
     let newScamStreak = user.scamStreak;
@@ -1267,19 +1382,24 @@ export class PostgresStorage implements IStorage {
         newScamStreak = 0;
       }
     }
-    await this.updateUser(userId, { scamStreak: newScamStreak });
-    await this.updateBadgeProgress(userId, "scam_spotter", newScamStreak);
+    this.applyBadgeProgress(badges, "scam_spotter", newScamStreak);
 
     const isPerfect = gameData.correctCount === gameData.totalQuestions && gameData.totalQuestions > 0;
     const newPerfectGames = isPerfect ? user.perfectGames + 1 : user.perfectGames;
-    await this.updateUser(userId, { perfectGames: newPerfectGames });
-    await this.updateBadgeProgress(userId, "budget_sniper", newPerfectGames);
+    this.applyBadgeProgress(badges, "budget_sniper", newPerfectGames);
 
-    await this.updateBadgeProgress(userId, "streak_monster", user.streak);
+    this.applyBadgeProgress(badges, "streak_monster", user.streak);
 
     if (user.hadPreviousStreak) {
-      await this.updateBadgeProgress(userId, "comeback_king", user.streak);
+      this.applyBadgeProgress(badges, "comeback_king", user.streak);
     }
+
+    // Single DB write for all badge changes + derived fields
+    await this.updateUser(userId, {
+      badges,
+      scamStreak: newScamStreak,
+      perfectGames: newPerfectGames,
+    });
   }
 
   async updateBadgeProgress(userId: string, badgeId: BadgeId, progress: number): Promise<UserBadge | undefined> {
@@ -1583,88 +1703,91 @@ export class PostgresStorage implements IStorage {
   }
 
   async voteCommunityScenario(userId: string, scenarioId: string, voteType: "up" | "down"): Promise<CommunityScenario | undefined> {
-    // Check if user already voted
-    const existingVote = await db
-      .select()
-      .from(appSchema.communityVotes)
-      .where(
-        and(
-          eq(appSchema.communityVotes.userId, userId),
-          eq(appSchema.communityVotes.scenarioId, scenarioId)
+    // P1-3: Wrap all vote + count operations in a single transaction
+    await db.transaction(async (tx) => {
+      // Check if user already voted
+      const existingVote = await tx
+        .select()
+        .from(appSchema.communityVotes)
+        .where(
+          and(
+            eq(appSchema.communityVotes.userId, userId),
+            eq(appSchema.communityVotes.scenarioId, scenarioId)
+          )
         )
-      )
-      .limit(1);
+        .limit(1);
 
-    if (existingVote.length > 0) {
-      const oldVote = existingVote[0];
+      if (existingVote.length > 0) {
+        const oldVote = existingVote[0];
 
-      if (oldVote.type === voteType) {
-        // Remove vote
-        await db
-          .delete(appSchema.communityVotes)
-          .where(eq(appSchema.communityVotes.id, oldVote.id));
+        if (oldVote.type === voteType) {
+          // Remove vote
+          await tx
+            .delete(appSchema.communityVotes)
+            .where(eq(appSchema.communityVotes.id, oldVote.id));
+
+          // Update scenario counts
+          if (voteType === "up") {
+            await tx
+              .update(appSchema.communityScenarios)
+              .set({ upvotes: sql`${appSchema.communityScenarios.upvotes} - 1` })
+              .where(eq(appSchema.communityScenarios.id, scenarioId));
+          } else {
+            await tx
+              .update(appSchema.communityScenarios)
+              .set({ downvotes: sql`${appSchema.communityScenarios.downvotes} - 1` })
+              .where(eq(appSchema.communityScenarios.id, scenarioId));
+          }
+        } else {
+          // Change vote
+          await tx
+            .update(appSchema.communityVotes)
+            .set({ type: voteType })
+            .where(eq(appSchema.communityVotes.id, oldVote.id));
+
+          // Update scenario counts
+          if (voteType === "up") {
+            await tx
+              .update(appSchema.communityScenarios)
+              .set({
+                upvotes: sql`${appSchema.communityScenarios.upvotes} + 1`,
+                downvotes: sql`${appSchema.communityScenarios.downvotes} - 1`,
+              })
+              .where(eq(appSchema.communityScenarios.id, scenarioId));
+          } else {
+            await tx
+              .update(appSchema.communityScenarios)
+              .set({
+                upvotes: sql`${appSchema.communityScenarios.upvotes} - 1`,
+                downvotes: sql`${appSchema.communityScenarios.downvotes} + 1`,
+              })
+              .where(eq(appSchema.communityScenarios.id, scenarioId));
+          }
+        }
+      } else {
+        // New vote
+        await tx.insert(appSchema.communityVotes).values({
+          id: crypto.randomUUID(),
+          scenarioId,
+          commentId: null,
+          userId,
+          type: voteType,
+        });
 
         // Update scenario counts
         if (voteType === "up") {
-          await db
+          await tx
             .update(appSchema.communityScenarios)
-            .set({ upvotes: sql`${appSchema.communityScenarios.upvotes} - 1` })
+            .set({ upvotes: sql`${appSchema.communityScenarios.upvotes} + 1` })
             .where(eq(appSchema.communityScenarios.id, scenarioId));
         } else {
-          await db
+          await tx
             .update(appSchema.communityScenarios)
-            .set({ downvotes: sql`${appSchema.communityScenarios.downvotes} - 1` })
-            .where(eq(appSchema.communityScenarios.id, scenarioId));
-        }
-      } else {
-        // Change vote
-        await db
-          .update(appSchema.communityVotes)
-          .set({ type: voteType })
-          .where(eq(appSchema.communityVotes.id, oldVote.id));
-
-        // Update scenario counts
-        if (voteType === "up") {
-          await db
-            .update(appSchema.communityScenarios)
-            .set({
-              upvotes: sql`${appSchema.communityScenarios.upvotes} + 1`,
-              downvotes: sql`${appSchema.communityScenarios.downvotes} - 1`,
-            })
-            .where(eq(appSchema.communityScenarios.id, scenarioId));
-        } else {
-          await db
-            .update(appSchema.communityScenarios)
-            .set({
-              upvotes: sql`${appSchema.communityScenarios.upvotes} - 1`,
-              downvotes: sql`${appSchema.communityScenarios.downvotes} + 1`,
-            })
+            .set({ downvotes: sql`${appSchema.communityScenarios.downvotes} + 1` })
             .where(eq(appSchema.communityScenarios.id, scenarioId));
         }
       }
-    } else {
-      // New vote
-      await db.insert(appSchema.communityVotes).values({
-        id: crypto.randomUUID(),
-        scenarioId,
-        commentId: null,
-        userId,
-        type: voteType,
-      });
-
-      // Update scenario counts
-      if (voteType === "up") {
-        await db
-          .update(appSchema.communityScenarios)
-          .set({ upvotes: sql`${appSchema.communityScenarios.upvotes} + 1` })
-          .where(eq(appSchema.communityScenarios.id, scenarioId));
-      } else {
-        await db
-          .update(appSchema.communityScenarios)
-          .set({ downvotes: sql`${appSchema.communityScenarios.downvotes} + 1` })
-          .where(eq(appSchema.communityScenarios.id, scenarioId));
-      }
-    }
+    });
 
     return this.getCommunityScenario(scenarioId, userId);
   }
@@ -1743,50 +1866,53 @@ export class PostgresStorage implements IStorage {
 
     const commentId = crypto.randomUUID();
 
-    await db.insert(appSchema.communityComments).values({
-      id: commentId,
-      scenarioId: data.scenarioId,
-      parentId: data.parentId || null,
-      authorId: userId,
-      content: data.content,
-      isAdvice: data.isAdvice,
+    // P1-3: Wrap INSERT + UPDATE in a single transaction to keep comment and count in sync
+    return await db.transaction(async (tx) => {
+      await tx.insert(appSchema.communityComments).values({
+        id: commentId,
+        scenarioId: data.scenarioId,
+        parentId: data.parentId || null,
+        authorId: userId,
+        content: data.content,
+        isAdvice: data.isAdvice,
+      });
+
+      // Increment comment count on scenario
+      await tx
+        .update(appSchema.communityScenarios)
+        .set({ commentCount: sql`${appSchema.communityScenarios.commentCount} + 1` })
+        .where(eq(appSchema.communityScenarios.id, data.scenarioId));
+
+      const commentResult = await tx
+        .select({
+          id: appSchema.communityComments.id,
+          scenarioId: appSchema.communityComments.scenarioId,
+          parentId: appSchema.communityComments.parentId,
+          authorId: appSchema.communityComments.authorId,
+          authorUsername: appSchema.lifestyleUsers.username,
+          authorAvatar: appSchema.lifestyleUsers.avatar,
+          authorBadges: appSchema.lifestyleUsers.badges,
+          authorMoneyHealth: appSchema.lifestyleUsers.moneyHealth,
+          content: appSchema.communityComments.content,
+          isAdvice: appSchema.communityComments.isAdvice,
+          upvotes: appSchema.communityComments.upvotes,
+          downvotes: appSchema.communityComments.downvotes,
+          createdAt: appSchema.communityComments.createdAt,
+        })
+        .from(appSchema.communityComments)
+        .innerJoin(
+          appSchema.lifestyleUsers,
+          eq(appSchema.communityComments.authorId, appSchema.lifestyleUsers.id)
+        )
+        .where(eq(appSchema.communityComments.id, commentId))
+        .limit(1);
+
+      return {
+        ...commentResult[0],
+        userVote: null,
+        createdAt: commentResult[0].createdAt.toISOString(),
+      };
     });
-
-    // Increment comment count on scenario
-    await db
-      .update(appSchema.communityScenarios)
-      .set({ commentCount: sql`${appSchema.communityScenarios.commentCount} + 1` })
-      .where(eq(appSchema.communityScenarios.id, data.scenarioId));
-
-    const commentResult = await db
-      .select({
-        id: appSchema.communityComments.id,
-        scenarioId: appSchema.communityComments.scenarioId,
-        parentId: appSchema.communityComments.parentId,
-        authorId: appSchema.communityComments.authorId,
-        authorUsername: appSchema.lifestyleUsers.username,
-        authorAvatar: appSchema.lifestyleUsers.avatar,
-        authorBadges: appSchema.lifestyleUsers.badges,
-        authorMoneyHealth: appSchema.lifestyleUsers.moneyHealth,
-        content: appSchema.communityComments.content,
-        isAdvice: appSchema.communityComments.isAdvice,
-        upvotes: appSchema.communityComments.upvotes,
-        downvotes: appSchema.communityComments.downvotes,
-        createdAt: appSchema.communityComments.createdAt,
-      })
-      .from(appSchema.communityComments)
-      .innerJoin(
-        appSchema.lifestyleUsers,
-        eq(appSchema.communityComments.authorId, appSchema.lifestyleUsers.id)
-      )
-      .where(eq(appSchema.communityComments.id, commentId))
-      .limit(1);
-
-    return {
-      ...commentResult[0],
-      userVote: null,
-      createdAt: commentResult[0].createdAt.toISOString(),
-    };
   }
 
   async voteComment(userId: string, commentId: string, voteType: "up" | "down"): Promise<CommunityComment | undefined> {
@@ -2381,9 +2507,15 @@ export class PostgresStorage implements IStorage {
     }));
   }
 
-  async createCoopSession(hostId: string, mode: CoopMode = "daily", arcadeGameIndex: number | null = null): Promise<CoopSession> {
+  async createCoopSession(hostId: string, mode: CoopMode = "daily", arcadeGameIndex: number | null = null, invitedUserId: string | null = null): Promise<CoopSession> {
     const host = await this.getUser(hostId);
     if (!host) throw new Error("Host user not found");
+
+    let invitedUsername: string | null = null;
+    if (invitedUserId) {
+      const invitedUser = await this.getUser(invitedUserId);
+      invitedUsername = invitedUser?.username || null;
+    }
 
     const sessionId = crypto.randomUUID();
     const code = generateInviteCode();
@@ -2412,6 +2544,8 @@ export class PostgresStorage implements IStorage {
       code,
       hostId,
       guestId: null,
+      invitedUserId,
+      invitedUsername,
       status: "waiting",
       dropId,
       mode,
@@ -2422,6 +2556,22 @@ export class PostgresStorage implements IStorage {
     });
 
     return this.getCoopSession(sessionId) as Promise<CoopSession>;
+  }
+
+  async getCoopPendingInvites(userId: string): Promise<CoopSession[]> {
+    const results = await db
+      .select()
+      .from(appSchema.coopSessions)
+      .where(
+        and(
+          eq(appSchema.coopSessions.invitedUserId, userId),
+          eq(appSchema.coopSessions.status, "waiting")
+        )
+      );
+
+    return Promise.all(results.map(r => this.getCoopSession(r.id))).then(
+      sessions => sessions.filter((s): s is CoopSession => !!s)
+    );
   }
 
   async getCoopSession(sessionId: string): Promise<CoopSession | undefined> {
@@ -2440,6 +2590,8 @@ export class PostgresStorage implements IStorage {
       code: session.code,
       hostId: session.hostId,
       guestId: session.guestId,
+      invitedUserId: session.invitedUserId ?? null,
+      invitedUsername: session.invitedUsername ?? null,
       status: session.status,
       mode: session.mode as CoopMode || "daily",
       dropId: session.dropId,
@@ -2759,7 +2911,8 @@ export class PostgresStorage implements IStorage {
     }
 
     const membershipTier = user.membershipTier || "free";
-    const maxPlays = ARCADE_LIMITS[membershipTier] || 1;
+    const baseMax = ARCADE_LIMITS[membershipTier] || 1;
+    const maxPlays = baseMax + (user.bonusArcadePlays || 0);
     const playsRemaining = Math.max(0, maxPlays - playsToday);
 
     return {
@@ -2772,6 +2925,115 @@ export class PostgresStorage implements IStorage {
       currentGameIndex: playsToday,
       membershipTier,
     };
+  }
+
+  // ============================================
+  // SURVIVAL MODE METHODS
+  // ============================================
+
+  async saveSurvivalMatch(match: { id: string; code: string; hostId: string; isPrivate: boolean; playerCount: number; totalRounds: number; winnerId: string | null; startedAt: string; completedAt: string }): Promise<void> {
+    try {
+      await db.insert(appSchema.survivalMatches).values({
+        id: match.id,
+        code: match.code,
+        hostId: match.hostId,
+        isPrivate: match.isPrivate,
+        status: "completed",
+        totalRounds: match.totalRounds,
+        playerCount: match.playerCount,
+        winnerId: match.winnerId,
+        startedAt: new Date(match.startedAt),
+        completedAt: new Date(match.completedAt),
+      });
+    } catch (error) {
+      console.error("Error saving survival match:", error);
+    }
+  }
+
+  async saveSurvivalPlayers(matchId: string, players: { userId: string; placement: number | null; score: number; roundsSurvived: number; shieldUsed: boolean }[]): Promise<void> {
+    try {
+      if (players.length === 0) return;
+      await db.insert(appSchema.survivalPlayers).values(
+        players.map(p => ({
+          matchId,
+          userId: p.userId,
+          placement: p.placement,
+          score: p.score,
+          roundsSurvived: p.roundsSurvived,
+          shieldUsed: p.shieldUsed,
+        }))
+      );
+    } catch (error) {
+      console.error("Error saving survival players:", error);
+    }
+  }
+
+  async updateSurvivalStats(userId: string, won: boolean, placement: number): Promise<void> {
+    try {
+      const updates: Record<string, any> = {
+        survivalPlayed: sql`${appSchema.lifestyleUsers.survivalPlayed} + 1`,
+      };
+      if (won) {
+        updates.survivalWins = sql`${appSchema.lifestyleUsers.survivalWins} + 1`;
+      }
+      await db.update(appSchema.lifestyleUsers)
+        .set(updates)
+        .where(eq(appSchema.lifestyleUsers.id, userId));
+
+      // Update best placement separately (need to check current value)
+      const user = await this.getUser(userId);
+      if (user && (!user.survivalBestPlacement || placement < user.survivalBestPlacement)) {
+        await db.update(appSchema.lifestyleUsers)
+          .set({ survivalBestPlacement: placement })
+          .where(eq(appSchema.lifestyleUsers.id, userId));
+      }
+    } catch (error) {
+      console.error("Error updating survival stats:", error);
+    }
+  }
+
+  async getSurvivalHistory(userId: string, limit = 20): Promise<{ matchId: string; placement: number | null; score: number; playerCount: number; completedAt: string }[]> {
+    try {
+      const rows = await db
+        .select({
+          matchId: appSchema.survivalPlayers.matchId,
+          placement: appSchema.survivalPlayers.placement,
+          score: appSchema.survivalPlayers.score,
+          playerCount: appSchema.survivalMatches.playerCount,
+          completedAt: appSchema.survivalMatches.completedAt,
+        })
+        .from(appSchema.survivalPlayers)
+        .innerJoin(
+          appSchema.survivalMatches,
+          eq(appSchema.survivalPlayers.matchId, appSchema.survivalMatches.id)
+        )
+        .where(eq(appSchema.survivalPlayers.userId, userId))
+        .orderBy(desc(appSchema.survivalMatches.completedAt))
+        .limit(limit);
+
+      return rows.map(r => ({
+        matchId: r.matchId,
+        placement: r.placement,
+        score: r.score,
+        playerCount: r.playerCount,
+        completedAt: r.completedAt?.toISOString() ?? "",
+      }));
+    } catch (error) {
+      console.error("Error fetching survival history:", error);
+      return [];
+    }
+  }
+
+  async deleteUsersByPrefix(prefix: string): Promise<number> {
+    try {
+      const result = await db.delete(appSchema.lifestyleUsers)
+        .where(like(appSchema.lifestyleUsers.id, `${prefix}%`));
+      // result may or may not have rowCount depending on driver
+      return (result as any)?.rowCount ?? 0;
+    } catch (err: any) {
+      console.error(`[deleteUsersByPrefix] Error: ${err.message}`);
+      return 0;
+    }
   }
 }
 

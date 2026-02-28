@@ -137,6 +137,14 @@ export interface User {
   moneyPhilosophy: string;
   whyImHere: string;
   friendVisibility: "nothing" | "trend" | "streak";
+  // Survival Mode
+  survivalWins: number;
+  survivalPlayed: number;
+  survivalBestPlacement: number | null;
+  // Progression
+  createdAt: string;
+  claimedMissions: string[];
+  bonusArcadePlays: number;
 }
 
 export interface NotificationPrefs {
@@ -340,14 +348,15 @@ export const addFreezeTokenSchema = z.object({
 });
 
 // Achievement/Badge types
-export type BadgeId = 
+export type BadgeId =
   | "no_spend_ninja"
   | "credit_climber"
   | "emergency_fund_builder"
   | "scam_spotter"
   | "budget_sniper"
   | "streak_monster"
-  | "comeback_king";
+  | "comeback_king"
+  | "survivor";
 
 export interface BadgeDefinition {
   id: BadgeId;
@@ -570,6 +579,8 @@ export interface CoopSession {
   code: string; // 6-character join code
   hostId: string;
   guestId: string | null;
+  invitedUserId: string | null; // user invited via friend picker
+  invitedUsername: string | null; // username of invited user (for display)
   status: CoopSessionStatus;
   mode: CoopMode;
   dropId: string;
@@ -599,6 +610,7 @@ export interface CoopGameResult {
 export const createCoopSessionSchema = z.object({
   mode: z.enum(["daily", "arcade"]).default("daily"),
   arcadeGameIndex: z.number().int().min(0).optional(),
+  invitedUserId: z.string().optional(),
 });
 
 export const joinCoopSessionSchema = z.object({
@@ -682,4 +694,78 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
     unlockCriteria: "Rebuild a 7-day streak after losing one",
     maxProgress: 7,
   },
+  {
+    id: "survivor",
+    name: "Last One Standing",
+    description: "Won a survival match",
+    icon: "shield",
+    unlockCriteria: "Win 1 survival match",
+    maxProgress: 1,
+  },
 ];
+
+// ============================================
+// SURVIVAL MODE TYPES
+// ============================================
+
+export type SurvivalPhase = "lobby" | "countdown" | "question" | "reveal" | "elimination" | "results";
+export type SurvivalDifficulty = "easy" | "medium" | "hard";
+
+export interface SurvivalPlayer {
+  id: string;
+  username: string;
+  avatar: string;
+  lives: number;
+  shieldActive: boolean;
+  eliminated: boolean;
+  eliminatedRound: number | null;
+  score: number;
+  streak: number;
+  connected: boolean;
+}
+
+export interface SurvivalMatch {
+  id: string;
+  code: string;
+  hostId: string;
+  isPrivate: boolean;
+  status: SurvivalPhase;
+  round: number;
+  maxRounds: number;
+  difficulty: SurvivalDifficulty;
+  currentScenario: Scenario | null;
+  questionStartTime: number;
+  timeLimit: number;
+  players: SurvivalPlayer[];
+  eliminatedThisRound: string[];
+  roundAnswers: Record<string, string>;
+  createdAt: string;
+  startedAt: string | null;
+  completedAt: string | null;
+}
+
+export type SurvivalMessage =
+  | { type: "survival_player_joined"; player: SurvivalPlayer }
+  | { type: "survival_player_left"; playerId: string }
+  | { type: "survival_countdown"; seconds: number }
+  | { type: "survival_round_start"; round: number; scenario: Scenario; timeLimit: number; difficulty: SurvivalDifficulty }
+  | { type: "survival_answer_ack"; playerId: string }
+  | { type: "survival_time_up" }
+  | { type: "survival_round_result"; correctAnswer: string; players: SurvivalPlayer[]; eliminatedThisRound: string[] }
+  | { type: "survival_match_end"; players: SurvivalPlayer[]; winner: SurvivalPlayer | null }
+  | { type: "survival_state_sync"; match: SurvivalMatch }
+  | { type: "survival_error"; message: string };
+
+export const createSurvivalLobbySchema = z.object({
+  isPrivate: z.boolean().default(false),
+  invitedUserIds: z.array(z.string()).optional(),
+});
+
+export const survivalAnswerSchema = z.object({
+  matchId: z.string(),
+  round: z.number(),
+  choiceLabel: z.string(),
+});
+
+export type CreateSurvivalLobby = z.infer<typeof createSurvivalLobbySchema>;
+export type SurvivalAnswer = z.infer<typeof survivalAnswerSchema>;

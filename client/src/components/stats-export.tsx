@@ -97,7 +97,7 @@ export function StatsExport({ data, onExport }: StatsExportProps) {
 
       toast({
         title: "Export Successful!",
-        description: `Your stats have been exported as ${format.toUpperCase()}`,
+        description: `Your stats have been exported as ${format.toUpperCase()}.`,
       });
 
       setTimeout(() => setExportedFormat(null), 2000);
@@ -303,10 +303,10 @@ function exportAsPDF(data: ExportData) {
       <title>Lifestyle Tracker Stats Report</title>
       <style>
         body { font-family: system-ui, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; }
-        h1 { color: #10b981; border-bottom: 3px solid #10b981; padding-bottom: 10px; }
+        h1 { color: #7c3aed; border-bottom: 3px solid #7c3aed; padding-bottom: 10px; }
         .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin: 30px 0; }
         .stat-card { background: #f3f4f6; padding: 20px; border-radius: 8px; text-align: center; }
-        .stat-value { font-size: 32px; font-weight: bold; color: #10b981; }
+        .stat-value { font-size: 32px; font-weight: bold; color: #7c3aed; }
         .stat-label { color: #6b7280; margin-top: 5px; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb; }
@@ -398,8 +398,8 @@ function exportAsImage(data: ExportData) {
 
   // Background gradient
   const gradient = ctx.createLinearGradient(0, 0, 1200, 630);
-  gradient.addColorStop(0, "#10b981");
-  gradient.addColorStop(1, "#059669");
+  gradient.addColorStop(0, "#7c3aed");
+  gradient.addColorStop(1, "#6d28d9");
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, 1200, 630);
 

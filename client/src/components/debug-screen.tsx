@@ -18,6 +18,10 @@ import {
   XCircle,
   Info,
   AlertTriangle,
+  Unlock,
+  Trash2,
+  UserCog,
+  Loader2,
 } from "lucide-react";
 import {
   getAllFeatureFlags,
@@ -26,6 +30,7 @@ import {
   getFlagStats,
   type FeatureFlag,
 } from "@/lib/feature-flags";
+import { queryClient } from "@/lib/queryClient";
 
 interface DebugScreenProps {
   open: boolean;
@@ -122,6 +127,38 @@ export function DebugScreen({ open, onOpenChange }: DebugScreenProps) {
           </Card>
         )}
 
+        {/* Developer Tools */}
+        <Card className="bg-blue-500/5 border-blue-500/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <UserCog className="w-4 h-4 text-blue-500" />
+              Developer Tools
+            </CardTitle>
+            <CardDescription className="text-xs">Quick actions for testing</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <DebugAction
+              label="Unlock All Game Modes"
+              description="Set gamesPlayed=100 to unlock everything"
+              icon={<Unlock className="w-4 h-4" />}
+              endpoint="/api/debug/unlock-all"
+            />
+            <DebugAction
+              label="Reset User Data"
+              description="Reset to fresh new-user state"
+              icon={<Trash2 className="w-4 h-4" />}
+              endpoint="/api/debug/reset-user"
+              destructive
+            />
+            <DebugAction
+              label="Populate User Data"
+              description="Set streak=7, games=25, friends & history"
+              icon={<Zap className="w-4 h-4" />}
+              endpoint="/api/debug/populate-user"
+            />
+          </CardContent>
+        </Card>
+
         {/* Feature Flags List */}
         <div className="space-y-3">
           {flags.map((flag) => (
@@ -186,6 +223,74 @@ export function DebugScreen({ open, onOpenChange }: DebugScreenProps) {
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function DebugAction({
+  label,
+  description,
+  icon,
+  endpoint,
+  destructive,
+}: {
+  label: string;
+  description: string;
+  icon: React.ReactNode;
+  endpoint: string;
+  destructive?: boolean;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<"success" | "error" | null>(null);
+
+  const handleClick = async () => {
+    if (destructive && !confirm(`Are you sure? This will ${label.toLowerCase()}.`)) return;
+    setLoading(true);
+    setResult(null);
+    try {
+      const res = await fetch(endpoint, { method: "POST" });
+      if (res.ok) {
+        setResult("success");
+        queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/daily-drop"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/streak-calendar"] });
+      } else {
+        setResult("error");
+      }
+    } catch {
+      setResult("error");
+    } finally {
+      setLoading(false);
+      setTimeout(() => setResult(null), 2000);
+    }
+  };
+
+  return (
+    <div className="flex items-center justify-between gap-3 p-2 rounded-lg bg-muted/30">
+      <div className="flex items-center gap-2 flex-1 min-w-0">
+        <span className={destructive ? "text-destructive" : "text-blue-500"}>{icon}</span>
+        <div>
+          <p className="text-xs font-medium">{label}</p>
+          <p className="text-[10px] text-muted-foreground">{description}</p>
+        </div>
+      </div>
+      <Button
+        size="sm"
+        variant={destructive ? "destructive" : "outline"}
+        className="h-7 text-xs flex-shrink-0"
+        onClick={handleClick}
+        disabled={loading}
+      >
+        {loading ? (
+          <Loader2 className="w-3 h-3 animate-spin" />
+        ) : result === "success" ? (
+          <CheckCircle2 className="w-3 h-3 text-green-500" />
+        ) : result === "error" ? (
+          <XCircle className="w-3 h-3 text-red-500" />
+        ) : (
+          "Run"
+        )}
+      </Button>
+    </div>
   );
 }
 

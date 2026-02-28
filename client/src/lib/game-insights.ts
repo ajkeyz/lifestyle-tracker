@@ -192,3 +192,40 @@ export function analyzeAnswerPatterns(
     toneBreakdown,
   };
 }
+
+// ─── Community Answer Distribution (simulated from point values) ───
+export function simulateCommunityDistribution(
+  choices: { label: string; points: number; isCorrect: boolean }[]
+): Record<string, number> {
+  // Use points to create plausible distribution — higher points = more popular
+  const weights = choices.map(c => {
+    if (c.isCorrect) return 42;
+    if (c.points >= 60) return 24;
+    if (c.points >= 30) return 18;
+    return 8;
+  });
+  const total = weights.reduce((a, b) => a + b, 0);
+  const distribution: Record<string, number> = {};
+  choices.forEach((c, i) => {
+    distribution[c.label] = Math.round((weights[i] / total) * 100);
+  });
+  // Normalize to 100%
+  const sum = Object.values(distribution).reduce((a, b) => a + b, 0);
+  const delta = 100 - sum;
+  if (delta !== 0) {
+    const correctLabel = choices.find(c => c.isCorrect)?.label || choices[0].label;
+    distribution[correctLabel] += delta;
+  }
+  return distribution;
+}
+
+// ─── Question Difficulty Classification ───
+export function classifyDifficulty(
+  choices: { points: number; isCorrect: boolean }[]
+): "easy" | "medium" | "hard" {
+  // Count deceptively close wrong answers (high points but not correct)
+  const deceptiveCount = choices.filter(c => !c.isCorrect && c.points >= 50).length;
+  if (deceptiveCount >= 2) return "hard";
+  if (deceptiveCount === 1) return "medium";
+  return "easy";
+}
