@@ -70,6 +70,7 @@ const SurvivalResults = lazy(() => import("@/pages/survival-results"));
 const SimLabEntry = lazy(() => import("@/pages/simlab-entry"));
 const SimLabSetup = lazy(() => import("@/pages/simlab-setup"));
 const SimLabResults = lazy(() => import("@/pages/simlab-results"));
+const Social = lazy(() => import("@/pages/social"));
 const Terms = lazy(() => import("@/pages/terms"));
 const Privacy = lazy(() => import("@/pages/privacy"));
 const NotFound = lazy(() => import("@/pages/not-found"));
@@ -198,6 +199,7 @@ function AuthenticatedRouter() {
             <Route path="/admin" component={Admin} />
             <Route path="/admin/scenario-builder" component={AdminScenarioBuilder} />
             <Route path="/admin/scenario-builder/:id" component={AdminScenarioBuilder} />
+            <Route path="/social" component={Social} />
             <Route path="/profile" component={Profile} />
             <Route path="/profile/:userId" component={Profile} />
             <Route path="/friends" component={Friends} />

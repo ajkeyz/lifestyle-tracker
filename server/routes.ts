@@ -829,6 +829,43 @@ export async function registerRoutes(
     }
   });
 
+  // ── Social: unread indicator ──────────────────────────────────────
+  app.get("/api/social/unread", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const user = await storage.getUser(sessionId);
+      if (!user) return res.json({ hasUnread: false });
+
+      const friends = await storage.getFriends(sessionId);
+      const today = new Date().toISOString().split("T")[0];
+
+      // Consider "unread" if any friend has played today since last social visit
+      const lastSocialVisit = (user as any).lastSocialVisit || "";
+      const hasUnread = friends.some(
+        (f) => f.lastPlayedDate === today && f.lastPlayedDate > lastSocialVisit
+      );
+
+      res.json({ hasUnread });
+    } catch (error) {
+      console.error("Error checking social unread:", error);
+      res.json({ hasUnread: false });
+    }
+  });
+
+  app.post("/api/social/mark-read", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      // Store the current timestamp as last social visit
+      await storage.updateUser(sessionId, {
+        lastSocialVisit: new Date().toISOString(),
+      } as any);
+      res.json({ ok: true });
+    } catch (error) {
+      console.error("Error marking social read:", error);
+      res.json({ ok: true });
+    }
+  });
+
   app.get("/api/challenges", requireAuth, async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
