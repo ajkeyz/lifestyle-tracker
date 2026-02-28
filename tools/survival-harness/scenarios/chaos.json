@@ -1,0 +1,48 @@
+{
+  "name": "Chaos Test",
+  "description": "Tests resilience with disconnections, duplicate connections, double submits, and late joins",
+  "matches": [
+    {
+      "lobbySize": 8,
+      "bots": [
+        { "profile": "PERFECT", "count": 2 },
+        { "profile": "CHAOS", "count": 2 },
+        { "profile": "DOUBLE_SUBMIT", "count": 1 },
+        { "profile": "LATE_JOIN", "count": 1 },
+        { "profile": "DUP_CONN", "count": 1 },
+        { "profile": "SLOW", "count": 1 }
+      ],
+      "usePrivateLobby": true,
+      "record": true
+    },
+    {
+      "lobbySize": 6,
+      "bots": [
+        { "profile": "CHAOS", "count": 3, "disconnectProbability": 0.5 },
+        { "profile": "PERFECT", "count": 1 },
+        { "profile": "DOUBLE_SUBMIT", "count": 1 },
+        { "profile": "DUP_CONN", "count": 1 }
+      ],
+      "usePrivateLobby": true,
+      "record": true
+    },
+    {
+      "lobbySize": 4,
+      "bots": [
+        { "profile": "LATE_JOIN", "count": 2 },
+        { "profile": "PERFECT", "count": 1 },
+        { "profile": "RANDOM", "count": 1 }
+      ],
+      "usePrivateLobby": true,
+      "record": true
+    }
+  ],
+  "concurrency": 1,
+  "seed": 7777,
+  "serverUrl": "http://localhost:5000",
+  "thresholds": {
+    "maxErrorRate": 0.1,
+    "maxLatencyP99Ms": 200000,
+    "maxMemoryGrowthMB": 200
+  }
+}

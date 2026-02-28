@@ -1,0 +1,23 @@
+{
+  "name": "Smoke Test",
+  "description": "Quick validation with a small match — ensures basic flow works end-to-end",
+  "matches": [
+    {
+      "lobbySize": 4,
+      "bots": [
+        { "profile": "PERFECT", "count": 2 },
+        { "profile": "RANDOM", "count": 2 }
+      ],
+      "usePrivateLobby": true,
+      "record": true
+    }
+  ],
+  "concurrency": 1,
+  "seed": 42,
+  "serverUrl": "http://localhost:5000",
+  "thresholds": {
+    "maxErrorRate": 0.0,
+    "maxLatencyP99Ms": 5000,
+    "maxMemoryGrowthMB": 100
+  }
+}

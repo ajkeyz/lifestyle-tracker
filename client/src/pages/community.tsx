@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -7,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { AnimatedAvatar } from "@/components/animated-avatar";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { CreatorLeaderboard } from "@/components/creator-leaderboard";
@@ -85,14 +87,20 @@ function ScenarioCard({
   const CategoryIcon = CATEGORY_ICONS[scenario.category] || Sparkles;
   const netVotes = scenario.upvotes - scenario.downvotes;
   const unlockedBadges = scenario.authorBadges.filter(b => b.unlocked);
-  
+  const engagementScore = scenario.upvotes + scenario.downvotes + scenario.commentCount;
+  const isHot = engagementScore >= 10;
+
   return (
     <Card
-      className="cursor-pointer transition-all duration-200 hover:shadow-md hover:border-primary/20 hover:-translate-y-0.5"
+      className={`cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${
+        isHot
+          ? "border-orange-500/20 hover:border-orange-500/40"
+          : "hover:border-primary/20"
+      }`}
       onClick={onClick}
       data-testid={`card-scenario-${scenario.id}`}
     >
-      <CardContent className="p-6 space-y-3">
+      <CardContent className="p-4 sm:p-6 space-y-3">
         <div className="flex items-start gap-3 flex-wrap">
           <div className="flex flex-col items-center gap-1">
             <Button
@@ -105,9 +113,14 @@ function ScenarioCard({
             >
               <ArrowUp className="h-4 w-4" />
             </Button>
-            <span className={`text-sm font-semibold ${netVotes > 0 ? "text-green-500" : netVotes < 0 ? "text-red-500" : ""}`}>
+            <motion.span
+              key={netVotes}
+              initial={{ scale: 1.3, opacity: 0.5 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className={`text-sm font-semibold ${netVotes > 0 ? "text-green-500" : netVotes < 0 ? "text-red-500" : ""}`}
+            >
               {netVotes}
-            </span>
+            </motion.span>
             <Button
               variant={scenario.userVote === "down" ? "destructive" : "ghost"}
               size="icon"
@@ -147,11 +160,7 @@ function ScenarioCard({
             
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div className="flex items-center gap-2">
-                <Avatar className="h-6 w-6">
-                  <AvatarFallback className="text-xs bg-primary/10">
-                    {scenario.authorUsername.charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+                <AnimatedAvatar avatarId={scenario.authorAvatar || "cosmic-cat"} size="xs" />
                 <span className="text-xs text-muted-foreground">{scenario.authorUsername}</span>
                 {showBadge && unlockedBadges.length > 0 && (
                   <Badge variant="outline" className="text-xs h-5">
@@ -168,6 +177,12 @@ function ScenarioCard({
               </div>
               
               <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                {isHot && (
+                  <span className="flex items-center gap-0.5 text-orange-500">
+                    <Flame className="w-3 h-3" />
+                    Hot
+                  </span>
+                )}
                 <span className="flex items-center gap-1">
                   <MessageCircle className="w-3 h-3" />
                   {scenario.commentCount}
@@ -220,13 +235,13 @@ export default function Community() {
   });
 
   const categories = [
-    { id: "all", label: "All" },
-    { id: "relationships", label: "Friends" },
-    { id: "lifestyle", label: "Lifestyle" },
-    { id: "career", label: "Career" },
-    { id: "investing", label: "Investing" },
-    { id: "debt", label: "Debt" },
-    { id: "scam", label: "Scams" },
+    { id: "all", label: "All", color: "" },
+    { id: "relationships", label: "Friends", color: "text-blue-500" },
+    { id: "lifestyle", label: "Lifestyle", color: "text-purple-500" },
+    { id: "career", label: "Career", color: "text-emerald-500" },
+    { id: "investing", label: "Investing", color: "text-green-500" },
+    { id: "debt", label: "Debt", color: "text-red-500" },
+    { id: "scam", label: "Scams", color: "text-orange-500" },
   ];
 
   return (
@@ -287,19 +302,24 @@ export default function Community() {
         {/* Top Creators Leaderboard */}
         <CreatorLeaderboard limit={5} showTitle={true} />
 
-        <div className="space-y-3">
+        <div className="space-y-3 sticky top-[61px] z-40 bg-background/90 backdrop-blur-sm -mx-4 px-4 py-3 border-b border-border/30">
           <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
-            {categories.map((cat) => (
-              <Button
-                key={cat.id}
-                variant={category === cat.id ? "default" : "outline"}
-                size="sm"
-                onClick={() => setCategory(cat.id)}
-                data-testid={`button-category-${cat.id}`}
-              >
-                {cat.label}
-              </Button>
-            ))}
+            {categories.map((cat) => {
+              const CatIcon = CATEGORY_ICONS[cat.id];
+              return (
+                <Button
+                  key={cat.id}
+                  variant={category === cat.id ? "default" : "outline"}
+                  size="sm"
+                  className="gap-1.5 shrink-0"
+                  onClick={() => setCategory(cat.id)}
+                  data-testid={`button-category-${cat.id}`}
+                >
+                  {CatIcon && <CatIcon className={`w-3.5 h-3.5 ${category !== cat.id ? cat.color : ""}`} />}
+                  {cat.label}
+                </Button>
+              );
+            })}
           </div>
 
           <Tabs value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
@@ -328,19 +348,25 @@ export default function Community() {
               <Skeleton className="h-40 w-full" />
             </>
           ) : scenarios && scenarios.length > 0 ? (
-            scenarios.map((scenario) => (
-              <ScenarioCard
+            scenarios.map((scenario, i) => (
+              <motion.div
                 key={scenario.id}
-                scenario={scenario}
-                onVote={(type) => voteMutation.mutate({ scenarioId: scenario.id, type })}
-                onClick={() => navigate(`/community/${scenario.id}`)}
-                isVoting={votingId === scenario.id}
-                showBadge
-              />
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.04 }}
+              >
+                <ScenarioCard
+                  scenario={scenario}
+                  onVote={(type) => voteMutation.mutate({ scenarioId: scenario.id, type })}
+                  onClick={() => navigate(`/community/${scenario.id}`)}
+                  isVoting={votingId === scenario.id}
+                  showBadge
+                />
+              </motion.div>
             ))
           ) : (
             <Card>
-              <CardContent className="p-8 text-center">
+              <CardContent className="p-5 sm:p-8 text-center">
                 <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground">No scenarios yet</p>
                 <p className="text-sm text-muted-foreground mb-4">Someone will read this before their next purchase.</p>

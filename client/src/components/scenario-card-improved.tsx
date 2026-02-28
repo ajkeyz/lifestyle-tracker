@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { ChoiceCard } from "@/components/choice-card";
 import { QuestionHeader } from "@/components/question-header";
-import { classifyChoiceTone } from "@/lib/game-insights";
+import { classifyChoiceTone, simulateCommunityDistribution } from "@/lib/game-insights";
+import { cn } from "@/lib/utils";
 import type { Scenario } from "@shared/schema";
 
 interface ScenarioCardProps {
@@ -11,6 +12,11 @@ interface ScenarioCardProps {
   showResult?: boolean;
   questionNumber: number;
   totalQuestions: number;
+  // #5: Timer urgency props
+  timeRemaining?: number;
+  timerRunning?: boolean;
+  // #11: Lifeline 50/50 props
+  eliminatedChoices?: string[];
 }
 
 export function ScenarioCard({
@@ -20,6 +26,9 @@ export function ScenarioCard({
   showResult = false,
   questionNumber,
   totalQuestions,
+  timeRemaining,
+  timerRunning,
+  eliminatedChoices = [],
 }: ScenarioCardProps) {
   const [revealStage, setRevealStage] = useState(0);
 
@@ -38,13 +47,27 @@ export function ScenarioCard({
     return scenario.choices.map(choice => classifyChoiceTone(choice));
   }, [scenario.choices]);
 
+  // #9: Community answer distribution (simulated from point values)
+  const communityDistribution = useMemo(() => {
+    return simulateCommunityDistribution(scenario.choices);
+  }, [scenario.choices]);
+
+  // #5: Timer urgency class
+  const urgencyClass = useMemo(() => {
+    if (!timerRunning || showResult || timeRemaining === undefined) return "";
+    if (timeRemaining <= 5) return "timer-urgent-critical";
+    if (timeRemaining <= 10) return "timer-urgent-warning";
+    return "";
+  }, [timeRemaining, timerRunning, showResult]);
+
   return (
-    <div className="grid grid-rows-[auto_auto] gap-5">
-      {/* Zone A+B: Context + Question */}
+    <div className={cn("grid grid-rows-[auto_auto] gap-5", urgencyClass)}>
+      {/* Zone A+B: Context + Question with difficulty indicator (#13) */}
       <QuestionHeader
         category={scenario.category}
         context={scenario.context}
         question={scenario.question}
+        choices={scenario.choices}
       />
 
       {/* Zone C: Answer Options */}
@@ -77,6 +100,8 @@ export function ScenarioCard({
                 index={index}
                 disabled={showResult}
                 tone={choiceTones[index]}
+                communityPct={communityDistribution[choice.label]}
+                eliminated={eliminatedChoices.includes(choice.label)}
               />
             );
           })}

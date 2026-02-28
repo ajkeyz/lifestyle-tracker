@@ -37,7 +37,7 @@ import type {
   CoopMode,
 } from "@shared/schema";
 import { BADGE_DEFINITIONS, ARCADE_LIMITS, defaultNotificationPrefs, defaultStreakInsurance } from "@shared/schema";
-import { randomUUID } from "crypto";
+import { randomUUID, randomBytes } from "crypto";
 import { getDailyScenarios, getArcadeScenarios } from "./static-scenarios";
 
 function getTodayDateString(): string {
@@ -66,7 +66,7 @@ export interface IStorage {
   checkUsernameAvailable(username: string, excludeUserId?: string): Promise<boolean>;
   searchUserByUsername(username: string, excludeUserId?: string): Promise<{ found: boolean; username: string | null; userId: string | null }>;
   getDailyDrop(): Promise<DailyDrop>;
-  submitGame(sessionId: string, submission: SubmitGame): Promise<UserGameResult>;
+  submitGame(sessionId: string, submission: SubmitGame, prefetchedDrop?: DailyDrop, prefetchedUser?: User): Promise<UserGameResult>;
   getLeaderboard(limit?: number): Promise<LeaderboardEntry[]>;
   // League methods
   createLeague(userId: string, data: CreateLeague): Promise<League>;
@@ -133,7 +133,8 @@ export interface IStorage {
   removePushSubscription(userId: string, endpoint: string): Promise<void>;
   getAllPushSubscriptions(): Promise<{ userId: string; subscription: PushSubscriptionJSON }[]>;
   // Co-op game session methods
-  createCoopSession(hostId: string, mode?: CoopMode, arcadeGameIndex?: number | null): Promise<CoopSession>;
+  createCoopSession(hostId: string, mode?: CoopMode, arcadeGameIndex?: number | null, invitedUserId?: string | null): Promise<CoopSession>;
+  getCoopPendingInvites(userId: string): Promise<CoopSession[]>;
   getCoopSession(sessionId: string): Promise<CoopSession | undefined>;
   getCoopSessionByCode(code: string): Promise<CoopSession | undefined>;
   joinCoopSession(guestId: string, code: string): Promise<CoopSession | undefined>;
@@ -144,6 +145,12 @@ export interface IStorage {
   getArcadeDrop(userId: string, gameIndex?: number): Promise<DailyDrop>;
   submitArcadeGame(userId: string, submission: SubmitArcadeGame): Promise<ArcadeGameResult>;
   getArcadeStatus(userId: string): Promise<ArcadeStatus>;
+  // Survival mode methods
+  saveSurvivalMatch(match: { id: string; code: string; hostId: string; isPrivate: boolean; playerCount: number; totalRounds: number; winnerId: string | null; startedAt: string; completedAt: string }): Promise<void>;
+  saveSurvivalPlayers(matchId: string, players: { userId: string; placement: number | null; score: number; roundsSurvived: number; shieldUsed: boolean }[]): Promise<void>;
+  updateSurvivalStats(userId: string, won: boolean, placement: number): Promise<void>;
+  getSurvivalHistory(userId: string, limit?: number): Promise<{ matchId: string; placement: number | null; score: number; playerCount: number; completedAt: string }[]>;
+  deleteUsersByPrefix(prefix: string): Promise<number>;
 }
 
 interface PushSubscriptionJSON {
@@ -154,11 +161,13 @@ interface PushSubscriptionJSON {
   };
 }
 
+// P1-8: Use cryptographically secure random for invite codes
 function generateInviteCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const bytes = randomBytes(6);
   let code = "";
   for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
+    code += chars.charAt(bytes[i] % chars.length);
   }
   return code;
 }
@@ -464,6 +473,12 @@ export class MemStorage implements IStorage {
         membershipTier: "free" as const,
         arcadePlaysToday: 0,
         arcadeLastPlayedDate: null,
+        moneyPhilosophy: "",
+        whyImHere: "",
+        friendVisibility: "trend" as const,
+        survivalWins: 0,
+        survivalPlayed: 0,
+        survivalBestPlacement: null,
       });
     });
   }
@@ -516,6 +531,9 @@ export class MemStorage implements IStorage {
         moneyPhilosophy: "",
         whyImHere: "",
         friendVisibility: "trend" as const,
+        survivalWins: 0,
+        survivalPlayed: 0,
+        survivalBestPlacement: null,
       };
       this.users.set(sessionId, user);
     }
@@ -587,9 +605,9 @@ export class MemStorage implements IStorage {
     return this.dailyDrop;
   }
 
-  async submitGame(sessionId: string, submission: SubmitGame): Promise<UserGameResult> {
-    const user = await this.getOrCreateUser(sessionId);
-    const drop = await this.getDailyDrop();
+  async submitGame(sessionId: string, submission: SubmitGame, prefetchedDrop?: DailyDrop, prefetchedUser?: User): Promise<UserGameResult> {
+    const user = prefetchedUser || await this.getOrCreateUser(sessionId);
+    const drop = prefetchedDrop || await this.getDailyDrop();
 
     let totalScore = 0;
     let correctCount = 0;
@@ -1797,16 +1815,23 @@ export class MemStorage implements IStorage {
   // Co-op Game Session Methods
   private generateCoopCode(): string {
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    const bytes = randomBytes(6);
     let code = "";
     for (let i = 0; i < 6; i++) {
-      code += chars.charAt(Math.floor(Math.random() * chars.length));
+      code += chars.charAt(bytes[i] % chars.length);
     }
     return code;
   }
 
-  async createCoopSession(hostId: string, mode: CoopMode = "daily", arcadeGameIndex: number | null = null): Promise<CoopSession> {
+  async createCoopSession(hostId: string, mode: CoopMode = "daily", arcadeGameIndex: number | null = null, invitedUserId: string | null = null): Promise<CoopSession> {
     const host = await this.getUser(hostId);
     if (!host) throw new Error("Host user not found");
+
+    let invitedUsername: string | null = null;
+    if (invitedUserId) {
+      const invitedUser = await this.getUser(invitedUserId);
+      invitedUsername = invitedUser?.username || null;
+    }
 
     let code = this.generateCoopCode();
     while (await this.getCoopSessionByCode(code)) {
@@ -1826,6 +1851,8 @@ export class MemStorage implements IStorage {
       code,
       hostId,
       guestId: null,
+      invitedUserId,
+      invitedUsername,
       status: "waiting",
       mode,
       dropId,
@@ -1850,6 +1877,11 @@ export class MemStorage implements IStorage {
 
     this.coopSessions.set(session.id, session);
     return session;
+  }
+
+  async getCoopPendingInvites(userId: string): Promise<CoopSession[]> {
+    const sessions = Array.from(this.coopSessions.values());
+    return sessions.filter(s => s.invitedUserId === userId && s.status === "waiting");
   }
 
   async getCoopSession(sessionId: string): Promise<CoopSession | undefined> {
@@ -2106,6 +2138,61 @@ export class MemStorage implements IStorage {
       currentGameIndex: playsToday,
       membershipTier: user.membershipTier,
     };
+  }
+
+  // Survival mode methods (in-memory stubs)
+  private survivalMatchStore: Map<string, any> = new Map();
+  private survivalPlayerStore: Map<string, any[]> = new Map();
+
+  async saveSurvivalMatch(match: { id: string; code: string; hostId: string; isPrivate: boolean; playerCount: number; totalRounds: number; winnerId: string | null; startedAt: string; completedAt: string }): Promise<void> {
+    this.survivalMatchStore.set(match.id, match);
+  }
+
+  async saveSurvivalPlayers(matchId: string, players: { userId: string; placement: number | null; score: number; roundsSurvived: number; shieldUsed: boolean }[]): Promise<void> {
+    this.survivalPlayerStore.set(matchId, players);
+  }
+
+  async updateSurvivalStats(userId: string, won: boolean, placement: number): Promise<void> {
+    const user = this.users.get(userId);
+    if (!user) return;
+    user.survivalPlayed = (user.survivalPlayed || 0) + 1;
+    if (won) user.survivalWins = (user.survivalWins || 0) + 1;
+    if (!user.survivalBestPlacement || placement < user.survivalBestPlacement) {
+      user.survivalBestPlacement = placement;
+    }
+    this.users.set(userId, user);
+  }
+
+  async getSurvivalHistory(userId: string, limit = 20): Promise<{ matchId: string; placement: number | null; score: number; playerCount: number; completedAt: string }[]> {
+    const results: { matchId: string; placement: number | null; score: number; playerCount: number; completedAt: string }[] = [];
+    for (const [matchId, players] of this.survivalPlayerStore) {
+      const p = players.find(pl => pl.userId === userId);
+      if (p) {
+        const match = this.survivalMatchStore.get(matchId);
+        if (match) {
+          results.push({
+            matchId,
+            placement: p.placement,
+            score: p.score,
+            playerCount: match.playerCount,
+            completedAt: match.completedAt,
+          });
+        }
+      }
+    }
+    return results.slice(0, limit);
+  }
+
+  async deleteUsersByPrefix(prefix: string): Promise<number> {
+    let count = 0;
+    const entries = Array.from(this.users.entries());
+    for (const [id] of entries) {
+      if (id.startsWith(prefix)) {
+        this.users.delete(id);
+        count++;
+      }
+    }
+    return count;
   }
 }
 

@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -8,12 +8,16 @@ import { PageTransition } from "@/components/page-transition";
 import { useAuth } from "@/hooks/use-auth";
 import { analytics, trackAppOpened } from "@/lib/analytics";
 import { useEffect, useState, lazy, Suspense } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { AppLogo } from "@/components/app-logo";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { OfflineIndicator } from "@/components/offline-indicator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAchievementToast } from "@/hooks/use-achievement-toast";
+import { BottomNav, SafeAreaSpacer } from "@/components/bottom-nav";
+import { StreakRitualOverlay } from "@/components/streak-ritual-overlay";
+import { AchievementOverlayProvider } from "@/components/achievement-overlay-provider";
 
 // Eager load critical pages (auth flow + core game)
 import Home from "@/pages/home";
@@ -53,6 +57,10 @@ const CoopGame = lazy(() => import("@/pages/coop-game"));
 const CoopResults = lazy(() => import("@/pages/coop-results"));
 const ArcadePage = lazy(() => import("@/pages/arcade"));
 const ArcadeResults = lazy(() => import("@/pages/arcade-results"));
+const SurvivalEntry = lazy(() => import("@/pages/survival-entry"));
+const SurvivalLobby = lazy(() => import("@/pages/survival-lobby"));
+const SurvivalMatch = lazy(() => import("@/pages/survival-match"));
+const SurvivalResults = lazy(() => import("@/pages/survival-results"));
 const Terms = lazy(() => import("@/pages/terms"));
 const Privacy = lazy(() => import("@/pages/privacy"));
 const NotFound = lazy(() => import("@/pages/not-found"));
@@ -72,52 +80,67 @@ function RouteLoadingFallback() {
 function AuthenticatedRouter() {
   // Monitor for badge unlocks and show celebratory toasts
   useAchievementToast();
+  const [location] = useLocation();
+
+  // Hide bottom nav on immersive pages
+  const hideBottomNav = ["/play", "/results", "/coop-game", "/arcade", "/survival"].some(
+    (path) => location.startsWith(path)
+  );
+
   return (
-    <PageTransition>
-      <Suspense fallback={<RouteLoadingFallback />}>
-        <Switch>
-          <Route path="/" component={Home} />
-          <Route path="/profile-setup" component={ProfileSetup} />
-          <Route path="/notifications-setup" component={NotificationsSetup} />
-          <Route path="/friends-setup" component={FriendsSetup} />
-          <Route path="/setup" component={Setup} />
-          <Route path="/play" component={Game} />
-          <Route path="/results" component={Results} />
-          <Route path="/leaderboard" component={Leaderboard} />
-          <Route path="/leagues" component={Leagues} />
-          <Route path="/challenges" component={Challenges} />
-          <Route path="/share" component={SharePage} />
-          <Route path="/achievements" component={Achievements} />
-          <Route path="/deep-dive" component={DeepDive} />
-          <Route path="/weekly-recap" component={WeeklyRecap} />
-          <Route path="/settings" component={Settings} />
-          <Route path="/stats" component={Stats} />
-          <Route path="/insights" component={Insights} />
-          <Route path="/help" component={Help} />
-          <Route path="/notifications-prefs" component={NotificationsPrefs} />
-          <Route path="/streak-insurance" component={StreakInsurance} />
-          <Route path="/membership" component={Membership} />
-          <Route path="/community" component={Community} />
-          <Route path="/community/submit" component={CommunitySubmit} />
-          <Route path="/community/:id" component={CommunityDetail} />
-          <Route path="/tips" component={TipsLibrary} />
-          <Route path="/admin" component={Admin} />
-          <Route path="/admin/scenario-builder" component={AdminScenarioBuilder} />
-          <Route path="/admin/scenario-builder/:id" component={AdminScenarioBuilder} />
-          <Route path="/profile" component={Profile} />
-          <Route path="/profile/:userId" component={Profile} />
-          <Route path="/friends" component={Friends} />
-          <Route path="/coop-lobby" component={CoopLobby} />
-          <Route path="/coop-game/:sessionId" component={CoopGame} />
-          <Route path="/coop-results/:sessionId" component={CoopResults} />
-          <Route path="/arcade" component={ArcadePage} />
-          <Route path="/arcade-results" component={ArcadeResults} />
-          <Route path="/terms" component={Terms} />
-          <Route path="/privacy" component={Privacy} />
-          <Route component={NotFound} />
-        </Switch>
-      </Suspense>
-    </PageTransition>
+    <>
+      <PageTransition>
+        <Suspense fallback={<RouteLoadingFallback />}>
+          <Switch>
+            <Route path="/" component={Home} />
+            <Route path="/profile-setup" component={ProfileSetup} />
+            <Route path="/notifications-setup" component={NotificationsSetup} />
+            <Route path="/friends-setup" component={FriendsSetup} />
+            <Route path="/setup" component={Setup} />
+            <Route path="/play" component={Game} />
+            <Route path="/results" component={Results} />
+            <Route path="/leaderboard" component={Leaderboard} />
+            <Route path="/leagues" component={Leagues} />
+            <Route path="/challenges" component={Challenges} />
+            <Route path="/share" component={SharePage} />
+            <Route path="/achievements" component={Achievements} />
+            <Route path="/deep-dive" component={DeepDive} />
+            <Route path="/weekly-recap" component={WeeklyRecap} />
+            <Route path="/settings" component={Settings} />
+            <Route path="/stats" component={Stats} />
+            <Route path="/insights" component={Insights} />
+            <Route path="/help" component={Help} />
+            <Route path="/notifications-prefs" component={NotificationsPrefs} />
+            <Route path="/streak-insurance" component={StreakInsurance} />
+            <Route path="/membership" component={Membership} />
+            <Route path="/community" component={Community} />
+            <Route path="/community/submit" component={CommunitySubmit} />
+            <Route path="/community/:id" component={CommunityDetail} />
+            <Route path="/tips" component={TipsLibrary} />
+            <Route path="/admin" component={Admin} />
+            <Route path="/admin/scenario-builder" component={AdminScenarioBuilder} />
+            <Route path="/admin/scenario-builder/:id" component={AdminScenarioBuilder} />
+            <Route path="/profile" component={Profile} />
+            <Route path="/profile/:userId" component={Profile} />
+            <Route path="/friends" component={Friends} />
+            <Route path="/coop-lobby" component={CoopLobby} />
+            <Route path="/coop-game/:sessionId" component={CoopGame} />
+            <Route path="/coop-results/:sessionId" component={CoopResults} />
+            <Route path="/arcade" component={ArcadePage} />
+            <Route path="/arcade-results" component={ArcadeResults} />
+            <Route path="/survival" component={SurvivalEntry} />
+            <Route path="/survival/lobby/:matchId" component={SurvivalLobby} />
+            <Route path="/survival/match/:matchId" component={SurvivalMatch} />
+            <Route path="/survival/results/:matchId" component={SurvivalResults} />
+            <Route path="/terms" component={Terms} />
+            <Route path="/privacy" component={Privacy} />
+            <Route component={NotFound} />
+          </Switch>
+          {!hideBottomNav && <SafeAreaSpacer />}
+        </Suspense>
+      </PageTransition>
+      {!hideBottomNav && <BottomNav />}
+    </>
   );
 }
 
@@ -229,7 +252,14 @@ function SplashScreen({ onComplete }: { onComplete: () => void }) {
 function AppContent() {
   const { isLoading, isAuthenticated } = useAuth();
   const [showSplash, setShowSplash] = useState(true);
+  const [showStreakRitual, setShowStreakRitual] = useState(false);
   const splashDone = !showSplash;
+
+  // Fetch game user data for streak info (only when authenticated)
+  const { data: gameUser } = useQuery<{ streak?: number }>({
+    queryKey: ["/api/user"],
+    enabled: isAuthenticated,
+  });
 
   // Force complete splash after max time to prevent stuck screens
   useEffect(() => {
@@ -240,6 +270,13 @@ function AppContent() {
     }, 3000);
     return () => clearTimeout(maxWaitTimer);
   }, [showSplash]);
+
+  // Trigger streak ritual after splash completes if user has an active streak
+  useEffect(() => {
+    if (splashDone && !isLoading && isAuthenticated && gameUser && (gameUser.streak ?? 0) > 0) {
+      setShowStreakRitual(true);
+    }
+  }, [splashDone, isLoading, isAuthenticated, gameUser]);
 
   if (isLoading && !splashDone) {
     return (
@@ -260,7 +297,20 @@ function AppContent() {
     );
   }
 
-  return isAuthenticated ? <AuthenticatedRouter /> : <UnauthenticatedRouter />;
+  return (
+    <>
+      <AnimatePresence>
+        {showStreakRitual && (
+          <StreakRitualOverlay
+            key="streak-ritual"
+            streak={gameUser?.streak ?? 0}
+            onComplete={() => setShowStreakRitual(false)}
+          />
+        )}
+      </AnimatePresence>
+      {isAuthenticated ? <AuthenticatedRouter /> : <UnauthenticatedRouter />}
+    </>
+  );
 }
 
 function AnalyticsTracker() {
@@ -283,10 +333,12 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
           <TooltipProvider>
-            <Toaster />
-            <OfflineIndicator />
-            <AnalyticsTracker />
-            <AppContent />
+            <AchievementOverlayProvider>
+              <Toaster />
+              <OfflineIndicator />
+              <AnalyticsTracker />
+              <AppContent />
+            </AchievementOverlayProvider>
           </TooltipProvider>
         </ThemeProvider>
       </QueryClientProvider>

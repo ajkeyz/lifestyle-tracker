@@ -187,7 +187,7 @@ export function LiquidMoneyMeter({
               {clampedValue}
             </motion.div>
             <div className="text-[8px] text-white/80 drop-shadow uppercase tracking-wide font-semibold">
-              Health
+              Money Health
             </div>
           </div>
         </div>

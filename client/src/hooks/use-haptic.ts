@@ -34,7 +34,8 @@ const HAPTIC_PATTERNS: Record<HapticType, number[]> = {
 export function useHaptic() {
   const vibrate = useCallback((type: HapticType = "light") => {
     if (!("vibrate" in navigator)) return;
-    
+    if (localStorage.getItem("hapticEnabled") === "false") return;
+
     const pattern = HAPTIC_PATTERNS[type];
     try {
       navigator.vibrate(pattern);

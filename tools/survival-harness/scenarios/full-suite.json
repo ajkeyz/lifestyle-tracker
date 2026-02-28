@@ -1,0 +1,91 @@
+{
+  "name": "Full Suite",
+  "description": "Comprehensive test covering all bot profiles, edge cases, and moderate load",
+  "matches": [
+    {
+      "lobbySize": 4,
+      "bots": [
+        { "profile": "PERFECT", "count": 2 },
+        { "profile": "RANDOM", "count": 2 }
+      ],
+      "usePrivateLobby": true,
+      "record": true
+    },
+    {
+      "lobbySize": 8,
+      "bots": [
+        { "profile": "PERFECT", "count": 2 },
+        { "profile": "RANDOM", "count": 2 },
+        { "profile": "SLOW", "count": 2 },
+        { "profile": "CHAOS", "count": 2 }
+      ],
+      "usePrivateLobby": true,
+      "record": true
+    },
+    {
+      "lobbySize": 8,
+      "bots": [
+        { "profile": "PERFECT", "count": 1 },
+        { "profile": "DOUBLE_SUBMIT", "count": 2 },
+        { "profile": "DUP_CONN", "count": 2 },
+        { "profile": "LATE_JOIN", "count": 1 },
+        { "profile": "RANDOM", "count": 2 }
+      ],
+      "usePrivateLobby": true,
+      "record": true
+    },
+    {
+      "lobbySize": 2,
+      "bots": [
+        { "profile": "PERFECT", "count": 1 },
+        { "profile": "RANDOM", "count": 1 }
+      ],
+      "usePrivateLobby": true,
+      "record": true
+    },
+    {
+      "lobbySize": 16,
+      "bots": [
+        { "profile": "PERFECT", "count": 4 },
+        { "profile": "RANDOM", "count": 6 },
+        { "profile": "SLOW", "count": 3 },
+        { "profile": "CHAOS", "count": 3 }
+      ],
+      "usePrivateLobby": true,
+      "record": true
+    },
+    {
+      "lobbySize": 4,
+      "bots": [
+        { "profile": "RANDOM", "count": 4, "accuracy": 0.1 }
+      ],
+      "usePrivateLobby": true,
+      "record": true
+    },
+    {
+      "lobbySize": 4,
+      "bots": [
+        { "profile": "PERFECT", "count": 4, "accuracy": 1.0 }
+      ],
+      "usePrivateLobby": true,
+      "record": true
+    },
+    {
+      "lobbySize": 6,
+      "bots": [
+        { "profile": "CHAOS", "count": 4, "disconnectProbability": 0.5 },
+        { "profile": "PERFECT", "count": 2 }
+      ],
+      "usePrivateLobby": true,
+      "record": true
+    }
+  ],
+  "concurrency": 3,
+  "seed": 314159,
+  "serverUrl": "http://localhost:5000",
+  "thresholds": {
+    "maxErrorRate": 0.02,
+    "maxLatencyP99Ms": 6000,
+    "maxMemoryGrowthMB": 300
+  }
+}

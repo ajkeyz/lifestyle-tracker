@@ -178,10 +178,10 @@ export function StreakCalendar({ user, showMilestoneAnimation = false }: StreakC
 
                 const colors = [
                   "",
-                  "bg-emerald-500/30 border-emerald-500/50",
-                  "bg-emerald-500/50 border-emerald-500/70",
-                  "bg-emerald-500/70 border-emerald-600/80",
-                  "bg-emerald-600/90 border-emerald-700"
+                  "bg-emerald-300/30 border-emerald-400/40 dark:bg-emerald-900/30 dark:border-emerald-800/40",
+                  "bg-emerald-400/50 border-emerald-500/60 dark:bg-emerald-700/40 dark:border-emerald-600/50",
+                  "bg-emerald-500/70 border-emerald-600/80 dark:bg-emerald-600/55 dark:border-emerald-500/65",
+                  "bg-emerald-600 border-emerald-700 dark:bg-emerald-500/80 dark:border-emerald-400/90"
                 ];
                 bgColor = colors[intensityLevel];
                 tooltip = `${day.date}\nScore: ${score}/500`;
@@ -253,10 +253,10 @@ export function StreakCalendar({ user, showMilestoneAnimation = false }: StreakC
             <span>Less intentional</span>
             <div className="flex gap-1">
               <div className="w-3 h-3 rounded-sm bg-muted/20 border border-border/30" title="No activity" />
-              <div className="w-3 h-3 rounded-sm bg-emerald-500/30 border border-emerald-500/50" title="Learning" />
-              <div className="w-3 h-3 rounded-sm bg-emerald-500/50 border border-emerald-500/70" title="Solid" />
-              <div className="w-3 h-3 rounded-sm bg-emerald-500/70 border border-emerald-600/80" title="Strong" />
-              <div className="w-3 h-3 rounded-sm bg-emerald-600/90 border border-emerald-700" title="Exceptional" />
+              <div className="w-3 h-3 rounded-sm bg-emerald-300/30 border border-emerald-400/40 dark:bg-emerald-900/30 dark:border-emerald-800/40" title="Learning (<250)" />
+              <div className="w-3 h-3 rounded-sm bg-emerald-400/50 border border-emerald-500/60 dark:bg-emerald-700/40 dark:border-emerald-600/50" title="Solid (250-349)" />
+              <div className="w-3 h-3 rounded-sm bg-emerald-500/70 border border-emerald-600/80 dark:bg-emerald-600/55 dark:border-emerald-500/65" title="Strong (350-449)" />
+              <div className="w-3 h-3 rounded-sm bg-emerald-600 border border-emerald-700 dark:bg-emerald-500/80 dark:border-emerald-400/90" title="Exceptional (450+)" />
             </div>
             <span>More intentional</span>
           </div>

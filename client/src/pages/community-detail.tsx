@@ -89,9 +89,9 @@ function CommentCard({
   const netVotes = comment.upvotes - comment.downvotes;
   
   return (
-    <div className={isReply ? "ml-8 mt-2" : ""}>
+    <div className={isReply ? "ml-4 sm:ml-8 mt-2" : ""}>
       <Card className={comment.isAdvice ? "border-l-4 border-l-green-500" : ""} data-testid={`card-comment-${comment.id}`}>
-        <CardContent className="p-6">
+        <CardContent className="p-3 sm:p-6">
           <div className="flex items-start gap-3">
             <Avatar className="h-8 w-8">
               <AvatarFallback className="text-xs bg-primary/10">
@@ -368,7 +368,7 @@ export default function CommunityDetail() {
             <p className="text-muted-foreground">{scenario.context}</p>
             
             <Card className="bg-primary/5 border-primary/20">
-              <CardContent className="p-6">
+              <CardContent className="p-4 sm:p-6">
                 <p className="font-medium">{scenario.question}</p>
               </CardContent>
             </Card>
@@ -558,7 +558,7 @@ export default function CommunityDetail() {
             ))
           ) : (
             <Card>
-              <CardContent className="p-6 text-center text-muted-foreground">
+              <CardContent className="p-4 sm:p-6 text-center text-muted-foreground">
                 <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
                 <p>No comments yet. Be the first to respond!</p>
               </CardContent>

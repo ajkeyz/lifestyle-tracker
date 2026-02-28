@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { Heart, Trophy, TrendingUp, ChevronDown, ChevronUp, Target, Shield, Clock } from "lucide-react";
+import { Target, Shield, Clock, Medal, Crown, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { User } from "@shared/schema";
 import { LiquidMoneyMeter } from "@/components/liquid-money-meter";
 import { motion, AnimatePresence } from "framer-motion";
+import { AnimatedCounter } from "@/components/animated-counter";
+import { useQuery } from "@tanstack/react-query";
 
 function AnimatedFlame({ className, active }: { className?: string; active?: boolean }) {
   if (!active) {
@@ -55,118 +57,172 @@ function AnimatedFlame({ className, active }: { className?: string; active?: boo
 interface QuickStatsBarProps {
   user: User;
   rank?: number | null;
+  streakContext?: string | null;
   className?: string;
-}
-
-function getHealthLevel(value: number): "high" | "mid" | "low" {
-  if (value >= 70) return "high";
-  if (value >= 40) return "mid";
-  return "low";
 }
 
 const HEALTH_INDICATORS = [
   {
     label: "Consistency",
     icon: Target,
+    description: "Based on your daily streak. 7+ days = high, 3+ = medium. Play every day to keep it green!",
     getLevel: (user: User) => {
-      if (user.streak >= 7) return "high";
-      if (user.streak >= 3) return "mid";
-      return "low";
+      if (user.streak >= 7) return "high" as const;
+      if (user.streak >= 3) return "mid" as const;
+      return "low" as const;
     },
+    getStat: (user: User) => `${user.streak} day streak`,
   },
   {
     label: "Risk awareness",
     icon: Shield,
+    description: "Tracks your Money Health score over time. Score 65+ = high, 40+ = medium. Make smart choices in quizzes!",
     getLevel: (user: User) => {
       const health = user.moneyHealth;
-      if (health >= 65) return "high";
-      if (health >= 40) return "mid";
-      return "low";
+      if (health >= 65) return "high" as const;
+      if (health >= 40) return "mid" as const;
+      return "low" as const;
     },
+    getStat: (user: User) => `${user.moneyHealth} health`,
   },
   {
     label: "Delay discipline",
     icon: Clock,
+    description: "Based on games played. 14+ games = high, 5+ = medium. The more you play, the sharper your instincts!",
     getLevel: (user: User) => {
-      if (user.gamesPlayed >= 14) return "high";
-      if (user.gamesPlayed >= 5) return "mid";
-      return "low";
+      if (user.gamesPlayed >= 14) return "high" as const;
+      if (user.gamesPlayed >= 5) return "mid" as const;
+      return "low" as const;
     },
+    getStat: (user: User) => `${user.gamesPlayed} games`,
   },
 ];
 
-export function QuickStatsBar({ user, rank, className }: QuickStatsBarProps) {
-  const [healthExpanded, setHealthExpanded] = useState(false);
+type ExpandedSection = "health" | "streak" | "rank" | null;
 
-  const stats = [
-    {
-      icon: null as any,
-      value: user.streak,
-      label: "Streak",
-      color: user.streak > 0 ? "text-orange-500" : "text-muted-foreground",
-      isStreak: true,
-    },
-    {
-      icon: Heart,
-      value: user.moneyHealth,
-      label: "Health",
-      color: user.moneyHealth >= 70 ? "text-green-500" : user.moneyHealth >= 40 ? "text-yellow-500" : "text-red-500",
-    },
-    {
-      icon: Trophy,
-      value: rank ?? "-",
-      label: "Rank",
-      color: rank && rank <= 3 ? "text-yellow-500" : "text-muted-foreground",
-    },
-    {
-      icon: TrendingUp,
-      value: user.gamesPlayed,
-      label: "Games",
-      color: "text-blue-500",
-    },
-  ];
+export function QuickStatsBar({ user, rank, streakContext, className }: QuickStatsBarProps) {
+  const [expandedSection, setExpandedSection] = useState<ExpandedSection>(null);
+  const [activeIndicator, setActiveIndicator] = useState<string | null>(null);
+  const [streakSeen, setStreakSeen] = useState(false);
+
+  // Fetch friends for rank comparison (only when rank dropdown is open)
+  const { data: friends } = useQuery<
+    { id: string; username: string; avatar: string; moneyHealth: number; streak: number }[]
+  >({
+    queryKey: ["/api/friends"],
+    enabled: expandedSection === "rank",
+  });
+
+  const toggleSection = (section: ExpandedSection) => {
+    setExpandedSection(expandedSection === section ? null : section);
+  };
+
+  // Rank comparison with friends
+  const friendsAbove = friends ? friends.filter(f => f.moneyHealth > user.moneyHealth).length : 0;
+  const friendsBelow = friends ? friends.filter(f => f.moneyHealth < user.moneyHealth).length : 0;
+  const friendsEqual = friends ? friends.filter(f => f.moneyHealth === user.moneyHealth).length : 0;
+  const totalFriends = friends?.length || 0;
+  const percentile = totalFriends > 0
+    ? Math.round(((friendsBelow + friendsEqual * 0.5) / totalFriends) * 100)
+    : null;
+
+  // Games quick stats for rank dropdown
+  const categoryStats = user.categoryStats || [];
+  const totalGamesFromHistory = (user.gameHistory || []).length;
+  const avgAccuracy = totalGamesFromHistory > 0
+    ? Math.round((user.gameHistory || []).reduce((sum, g) => sum + (g.correctAnswers / g.totalQuestions) * 100, 0) / totalGamesFromHistory)
+    : 0;
 
   return (
     <div className={cn("rounded-lg bg-card border", className)}>
-      <div className="flex items-center justify-between gap-3 p-3">
-        {stats.map((stat, index) => (
-          <div
-            key={stat.label}
-            className={cn(
-              "flex items-center gap-1.5 flex-1 justify-center",
-              stat.label === "Health" && "cursor-pointer"
+      {/* 3 stats: Money Health | Streak | Rank */}
+      <div className="flex items-center justify-between gap-2 sm:gap-4 p-3">
+        {/* Money Health */}
+        <div
+          className="flex items-center gap-1.5 flex-1 justify-center cursor-pointer"
+          onClick={() => toggleSection("health")}
+          data-testid="button-health-expand"
+        >
+          <LiquidMoneyMeter value={user.moneyHealth} size="sm" animated={true} />
+          <div className="w-px h-6 bg-border ml-2" />
+        </div>
+
+        {/* Streak */}
+        <div
+          className={cn(
+            "flex items-center gap-2 flex-1 justify-center",
+            streakContext ? "cursor-pointer" : "cursor-default"
+          )}
+          onClick={() => {
+            if (streakContext) {
+              toggleSection("streak");
+              setStreakSeen(true);
+            }
+          }}
+        >
+          <span className="relative">
+            <AnimatedFlame
+              className={cn("w-5 h-5", user.streak > 0 ? "text-orange-500" : "text-muted-foreground")}
+              active={user.streak > 0}
+            />
+            {streakContext && !streakSeen && (
+              <motion.span
+                className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-orange-500"
+                animate={{ scale: [1, 1.4, 1], opacity: [1, 0.7, 1] }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+              />
             )}
-            onClick={stat.label === "Health" ? () => setHealthExpanded(!healthExpanded) : undefined}
-            data-testid={stat.label === "Health" ? "button-health-expand" : undefined}
-          >
-            {stat.label === "Health" ? (
-              <LiquidMoneyMeter value={user.moneyHealth} size="sm" animated={true} />
-            ) : (
-              <>
-                {"isStreak" in stat && stat.isStreak ? (
-                  <AnimatedFlame className={cn("w-4 h-4", stat.color)} active={user.streak > 0} />
-                ) : (
-                  <stat.icon className={cn("w-4 h-4", stat.color)} />
-                )}
-                <div className="text-center">
-                  <div className="font-bold text-sm leading-none" data-testid={`stat-${stat.label.toLowerCase()}`}>
-                    {stat.value}
-                  </div>
-                  <div className="text-[10px] text-muted-foreground leading-tight">
-                    {stat.label}
-                  </div>
-                </div>
-              </>
-            )}
-            {index < stats.length - 1 && (
-              <div className="w-px h-6 bg-border ml-2" />
-            )}
+          </span>
+          <div className="text-center">
+            <div className="font-bold text-sm leading-none" data-testid="stat-streak">
+              <AnimatedCounter value={user.streak} duration={1.0} delay={0.2} />
+            </div>
+            <div className="text-[10px] text-muted-foreground leading-tight">Streak</div>
           </div>
-        ))}
+          <div className="w-px h-6 bg-border ml-2" />
+        </div>
+
+        {/* Rank */}
+        <div
+          className="flex items-center gap-2 flex-1 justify-center cursor-pointer"
+          onClick={() => toggleSection("rank")}
+        >
+          <Crown className={cn(
+            "w-5 h-5",
+            rank && rank <= 3 ? "text-yellow-500" : rank && rank <= 10 ? "text-amber-400" : "text-muted-foreground"
+          )} />
+          <div className="text-center">
+            <div className="font-bold text-sm leading-none" data-testid="stat-rank">
+              {rank ? <AnimatedCounter value={rank} duration={1.0} delay={0.2} /> : "-"}
+            </div>
+            <div className="text-[10px] text-muted-foreground leading-tight">Rank</div>
+          </div>
+        </div>
       </div>
 
+      {/* Streak context dropdown */}
       <AnimatePresence>
-        {healthExpanded && (
+        {expandedSection === "streak" && streakContext && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="px-3 pb-2.5 pt-1 border-t">
+              <div className="flex items-center gap-2 px-2.5 py-2 rounded-md bg-orange-500/5">
+                <AnimatedFlame className="w-4 h-4 text-orange-500 flex-shrink-0" active />
+                <span className="text-xs text-muted-foreground">{streakContext}</span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Health breakdown dropdown */}
+      <AnimatePresence>
+        {expandedSection === "health" && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
@@ -175,23 +231,29 @@ export function QuickStatsBar({ user, rank, className }: QuickStatsBarProps) {
             className="overflow-hidden"
           >
             <div className="px-3 pb-3 pt-1 border-t" data-testid="health-breakdown">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">What shapes your Health Score</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">What shapes your Money Health</p>
               <div className="flex items-center justify-between gap-2">
                 {HEALTH_INDICATORS.map((indicator) => {
                   const level = indicator.getLevel(user);
                   const Icon = indicator.icon;
+                  const isActive = activeIndicator === indicator.label;
                   return (
-                    <div key={indicator.label} className="flex flex-col items-center gap-1 flex-1">
+                    <div
+                      key={indicator.label}
+                      className="flex flex-col items-center gap-1 flex-1 cursor-pointer"
+                      onClick={(e) => { e.stopPropagation(); setActiveIndicator(isActive ? null : indicator.label); }}
+                    >
                       <Icon className={cn(
-                        "w-4 h-4",
-                        level === "high" ? "text-green-500" : level === "mid" ? "text-yellow-500" : "text-muted-foreground"
+                        "w-4 h-4 transition-transform",
+                        level === "high" ? "text-green-500" : level === "mid" ? "text-yellow-500" : "text-muted-foreground",
+                        isActive && "scale-125"
                       )} />
                       <div className="flex gap-0.5">
                         {[0, 1, 2].map((i) => (
                           <div
                             key={i}
                             className={cn(
-                              "w-1.5 h-1.5 rounded-full",
+                              "w-1.5 h-1.5 rounded-full transition-all",
                               i === 0 ? (level !== "low" ? "bg-green-500" : "bg-muted") : "",
                               i === 1 ? (level === "high" || level === "mid" ? "bg-green-500" : "bg-muted") : "",
                               i === 2 ? (level === "high" ? "bg-green-500" : "bg-muted") : ""
@@ -199,10 +261,104 @@ export function QuickStatsBar({ user, rank, className }: QuickStatsBarProps) {
                           />
                         ))}
                       </div>
-                      <span className="text-[10px] text-muted-foreground">{indicator.label}</span>
+                      <span className={cn(
+                        "text-[10px] transition-colors",
+                        isActive ? "text-foreground font-medium" : "text-muted-foreground"
+                      )}>{indicator.label}</span>
                     </div>
                   );
                 })}
+              </div>
+
+              <AnimatePresence>
+                {activeIndicator && (() => {
+                  const indicator = HEALTH_INDICATORS.find(h => h.label === activeIndicator);
+                  if (!indicator) return null;
+                  const level = indicator.getLevel(user);
+                  return (
+                    <motion.div
+                      key={activeIndicator}
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="mt-2.5 rounded-md bg-muted/50 px-3 py-2">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <indicator.icon className={cn(
+                            "w-3.5 h-3.5",
+                            level === "high" ? "text-green-500" : level === "mid" ? "text-yellow-500" : "text-muted-foreground"
+                          )} />
+                          <span className="text-xs font-medium">{indicator.label}</span>
+                          <span className={cn(
+                            "text-[10px] ml-auto px-1.5 py-0.5 rounded-full",
+                            level === "high" ? "bg-green-500/15 text-green-500" : level === "mid" ? "bg-yellow-500/15 text-yellow-500" : "bg-muted text-muted-foreground"
+                          )}>
+                            {indicator.getStat(user)}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">{indicator.description}</p>
+                      </div>
+                    </motion.div>
+                  );
+                })()}
+              </AnimatePresence>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Rank & Activity dropdown */}
+      <AnimatePresence>
+        {expandedSection === "rank" && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="px-3 pb-3 pt-1 border-t" data-testid="rank-breakdown">
+              {/* Friends comparison */}
+              {totalFriends > 0 ? (
+                <div className="space-y-1.5 mb-2.5">
+                  <div className="flex items-center gap-1.5">
+                    <Medal className="w-3.5 h-3.5 text-primary" />
+                    <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Among Friends</span>
+                    {percentile !== null && (
+                      <span className={cn(
+                        "text-[10px] ml-auto px-1.5 py-0.5 rounded-full font-medium",
+                        percentile >= 70 ? "bg-green-500/15 text-green-500" :
+                        percentile >= 40 ? "bg-yellow-500/15 text-yellow-500" :
+                        "bg-muted text-muted-foreground"
+                      )}>
+                        Top {100 - percentile}%
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex justify-between text-[10px] text-muted-foreground">
+                    <span>{friendsAbove} above you</span>
+                    <span className="font-medium text-foreground">You: {user.moneyHealth}</span>
+                    <span>{friendsBelow} below you</span>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-[11px] text-muted-foreground text-center py-1.5 mb-2">Add friends to see how you compare!</p>
+              )}
+
+              {/* Activity summary */}
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <BarChart3 className="w-3.5 h-3.5 text-blue-500" />
+                <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Activity</span>
+              </div>
+              <div className="flex items-center gap-3 text-[11px]">
+                <span className="text-muted-foreground"><span className="font-semibold text-foreground">{user.gamesPlayed}</span> games</span>
+                <span className="text-muted-foreground"><span className="font-semibold text-foreground">{avgAccuracy}%</span> accuracy</span>
+                {user.perfectGames > 0 && (
+                  <span className="text-muted-foreground"><span className="font-semibold text-yellow-500">{user.perfectGames}</span> perfect</span>
+                )}
               </div>
             </div>
           </motion.div>
