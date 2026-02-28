@@ -43,12 +43,13 @@ export function LevelProgress({ totalXP, className }: LevelProgressProps) {
 
           {/* Level info + progress bar */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between mb-1.5">
+            <div className="flex items-center justify-between mb-0.5">
               <span className="text-sm font-semibold">Money IQ Level {level}</span>
               <span className="text-[10px] text-muted-foreground font-medium tabular-nums">
                 {xpIntoLevel} / {xpRequiredThisLevel} XP
               </span>
             </div>
+            <p className="text-[10px] text-muted-foreground mb-1.5">Your learning progress</p>
 
             {/* XP progress bar */}
             <div className="h-2 rounded-full bg-muted/50 overflow-hidden">
@@ -61,7 +62,7 @@ export function LevelProgress({ totalXP, className }: LevelProgressProps) {
             </div>
 
             <p className="text-[10px] text-muted-foreground mt-1">
-              Level {level + 1} at {(level + 1) * (level + 1) * 50} XP
+              Level {level + 1} unlocks new features
             </p>
           </div>
         </div>

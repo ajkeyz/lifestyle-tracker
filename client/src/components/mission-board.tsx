@@ -11,6 +11,8 @@ interface MissionBoardProps {
   context: MissionContext;
   completedIds: string[];
   onComplete: (missionId: string) => void;
+  /** When true, renders without Card wrapper and header (for embedding inside DailyProgressCard) */
+  embedded?: boolean;
 }
 
 const REWARD_ICONS: Record<string, typeof Star> = {
@@ -24,6 +26,7 @@ export function MissionBoard({
   context,
   completedIds,
   onComplete,
+  embedded = false,
 }: MissionBoardProps) {
   const [justCompleted, setJustCompleted] = useState<string | null>(null);
   const [rewardTooltip, setRewardTooltip] = useState<string | null>(null);
@@ -43,31 +46,7 @@ export function MissionBoard({
   const totalSlots = Math.min(missions.length + completedIds.length, 3);
   const completedSlots = Math.min(completedIds.length, totalSlots);
 
-  return (
-    <Card className="p-4 rounded-xl" data-testid="mission-board">
-      <div className="flex items-center gap-2 mb-3">
-        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center">
-          <Gift className="w-3.5 h-3.5 text-white" />
-        </div>
-        <h3 className="font-semibold text-sm">Daily Missions</h3>
-
-        {/* Progress dots ●●○ */}
-        <div className="ml-auto flex items-center gap-1" data-testid="mission-progress-dots">
-          {Array.from({ length: totalSlots }).map((_, i) => (
-            <motion.div
-              key={i}
-              className={cn(
-                "w-2 h-2 rounded-full transition-colors duration-300",
-                i < completedSlots ? "bg-primary" : "bg-muted-foreground/25"
-              )}
-              initial={i < completedSlots ? { scale: 0.5 } : undefined}
-              animate={i < completedSlots ? { scale: 1 } : undefined}
-              transition={{ type: "spring", stiffness: 400, damping: 15 }}
-            />
-          ))}
-        </div>
-      </div>
-
+  const missionItems = (
       <div className="space-y-2">
         <AnimatePresence mode="popLayout">
           {missions.map((mission, i) => {
@@ -215,6 +194,39 @@ export function MissionBoard({
           })}
         </AnimatePresence>
       </div>
+  );
+
+  // Embedded mode: render just the mission items without Card wrapper or header
+  if (embedded) {
+    return <div data-testid="mission-board-embedded">{missionItems}</div>;
+  }
+
+  return (
+    <Card className="p-4 rounded-xl" data-testid="mission-board">
+      <div className="flex items-center gap-2 mb-3">
+        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center">
+          <Gift className="w-3.5 h-3.5 text-white" />
+        </div>
+        <h3 className="font-semibold text-sm">Daily Missions</h3>
+
+        {/* Progress dots ●●○ */}
+        <div className="ml-auto flex items-center gap-1" data-testid="mission-progress-dots">
+          {Array.from({ length: totalSlots }).map((_, i) => (
+            <motion.div
+              key={i}
+              className={cn(
+                "w-2 h-2 rounded-full transition-colors duration-300",
+                i < completedSlots ? "bg-primary" : "bg-muted-foreground/25"
+              )}
+              initial={i < completedSlots ? { scale: 0.5 } : undefined}
+              animate={i < completedSlots ? { scale: 1 } : undefined}
+              transition={{ type: "spring", stiffness: 400, damping: 15 }}
+            />
+          ))}
+        </div>
+      </div>
+
+      {missionItems}
     </Card>
   );
 }

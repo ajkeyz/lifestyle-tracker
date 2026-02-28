@@ -77,14 +77,14 @@ const HEALTH_INDICATORS = [
   {
     label: "Risk awareness",
     icon: Shield,
-    description: "Tracks your Money Health score over time. Score 65+ = high, 40+ = medium. Make smart choices in quizzes!",
+    description: "Tracks your Financial Fitness score over time. Score 65+ = high, 40+ = medium. Make smart choices in quizzes!",
     getLevel: (user: User) => {
       const health = user.moneyHealth;
       if (health >= 65) return "high" as const;
       if (health >= 40) return "mid" as const;
       return "low" as const;
     },
-    getStat: (user: User) => `${user.moneyHealth} health`,
+    getStat: (user: User) => `${user.moneyHealth} fitness`,
   },
   {
     label: "Delay discipline",
@@ -230,7 +230,7 @@ export function QuickStatsBar({ user, rank, streakContext, className }: QuickSta
             className="overflow-hidden"
           >
             <div className="px-3 pb-3 pt-1 border-t" data-testid="health-breakdown">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">What shapes your Money Health</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">What shapes your Financial Fitness</p>
               <div className="flex items-center justify-between gap-2">
                 {HEALTH_INDICATORS.map((indicator) => {
                   const level = indicator.getLevel(user);

@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Onboarding } from "@/components/onboarding";
-import { QuickStatsBar } from "@/components/quick-stats-bar";
 import { StreakUrgencyBanner } from "@/components/streak-urgency-banner";
 import { SocialProofCounter } from "@/components/social-proof-counter";
 import { LiveActivityTicker } from "@/components/live-activity-ticker";
@@ -17,10 +16,11 @@ import { AmbientBackground } from "@/components/ambient-background";
 import { AppLogo } from "@/components/app-logo";
 import { Mascot, getMascotMoodForStreak, type MascotContext } from "@/components/mascot";
 import { CleoPlayNudge } from "@/components/cleo-edge-presence";
-import { MissionBoard } from "@/components/mission-board";
+import { DailyProgressCard } from "@/components/daily-progress-card";
 import { NextUnlockCard } from "@/components/next-unlock-card";
 import { LevelProgress } from "@/components/level-progress";
 import { ResourceBar } from "@/components/resource-bar";
+import { IdentityStatsCard } from "@/components/identity-stats-card";
 import { useProgression } from "@/hooks/use-progression";
 
 import {
@@ -238,7 +238,7 @@ export default function Home() {
   const handleShare = () => {
     const shareText = user?.todayResult
       ? `Lifestyle Creep Day ${dailyDrop?.dropNumber || "?"}\nScore: ${user.todayResult.score}/500\nMoney IQ: ${user.todayResult.iq}\n\nPlay now!`
-      : `I'm on a ${user?.streak || 0} day streak in Lifestyle Creep! Can you beat my Money Health of ${user?.moneyHealth || 50}?`;
+      : `I'm on a ${user?.streak || 0} day streak in Lifestyle Creep! Can you beat my Financial Fitness of ${user?.moneyHealth || 50}?`;
     if (navigator.share) {
       navigator.share({ text: shareText }).catch(() => {});
     } else {
@@ -286,14 +286,8 @@ export default function Home() {
             </div>
           ) : user ? (
             <>
+              {/* ═══ SECTION 1: PRIMARY CTA — Daily Drop ═══ */}
               <StreakUrgencyBanner hasPlayedToday={hasPlayedToday} streak={user.streak} />
-
-              <QuickStatsBar
-                user={user}
-                rank={displayRank}
-                streakContext={streakContext}
-                className="mb-2"
-              />
 
               {/* First-Week Narrative */}
               {isInFirstWeek && firstWeekNarrative && !hasPlayedToday && (
@@ -319,7 +313,6 @@ export default function Home() {
                 </motion.div>
               )}
 
-              {/* ===== PRIMARY CTA: Play Today's Drop ===== */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -527,38 +520,40 @@ export default function Home() {
                 </motion.div>
               )}
 
-              {/* Money IQ Level */}
+              {/* ═══ SECTION 2: Daily Progress (collapsible missions) ═══ */}
+              {activeMissions.length > 0 && (
+                <DailyProgressCard
+                  missions={activeMissions}
+                  context={missionContext}
+                  completedIds={completedMissionIds}
+                  onComplete={completeMission}
+                  isInFirstWeek={isInFirstWeek}
+                />
+              )}
+
+              {/* ═══ SECTION 3: Money IQ Level ═══ */}
               <LevelProgress totalXP={user.totalScore} />
 
-              {/* Resource Bar */}
+              {/* ═══ SECTION 4: Resource Bar ═══ */}
               <ResourceBar
                 totalScore={user.totalScore}
                 freezeTokens={user.freezeTokens}
                 bonusArcadePlays={user.bonusArcadePlays ?? 0}
               />
 
-              {/* Mission Board */}
-              {activeMissions.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.1 }}
-                >
-                  <MissionBoard
-                    missions={activeMissions}
-                    context={missionContext}
-                    completedIds={completedMissionIds}
-                    onComplete={completeMission}
-                  />
-                </motion.div>
-              )}
+              {/* ═══ SECTION 5: Identity Stats (Financial Fitness, Streak, Rank) ═══ */}
+              <IdentityStatsCard
+                user={user}
+                rank={displayRank}
+                streakContext={streakContext}
+              />
 
               {/* Next Unlock Card */}
               {nextUnlock && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.15 }}
+                  transition={{ duration: 0.4, delay: 0.18 }}
                 >
                   <NextUnlockCard
                     mode={nextUnlock.mode}
@@ -574,7 +569,7 @@ export default function Home() {
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.12 }}
+                  transition={{ duration: 0.4, delay: 0.2 }}
                 >
                   <Card className="p-4 rounded-xl" data-testid="card-friends-ranking">
                     <div className="flex items-center justify-between mb-3">
