@@ -264,8 +264,8 @@ export default function CoopLobby() {
             className="space-y-4"
           >
             {/* Mode Selection */}
-            <Card className="relative overflow-hidden">
-              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-indigo-400 via-purple-500 to-indigo-600 rounded-t-2xl" />
+            <Card className="relative">
+              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-indigo-400 via-purple-500 to-indigo-600 rounded-t-xl" />
               <CardHeader className="text-center pb-3">
                 <div className="mx-auto w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mb-3">
                   <Users className="h-7 w-7 text-primary" />
