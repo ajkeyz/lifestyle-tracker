@@ -5,8 +5,9 @@ import webpush from "web-push";
 import { WebSocketServer, WebSocket } from "ws";
 import { randomUUID } from "crypto";
 import { storage } from "./storage";
-import { submitGameSchema, setModeSchema, updateProfileSchema, createLeagueSchema, joinLeagueSchema, createChallengeSchema, addFreezeTokenSchema, adminScenarioSchema, banUserSchema, addModeratorSchema, createCoopSessionSchema, joinCoopSessionSchema, submitArcadeGameSchema, createSurvivalLobbySchema, survivalAnswerSchema, type CoopMessage, type SurvivalMessage } from "@shared/schema";
+import { submitGameSchema, setModeSchema, updateProfileSchema, createLeagueSchema, joinLeagueSchema, createChallengeSchema, addFreezeTokenSchema, adminScenarioSchema, banUserSchema, addModeratorSchema, createCoopSessionSchema, joinCoopSessionSchema, submitArcadeGameSchema, createSurvivalLobbySchema, survivalAnswerSchema, createSimRunSchema, saveSimRunSchema, type CoopMessage, type SurvivalMessage, type SimulationRun } from "@shared/schema";
 import { MISSION_POOL } from "@shared/lib/progression";
+import { getTemplate, getAllTemplates, type SimulationResult } from "@shared/lib/simlab";
 import { getDailyScenarios, getArcadeScenarios } from "./static-scenarios";
 import { SurvivalMatchmaking } from "./survival-matchmaking";
 import type { SurvivalRoom } from "./survival-room";
@@ -2140,6 +2141,208 @@ export async function registerRoutes(
       res.json(room.getState());
     } catch (error) {
       res.status(500).json({ error: "Failed to get match" });
+    }
+  });
+
+  // ==================== SIM LAB API ====================
+
+  /** Server-side premium check placeholder. */
+  function hasPremium(user: { membershipTier: string }): boolean {
+    return user.membershipTier === "plus" || user.membershipTier === "pro";
+  }
+
+  // In-memory sim run storage (sufficient for MVP; migrate to DB later)
+  const simRuns = new Map<string, SimulationRun>();
+  const previewUsage = new Map<string, Set<string>>(); // userId -> Set<templateId>
+
+  // GET /api/simlab/templates — list available templates
+  app.get("/api/simlab/templates", requireAuth, (_req: Request, res: Response) => {
+    // Initialize templates on first call
+    import("@shared/lib/simlab/index").catch(() => {});
+    res.json(getAllTemplates());
+  });
+
+  // POST /api/simlab/run — create and execute a simulation run
+  app.post("/api/simlab/run", requireAuth, rateLimit("simlab-run", 10, 60000), async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const user = await storage.getOrCreateUser(sessionId);
+
+      const parsed = createSimRunSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid input", details: parsed.error.flatten() });
+      }
+
+      const { templateId, input, seed: userSeed, decisions, isPreview } = parsed.data;
+
+      // Ensure templates are loaded
+      await import("@shared/lib/simlab/index").catch(() => {});
+
+      const template = getTemplate(templateId as any);
+      if (!template) {
+        return res.status(404).json({ error: "Template not found" });
+      }
+
+      // Preview gating: free users get 1 preview per template
+      if (isPreview) {
+        const userPreviews = previewUsage.get(user.id) || new Set();
+        if (userPreviews.has(templateId) && !hasPremium(user)) {
+          return res.status(403).json({
+            error: "Preview limit reached",
+            message: "Free users can run 1 preview per template. Upgrade for unlimited runs.",
+          });
+        }
+      }
+
+      // Non-preview runs require premium
+      if (!isPreview && !hasPremium(user)) {
+        return res.status(403).json({
+          error: "Premium required",
+          message: "Unlimited simulation runs require a premium membership.",
+        });
+      }
+
+      // Validate inputs
+      const errors = template.validate(input as any);
+      if (Object.keys(errors).length > 0) {
+        return res.status(400).json({ error: "Validation failed", fields: errors });
+      }
+
+      // Generate seed
+      const seed = userSeed ?? Math.floor(Math.random() * 2147483647);
+
+      // Run simulation
+      const result: SimulationResult = template.run(input as any, seed, decisions);
+
+      // Store run
+      const run: SimulationRun = {
+        id: result.runId,
+        userId: user.id,
+        templateId,
+        templateVersion: result.templateVersion,
+        inputJSON: input as Record<string, unknown>,
+        seed,
+        resultJSON: result as unknown as Record<string, unknown>,
+        isPreview,
+        savedName: null,
+        tags: [],
+        createdAt: result.computedAt,
+      };
+      simRuns.set(run.id, run);
+
+      // Track preview usage
+      if (isPreview) {
+        if (!previewUsage.has(user.id)) previewUsage.set(user.id, new Set());
+        previewUsage.get(user.id)!.add(templateId);
+      }
+
+      console.log(`[SimLab] Run created: ${run.id} (template=${templateId}, preview=${isPreview}, user=${user.id})`);
+
+      res.json({ run, result });
+    } catch (error) {
+      console.error("[SimLab] Run error:", error);
+      res.status(500).json({ error: "Failed to run simulation" });
+    }
+  });
+
+  // GET /api/simlab/runs — list user's runs (premium only)
+  app.get("/api/simlab/runs", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const user = await storage.getOrCreateUser(sessionId);
+
+      const userRuns = Array.from(simRuns.values())
+        .filter((r) => r.userId === user.id)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+      res.json(userRuns);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch runs" });
+    }
+  });
+
+  // GET /api/simlab/runs/:id — get a specific run
+  app.get("/api/simlab/runs/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const user = await storage.getOrCreateUser(sessionId);
+      const run = simRuns.get(req.params.id);
+
+      if (!run || run.userId !== user.id) {
+        return res.status(404).json({ error: "Run not found" });
+      }
+
+      res.json(run);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch run" });
+    }
+  });
+
+  // POST /api/simlab/runs/:id/save — save/name a run (premium only)
+  app.post("/api/simlab/runs/:id/save", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const user = await storage.getOrCreateUser(sessionId);
+
+      if (!hasPremium(user)) {
+        return res.status(403).json({ error: "Premium required to save runs" });
+      }
+
+      const run = simRuns.get(req.params.id);
+      if (!run || run.userId !== user.id) {
+        return res.status(404).json({ error: "Run not found" });
+      }
+
+      const parsed = saveSimRunSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid input" });
+      }
+
+      run.savedName = parsed.data.name;
+      run.tags = parsed.data.tags || [];
+      run.isPreview = false; // Saving promotes from preview
+      simRuns.set(run.id, run);
+
+      res.json({ success: true, run });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to save run" });
+    }
+  });
+
+  // POST /api/simlab/compare — compare two runs (client-side diff, server just validates access)
+  app.post("/api/simlab/compare", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const user = await storage.getOrCreateUser(sessionId);
+
+      if (!hasPremium(user)) {
+        return res.status(403).json({ error: "Premium required to compare runs" });
+      }
+
+      const { runIdA, runIdB } = req.body;
+      const runA = simRuns.get(runIdA);
+      const runB = simRuns.get(runIdB);
+
+      if (!runA || runA.userId !== user.id || !runB || runB.userId !== user.id) {
+        return res.status(404).json({ error: "One or both runs not found" });
+      }
+
+      res.json({ runA, runB });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to compare runs" });
+    }
+  });
+
+  // GET /api/simlab/preview-usage — check preview availability per template
+  app.get("/api/simlab/preview-usage", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const user = await storage.getOrCreateUser(sessionId);
+      const used = previewUsage.get(user.id);
+      const usage = used ? Array.from(used) : [];
+      res.json({ usedTemplates: usage });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to check preview usage" });
     }
   });
 

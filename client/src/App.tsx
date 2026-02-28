@@ -67,6 +67,9 @@ const SurvivalEntry = lazy(() => import("@/pages/survival-entry"));
 const SurvivalLobby = lazy(() => import("@/pages/survival-lobby"));
 const SurvivalMatch = lazy(() => import("@/pages/survival-match"));
 const SurvivalResults = lazy(() => import("@/pages/survival-results"));
+const SimLabEntry = lazy(() => import("@/pages/simlab-entry"));
+const SimLabSetup = lazy(() => import("@/pages/simlab-setup"));
+const SimLabResults = lazy(() => import("@/pages/simlab-results"));
 const Terms = lazy(() => import("@/pages/terms"));
 const Privacy = lazy(() => import("@/pages/privacy"));
 const NotFound = lazy(() => import("@/pages/not-found"));
@@ -157,7 +160,7 @@ function AuthenticatedRouter() {
   // Hide bottom nav on immersive pages (exact match for /play, prefix match for others)
   const hideBottomNav =
     location === "/play" ||
-    ["/results", "/coop-game", "/arcade", "/survival"].some((path) =>
+    ["/results", "/coop-game", "/arcade", "/survival", "/simlab"].some((path) =>
       location.startsWith(path)
     );
 
@@ -213,6 +216,11 @@ function AuthenticatedRouter() {
             <Route path="/survival/lobby/:matchId" component={SurvivalLobby} />
             <Route path="/survival/match/:matchId" component={SurvivalMatch} />
             <Route path="/survival/results/:matchId" component={SurvivalResults} />
+            <Route path="/simlab">
+              {() => <GuardedRoute mode="simLab" component={SimLabEntry} />}
+            </Route>
+            <Route path="/simlab/setup/:templateId" component={SimLabSetup} />
+            <Route path="/simlab/results/:runId" component={SimLabResults} />
             <Route path="/terms" component={Terms} />
             <Route path="/privacy" component={Privacy} />
             <Route component={NotFound} />

@@ -78,7 +78,7 @@ export default function PlayHub() {
       description: "Deep simulations",
       icon: <FlaskConical className="w-5 h-5 text-white" />,
       gradient: "bg-gradient-to-br from-cyan-500 to-blue-600",
-      path: "/membership",
+      path: "/simlab",
       badge: "PRO",
     },
   ];

@@ -547,3 +547,141 @@ export function trackFeatureDiscovered(
 export function trackPageView(pageName: string, properties?: Record<string, any>) {
   analytics.page(pageName, properties);
 }
+
+// ============================================================
+// SIM LAB EVENTS
+// ============================================================
+
+/**
+ * Track Sim Lab entry page viewed
+ * Fires: simlab-entry.tsx on mount
+ */
+export function trackSimLabViewed(
+  isPremium: boolean,
+  templatesAvailable: number
+) {
+  analytics.track("simlab_viewed", {
+    is_premium: isPremium,
+    templates_available: templatesAvailable,
+  });
+}
+
+/**
+ * Track template selection from Sim Lab home
+ * Fires: simlab-entry.tsx when user taps a template card
+ */
+export function trackSimLabTemplateSelected(
+  templateId: string,
+  isPremium: boolean,
+  isPreview: boolean
+) {
+  analytics.track("simlab_template_selected", {
+    template_id: templateId,
+    is_premium: isPremium,
+    is_preview: isPreview,
+  });
+}
+
+/**
+ * Track simulation setup page loaded
+ * Fires: simlab-setup.tsx on mount
+ */
+export function trackSimLabSetupStarted(templateId: string) {
+  analytics.track("simlab_setup_started", {
+    template_id: templateId,
+  });
+}
+
+/**
+ * Track simulation run initiated
+ * Fires: simlab-setup.tsx when user taps "Run Simulation"
+ */
+export function trackSimLabRunStarted(
+  templateId: string,
+  isPreview: boolean,
+  inputSummary?: Record<string, unknown>
+) {
+  analytics.track("simlab_run_started", {
+    template_id: templateId,
+    is_preview: isPreview,
+    input_summary: inputSummary,
+  });
+}
+
+/**
+ * Track simulation run completed
+ * Fires: simlab-results.tsx when results load
+ */
+export function trackSimLabRunCompleted(
+  templateId: string,
+  runId: string,
+  isPreview: boolean,
+  metricsCount: number,
+  eventsCount: number
+) {
+  analytics.track("simlab_run_completed", {
+    template_id: templateId,
+    run_id: runId,
+    is_preview: isPreview,
+    metrics_count: metricsCount,
+    events_count: eventsCount,
+  });
+}
+
+/**
+ * Track sim results viewed
+ * Fires: simlab-results.tsx on mount
+ */
+export function trackSimLabResultsViewed(
+  templateId: string,
+  runId: string
+) {
+  analytics.track("simlab_results_viewed", {
+    template_id: templateId,
+    run_id: runId,
+  });
+}
+
+/**
+ * Track save simulation clicked
+ * Fires: simlab-results.tsx when user taps save
+ */
+export function trackSimLabSaveClicked(
+  templateId: string,
+  runId: string,
+  isPremium: boolean
+) {
+  analytics.track("simlab_save_clicked", {
+    template_id: templateId,
+    run_id: runId,
+    is_premium: isPremium,
+  });
+}
+
+/**
+ * Track compare simulations clicked
+ * Fires: simlab-results.tsx when user taps compare
+ */
+export function trackSimLabCompareClicked(
+  templateId: string,
+  isPremium: boolean
+) {
+  analytics.track("simlab_compare_clicked", {
+    template_id: templateId,
+    is_premium: isPremium,
+  });
+}
+
+/**
+ * Track Sim Lab paywall view
+ * Fires: simlab-entry.tsx or simlab-results.tsx when paywall shown
+ */
+export function trackSimLabPaywallViewed(
+  trigger: "preview_limit" | "save" | "compare" | "template_locked",
+  templateId?: string
+) {
+  analytics.track("simlab_paywall_viewed", {
+    trigger,
+    template_id: templateId,
+  });
+}
