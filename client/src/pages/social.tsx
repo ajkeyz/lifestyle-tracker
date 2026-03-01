@@ -8,6 +8,7 @@ import { ActivityFeed, type ActivityItem } from "@/components/activity-feed";
 import { AnimatedAvatar } from "@/components/animated-avatar";
 import { Badge } from "@/components/ui/badge";
 import { AmbientBackground } from "@/components/ambient-background";
+import { GradientStripe } from "@/components/gradient-stripe";
 import {
   Users2,
   ChevronRight,
@@ -65,14 +66,14 @@ export default function Social() {
   const topFriends = friends?.slice(0, 5) ?? [];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50 relative overflow-x-hidden">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50 relative overflow-x-clip">
       <AmbientBackground variant="default" />
 
       {/* Header */}
       <header className="flex items-center justify-between px-4 h-14 border-b bg-card/80 backdrop-blur-xl sticky top-0 z-50 border-white/10">
         <div className="flex items-center gap-2.5">
           <Users2 className="w-5 h-5 text-primary" />
-          <span className="font-display font-extrabold text-[15px] leading-none tracking-[-0.04em]">
+          <span className="font-display font-extrabold text-[15px] leading-none tracking-[-0.04em] text-foreground">
             Social
           </span>
         </div>
@@ -95,10 +96,11 @@ export default function Social() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
         >
-          <Card className="rounded-xl overflow-hidden" data-testid="card-activity-feed">
+          <Card className="relative overflow-hidden rounded-2xl" data-testid="card-activity-feed">
+            <GradientStripe variant="primary" />
             <div className="flex items-center gap-2 p-4 pb-2">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-                <Sparkles className="w-4 h-4 text-primary" />
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/20">
+                <Sparkles className="w-4.5 h-4.5 text-white" />
               </div>
               <div className="flex-1">
                 <h2 className="text-sm font-semibold">Activity</h2>
@@ -124,11 +126,12 @@ export default function Social() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.05 }}
         >
-          <Card className="p-4 rounded-xl" data-testid="card-social-friends">
+          <Card className="p-4 relative overflow-hidden rounded-2xl" data-testid="card-social-friends">
+            <GradientStripe variant="primary" />
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-                  <Trophy className="w-4 h-4 text-primary" />
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/20">
+                  <Trophy className="w-4.5 h-4.5 text-white" />
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold">Friends</h3>
@@ -241,11 +244,12 @@ export default function Social() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.1 }}
         >
-          <Card className="p-4 rounded-xl" data-testid="card-social-community">
+          <Card className="p-4 relative overflow-hidden rounded-2xl" data-testid="card-social-community">
+            <GradientStripe variant="primary" />
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                  <MessageSquare className="w-4 h-4 text-white" />
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/20">
+                  <MessageSquare className="w-4.5 h-4.5 text-white" />
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold">Community</h3>
@@ -280,6 +284,7 @@ export default function Social() {
                     key={post.id}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
+                    whileTap={{ scale: 0.98 }}
                     transition={{ delay: i * 0.06 }}
                     className="p-3 rounded-lg bg-muted/30 cursor-pointer hover:bg-muted/50 border border-transparent hover:border-border/50 transition-all"
                     onClick={() => navigate(`/community/${post.id}`)}

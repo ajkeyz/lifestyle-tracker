@@ -9,7 +9,7 @@ import { toast } from "@/hooks/use-toast";
 import {
   Play,
   Gamepad2,
-  Swords,
+  Users,
   Shield,
   FlaskConical,
   Settings,
@@ -60,7 +60,7 @@ export default function PlayHub() {
       id: "coop" as GameModeId,
       title: "Co-op",
       description: "Play with a friend",
-      icon: <Swords className="w-5 h-5 text-white" />,
+      icon: <Users className="w-5 h-5 text-white" />,
       gradient: "bg-gradient-to-br from-indigo-500 to-purple-500",
       path: "/coop-lobby",
     },
@@ -183,7 +183,7 @@ export default function PlayHub() {
                         queryClient.invalidateQueries({ queryKey: ["/api/user"] });
                         navigate("/play");
                       }
-                    } catch {}
+                    } catch { toast({ title: "Replay failed", description: "Could not start replay. Try again.", variant: "destructive" }); }
                   }}
                   data-testid="button-replay-hub"
                 >

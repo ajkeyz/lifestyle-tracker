@@ -1,11 +1,11 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { motion } from "framer-motion";
+import { RollingNumber } from "@/components/animated-counter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ShareCard } from "@/components/share-card";
 import { SocialShareCard } from "@/components/social-share-card";
 import { FriendLeague } from "@/components/leaderboard-card";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { useConfetti } from "@/components/confetti";
 import { useSound } from "@/hooks/use-sound";
 import { QuickWinsPopup } from "@/components/quick-wins-popup";
@@ -214,12 +214,12 @@ export default function Results() {
         <QuickWinsPopup
           score={result.score}
           moneyHealth={result.moneyHealth}
-          isFirstGame={user.gamesPlayed === 1}
+          isFirstGame={user?.gamesPlayed === 1}
           onClose={() => setShowQuickWins(false)}
         />
       )}
       <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
-        <header className="flex items-center justify-between gap-2 p-4 border-b bg-background/90 backdrop-blur-md sticky top-0 z-50">
+        <header className="flex items-center justify-between gap-2 px-4 h-14 border-b bg-card/80 backdrop-blur-xl sticky top-0 z-50 border-white/10">
         <div className="flex items-center gap-2 flex-wrap">
           <Button
             variant="ghost"
@@ -230,9 +230,8 @@ export default function Results() {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <AppLogo size="sm" />
-          <span className="font-bold" data-testid="text-results-header">Results</span>
+          <span className="font-display font-extrabold text-[15px] leading-none tracking-[-0.04em]" data-testid="text-results-header">Results</span>
         </div>
-        <ThemeToggle />
       </header>
 
       <main className="container max-w-2xl mx-auto p-4 space-y-6">
@@ -282,6 +281,17 @@ export default function Results() {
                   <Trophy className="w-4 h-4" />
                   <span className="text-xs font-semibold tracking-wide uppercase" data-testid="text-drop-complete">Drop Complete</span>
                 </div>
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.4, type: "spring", stiffness: 300, damping: 20 }}
+                  className="mb-2"
+                >
+                  <span className="text-5xl font-display font-bold tabular-nums">
+                    <RollingNumber value={result.score} />
+                  </span>
+                  <span className="text-lg text-muted-foreground font-medium">/500</span>
+                </motion.div>
                 <h1
                   className={cn(
                     "text-3xl font-bold tracking-[-0.03em] mb-1",
@@ -292,7 +302,9 @@ export default function Results() {
                   {result.score >= 400 ? "Amazing!" : result.score >= 250 ? "Nice work!" : "Keep growing!"}
                 </h1>
                 <p className="text-muted-foreground text-sm" data-testid="text-come-back">
-                  Come back tomorrow for a new challenge
+                  {user?.streak && user.streak > 0
+                    ? `Keep your ${user.streak}-day streak alive!`
+                    : "Come back tomorrow to build your streak!"}
                 </p>
               </motion.div>
             </motion.div>
@@ -306,7 +318,7 @@ export default function Results() {
               dropNumber={dailyDrop?.dropNumber || 0}
               result={result}
               answers={correctAnswers}
-              streak={user.streak}
+              streak={user?.streak ?? 0}
             />
             </motion.div>
 
@@ -318,7 +330,7 @@ export default function Results() {
               className="flex justify-center"
             >
               <SocialShareCard
-                user={user}
+                user={user!}
                 score={result.score}
                 dropNumber={dailyDrop?.dropNumber}
                 trigger={
@@ -353,7 +365,7 @@ export default function Results() {
                     "link",
                     {
                       score_value: result.score,
-                      streak_value: user.streak,
+                      streak_value: user?.streak,
                     }
                   );
                   navigate("/share");
@@ -424,11 +436,12 @@ export default function Results() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.55, ease: "easeOut" }}
               >
-                <FriendLeague entries={leaderboard} currentUserId={user.id} />
+                <FriendLeague entries={leaderboard} currentUserId={user?.id ?? ""} />
               </motion.div>
             )}
 
-            <Card className="p-4 bg-muted/50" data-testid="card-next-drop">
+            <Card className="p-4 bg-muted/50 rounded-xl relative overflow-hidden" data-testid="card-next-drop">
+              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary via-accent to-primary rounded-t-xl" aria-hidden="true" />
               <div className="flex items-center gap-3 flex-wrap">
                 <Calendar className="w-5 h-5 text-muted-foreground" />
                 <div>
@@ -449,7 +462,7 @@ export default function Results() {
                     queryClient.invalidateQueries({ queryKey: ["/api/user"] });
                     navigate("/play");
                   }
-                } catch {}
+                } catch (e) { console.error("Replay failed", e); }
               }}
               data-testid="button-replay"
             >
@@ -472,7 +485,7 @@ export default function Results() {
     </div>
     {/* Cleo slides in from top-right for streak milestones */}
     <CleoCongratsPeek
-      trigger={user?.streak >= 7 && [7, 14, 30, 60, 100].includes(user.streak)}
+      trigger={!!user?.streak && user.streak >= 7 && [7, 14, 30, 60, 100].includes(user.streak)}
       message={`${user?.streak}-day streak! You're on a roll!`}
     />
     </>
