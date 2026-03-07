@@ -213,12 +213,13 @@ export default function PlayHub() {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.15, duration: 0.3 }}
-          className="flex justify-center"
+          className="flex justify-center py-2"
         >
           <Mascot
             mood="hyped"
             size="sm"
             showBubble={true}
+            speechDelay={1400}
             context={{ screen: "play-hub", username: user?.username, streak: user?.streak ?? 0 } as MascotContext}
           />
         </motion.div>

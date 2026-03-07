@@ -226,12 +226,13 @@ export default function SurvivalEntry() {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.05, duration: 0.3 }}
-          className="flex justify-center"
+          className="flex justify-center py-2"
         >
           <Mascot
             mood="hyped"
             size="sm"
             showBubble={true}
+            speechDelay={1400}
             message="Think you can outlast them all?"
             context={{ screen: "survival-lobby", username: user?.username ?? "", streak: 0 } satisfies MascotContext}
           />

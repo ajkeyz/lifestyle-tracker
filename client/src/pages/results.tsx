@@ -116,6 +116,13 @@ export default function Results() {
       const isStreakMilestone = streakMilestones.includes(user.streak);
       const isFirstGame = user.gamesPlayed === 1;
 
+      // Score reveal sound + count ticks synced with RollingNumber animation
+      setTimeout(() => play("scoreReveal"), 200);
+      const tickTimers: ReturnType<typeof setTimeout>[] = [];
+      for (let i = 0; i < 6; i++) {
+        tickTimers.push(setTimeout(() => play("countTick"), 280 + i * 80));
+      }
+
       if (isPerfectScore) {
         setTimeout(() => {
           firePerfectScore();

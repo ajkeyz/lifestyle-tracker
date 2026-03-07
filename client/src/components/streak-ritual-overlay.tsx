@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Flame } from "lucide-react";
 import { useEffect } from "react";
+import { useSound } from "@/hooks/use-sound";
 
 interface StreakRitualOverlayProps {
   streak: number;
@@ -8,10 +9,14 @@ interface StreakRitualOverlayProps {
 }
 
 export function StreakRitualOverlay({ streak, onComplete }: StreakRitualOverlayProps) {
+  const { play } = useSound();
+
   useEffect(() => {
     const timer = setTimeout(onComplete, 2200);
-    return () => clearTimeout(timer);
-  }, [onComplete]);
+    // Play flame ignition sound synced with icon spring-in
+    const soundTimer = setTimeout(() => play("streakRitual"), 100);
+    return () => { clearTimeout(timer); clearTimeout(soundTimer); };
+  }, [onComplete, play]);
 
   return (
     <motion.div

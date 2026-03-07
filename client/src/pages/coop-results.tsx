@@ -104,6 +104,7 @@ export default function CoopResults() {
                   mood={isWinner ? "celebrating" : isTie ? "happy" : "encouraging"}
                   size="md"
                   showBubble={true}
+                  speechDelay={1200}
                   context={mascotContext}
                 />
               </div>

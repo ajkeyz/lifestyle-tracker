@@ -1,12 +1,10 @@
 import { useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useSound } from "@/hooks/use-sound";
 import { useHaptic } from "@/hooks/use-haptic";
 import { useAchievementOverlay } from "@/components/achievement-overlay-provider";
 import { BADGE_DEFINITIONS, type UserBadge } from "@shared/schema";
 
 export function useAchievementToast() {
-  const { play } = useSound();
   const { vibrateSuccess } = useHaptic();
   const { showAchievement } = useAchievementOverlay();
   const previousBadges = useRef<UserBadge[]>([]);
@@ -40,7 +38,6 @@ export function useAchievementToast() {
       if (!definition) return;
 
       setTimeout(() => {
-        play("achievement");
         vibrateSuccess();
 
         showAchievement({
@@ -53,5 +50,5 @@ export function useAchievementToast() {
     });
 
     previousBadges.current = badges;
-  }, [badges, play, vibrateSuccess, showAchievement]);
+  }, [badges, vibrateSuccess, showAchievement]);
 }

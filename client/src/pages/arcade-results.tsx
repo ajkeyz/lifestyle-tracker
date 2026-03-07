@@ -275,6 +275,7 @@ export default function ArcadeResults() {
                 mood={percentage >= 80 ? "celebrating" : percentage >= 60 ? "happy" : percentage >= 40 ? "encouraging" : "sad"}
                 size="md"
                 showBubble={true}
+                speechDelay={1200}
                 context={mascotContext}
               />
             </motion.div>

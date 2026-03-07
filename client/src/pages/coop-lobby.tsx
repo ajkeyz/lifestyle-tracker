@@ -381,11 +381,12 @@ export default function CoopLobby() {
 
                 {/* Mascot */}
                 <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.3 }}>
-                <div className="flex justify-center mb-4">
+                <div className="flex justify-center mb-4 py-2">
                   <Mascot
                     mood="happy"
                     size="md"
                     showBubble={true}
+                    speechDelay={1400}
                     message="Pick your partner wisely!"
                     context={{ screen: "coop-lobby", username: "", streak: 0 } satisfies MascotContext}
                   />
