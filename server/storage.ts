@@ -82,6 +82,7 @@ export interface IStorage {
   respondToChallenge(challengeId: string, userId: string, accept: boolean): Promise<Challenge | undefined>;
   getFriends(userId: string): Promise<User[]>;
   addFriend(userId: string, friendId: string): Promise<{ success: boolean; message: string }>;
+  removeFriend(userId: string, friendId: string): Promise<{ success: boolean; message: string }>;
   // Streak protection methods
   useStreakFreeze(userId: string): Promise<{ success: boolean; message: string }>;
   addFreezeToken(userId: string, count?: number): Promise<User | undefined>;
@@ -1040,6 +1041,28 @@ export class MemStorage implements IStorage {
     }
     
     return { success: true, message: "Friend added successfully" };
+  }
+
+  async removeFriend(userId: string, friendId: string): Promise<{ success: boolean; message: string }> {
+    const user = await this.getUser(userId);
+    if (!user) return { success: false, message: "User not found" };
+
+    const friend = await this.getUser(friendId);
+    if (!friend) return { success: false, message: "Friend not found" };
+
+    if (!user.friendIds?.includes(friendId)) {
+      return { success: false, message: "Not friends" };
+    }
+
+    user.friendIds = user.friendIds.filter(id => id !== friendId);
+    this.users.set(userId, user);
+
+    if (friend.friendIds) {
+      friend.friendIds = friend.friendIds.filter(id => id !== userId);
+      this.users.set(friendId, friend);
+    }
+
+    return { success: true, message: "Friend removed successfully" };
   }
 
   async useStreakFreeze(userId: string): Promise<{ success: boolean; message: string }> {

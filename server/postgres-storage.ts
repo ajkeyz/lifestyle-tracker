@@ -484,6 +484,34 @@ export class PostgresStorage implements IStorage {
     return { success: true, message: "Friend added successfully" };
   }
 
+  async removeFriend(userId: string, friendId: string): Promise<{ success: boolean; message: string }> {
+    const user = await this.getUser(userId);
+    const friend = await this.getUser(friendId);
+
+    if (!user) return { success: false, message: "User not found" };
+    if (!friend) return { success: false, message: "Friend not found" };
+
+    const userFriendIds = user.friendIds || [];
+    if (!userFriendIds.includes(friendId)) {
+      return { success: false, message: "Not friends" };
+    }
+
+    await db.transaction(async (tx) => {
+      await tx
+        .update(appSchema.lifestyleUsers)
+        .set({ friendIds: userFriendIds.filter(id => id !== friendId) })
+        .where(eq(appSchema.lifestyleUsers.id, userId));
+
+      const friendFriendIds = (friend.friendIds || []).filter(id => id !== userId);
+      await tx
+        .update(appSchema.lifestyleUsers)
+        .set({ friendIds: friendFriendIds })
+        .where(eq(appSchema.lifestyleUsers.id, friendId));
+    });
+
+    return { success: true, message: "Friend removed successfully" };
+  }
+
   // ============================================
   // HELPER METHODS
   // ============================================
@@ -491,12 +519,26 @@ export class PostgresStorage implements IStorage {
   /**
    * Convert database user record to application User type
    */
+  private computeRealStreak(dbUser: any): number {
+    const storedStreak = dbUser.streak ?? 0;
+    if (storedStreak === 0) return 0;
+    const lastPlayed = dbUser.lastPlayedDate;
+    if (!lastPlayed) return 0;
+    const today = getTodayDateString();
+    const yesterday = getYesterdayDateString();
+    if (lastPlayed === today || lastPlayed === yesterday) return storedStreak;
+    const frozenDates: string[] = dbUser.frozenDates || [];
+    if (frozenDates.includes(yesterday)) return storedStreak;
+    return 0;
+  }
+
   private dbUserToAppUser(dbUser: any): User {
     const membershipTier = dbUser.membershipTier || "free";
 
-    // Sync streakInsurance.isPlus with membershipTier for backwards compatibility
     const streakInsurance = dbUser.streakInsurance || defaultStreakInsurance;
     const isPlus = membershipTier === "plus" || membershipTier === "pro";
+
+    const realStreak = this.computeRealStreak(dbUser);
 
     return {
       id: dbUser.id,
@@ -508,7 +550,7 @@ export class PostgresStorage implements IStorage {
       profileSetupComplete: dbUser.profileSetupComplete ?? false,
       onboardingComplete: dbUser.onboardingComplete ?? false,
       mode: dbUser.mode ?? null,
-      streak: dbUser.streak ?? 0,
+      streak: realStreak,
       highestStreak: dbUser.highestStreak ?? 0,
       freezeTokens: dbUser.freezeTokens ?? 1,
       frozenDates: dbUser.frozenDates || [],
@@ -815,8 +857,15 @@ export class PostgresStorage implements IStorage {
         updatedAt: new Date(),
       })
       .where(eq(appSchema.lifestyleUsers.id, sessionId))
-      .then(() => {
+      .then(async () => {
         console.log(`[submit-game] Saved results for ${sessionId} (score: ${totalScore})`);
+        try {
+          await db.update(appSchema.leagueMembers)
+            .set({ weeklyScore: sql`${appSchema.leagueMembers.weeklyScore} + ${totalScore}` })
+            .where(eq(appSchema.leagueMembers.userId, sessionId));
+        } catch (leagueErr) {
+          console.error(`[submit-game] Failed to update league scores for ${sessionId}:`, leagueErr);
+        }
       })
       .catch((err) => {
         console.error(`[submit-game] FAILED to save results for ${sessionId}:`, err);
@@ -832,13 +881,18 @@ export class PostgresStorage implements IStorage {
         username: appSchema.lifestyleUsers.username,
         moneyHealth: appSchema.lifestyleUsers.moneyHealth,
         streak: appSchema.lifestyleUsers.streak,
+        lastPlayedDate: appSchema.lifestyleUsers.lastPlayedDate,
+        frozenDates: appSchema.lifestyleUsers.frozenDates,
       })
       .from(appSchema.lifestyleUsers)
       .orderBy(desc(appSchema.lifestyleUsers.moneyHealth))
       .limit(limit);
 
     return users.map((user, index) => ({
-      ...user,
+      id: user.id,
+      username: user.username,
+      moneyHealth: user.moneyHealth,
+      streak: this.computeRealStreak(user),
       rank: index + 1,
     }));
   }
@@ -891,7 +945,25 @@ export class PostgresStorage implements IStorage {
 
     const league = leagueResult[0];
 
-    // Get all members with their user info
+    const currentWeekStart = getWeekStartDate();
+    if (league.weekStartDate && league.weekStartDate !== currentWeekStart) {
+      const previousMembers = await db
+        .select({ userId: appSchema.leagueMembers.userId, weeklyScore: appSchema.leagueMembers.weeklyScore })
+        .from(appSchema.leagueMembers)
+        .where(eq(appSchema.leagueMembers.leagueId, leagueId));
+      const topMember = previousMembers.sort((a, b) => b.weeklyScore - a.weeklyScore)[0];
+      const winnerId = topMember && topMember.weeklyScore > 0 ? topMember.userId : null;
+
+      await db.update(appSchema.leagues)
+        .set({ weekStartDate: currentWeekStart, previousWeekWinner: winnerId })
+        .where(eq(appSchema.leagues.id, leagueId));
+      await db.update(appSchema.leagueMembers)
+        .set({ weeklyScore: 0, isWeeklyWinner: false })
+        .where(eq(appSchema.leagueMembers.leagueId, leagueId));
+      league.weekStartDate = currentWeekStart;
+      league.previousWeekWinner = winnerId;
+    }
+
     const membersResult = await db
       .select({
         id: appSchema.leagueMembers.id,
@@ -2536,7 +2608,18 @@ export class PostgresStorage implements IStorage {
 
     let dropId: string;
     if (mode === "arcade") {
-      dropId = `arcade-${today}-${arcadeGameIndex}`;
+      const gameIdx = arcadeGameIndex ?? 0;
+      let arcadePlaysToday = host.arcadePlaysToday || 0;
+      if (host.arcadeLastPlayedDate !== today) {
+        arcadePlaysToday = 0;
+      }
+      if (gameIdx >= arcadePlaysToday) {
+        const maxPlays = ARCADE_LIMITS[host.membershipTier || "free"] || 1;
+        if (arcadePlaysToday >= maxPlays) {
+          throw new Error("Arcade play limit reached — cannot create co-op session for locked game");
+        }
+      }
+      dropId = `arcade-${today}-${gameIdx}`;
     } else {
       const drop = await this.getDailyDrop();
       dropId = drop.id;
@@ -2835,8 +2918,19 @@ export class PostgresStorage implements IStorage {
 
     const isNewGameUnlock = arcadeGameIndex === arcadePlaysToday;
 
-    if (isNewGameUnlock && arcadePlaysToday >= maxPlays) {
-      throw new Error("Arcade play limit reached for today");
+    if (isNewGameUnlock) {
+      const atomicResult = await db.execute(sql`
+        UPDATE lifestyle_users
+        SET arcade_plays_today = CASE WHEN arcade_last_played_date = ${today} THEN arcade_plays_today + 1 ELSE 1 END,
+            arcade_last_played_date = ${today}
+        WHERE id = ${userId}
+          AND (CASE WHEN arcade_last_played_date = ${today} THEN arcade_plays_today ELSE 0 END) < ${maxPlays}
+        RETURNING arcade_plays_today
+      `);
+      if (!atomicResult.rows || atomicResult.rows.length === 0) {
+        throw new Error("Arcade play limit reached for today");
+      }
+      arcadePlaysToday = (atomicResult.rows[0] as any).arcade_plays_today;
     }
 
     const dayNumber = getDayNumber();
@@ -2863,8 +2957,6 @@ export class PostgresStorage implements IStorage {
     }
     totalScore = Math.max(0, totalScore);
 
-    const newPlaysToday = isNewGameUnlock ? arcadePlaysToday + 1 : arcadePlaysToday;
-
     const newCategoryStats = [...(user.categoryStats || [])];
     const categoryEntries = Array.from(categoryResults.entries());
     for (const [category, stats] of categoryEntries) {
@@ -2889,13 +2981,16 @@ export class PostgresStorage implements IStorage {
       }
     }
 
-    await this.updateUser(userId, {
-      arcadePlaysToday: newPlaysToday,
-      arcadeLastPlayedDate: today,
+    const updateFields: any = {
       gamesPlayed: user.gamesPlayed + 1,
       totalScore: user.totalScore + totalScore,
       categoryStats: newCategoryStats,
-    });
+    };
+    if (!isNewGameUnlock) {
+      updateFields.arcadePlaysToday = arcadePlaysToday;
+      updateFields.arcadeLastPlayedDate = today;
+    }
+    await this.updateUser(userId, updateFields);
 
     await this.computeAndUpdateAllBadges(userId, {
       correctCount: correctAnswers,
@@ -2903,13 +2998,14 @@ export class PostgresStorage implements IStorage {
       categoryResults,
     });
 
-    const playsRemaining = Math.max(0, maxPlays - newPlaysToday);
+    const currentPlays = isNewGameUnlock ? arcadePlaysToday : arcadePlaysToday;
+    const playsRemaining = Math.max(0, maxPlays - currentPlays);
 
     return {
       score: totalScore,
       correctAnswers,
       totalQuestions: scenarios.length,
-      playsUsedToday: newPlaysToday,
+      playsUsedToday: currentPlays,
       playsRemaining,
     };
   }

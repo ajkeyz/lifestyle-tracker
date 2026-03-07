@@ -829,6 +829,26 @@ export async function registerRoutes(
     }
   });
 
+  app.delete("/api/friends/:friendId", requireAuth, rateLimit("remove-friend", 20, 60000), async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const { friendId } = req.params;
+
+      if (!friendId || typeof friendId !== "string") {
+        return res.status(400).json({ error: "Friend ID is required" });
+      }
+
+      const result = await storage.removeFriend(sessionId, friendId);
+      if (!result.success) {
+        return res.status(400).json({ error: result.message });
+      }
+      res.json(result);
+    } catch (error) {
+      console.error("Error removing friend:", error);
+      res.status(500).json({ error: "Failed to remove friend" });
+    }
+  });
+
   // ── Social: unread indicator ──────────────────────────────────────
   app.get("/api/social/unread", requireAuth, async (req: Request, res: Response) => {
     try {
