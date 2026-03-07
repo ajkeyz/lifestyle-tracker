@@ -80,7 +80,8 @@ interface RankBadgeProps {
   className?: string;
 }
 
-export function RankBadge({ moneyHealth, size = "sm", className }: RankBadgeProps) {
+export function RankBadge({ moneyHealth: rawHealth, size = "sm", className }: RankBadgeProps) {
+  const moneyHealth = Number.isFinite(rawHealth) ? Math.max(0, Math.min(100, rawHealth)) : 0;
   const tier = getRankTier(moneyHealth);
   const config = tiers[tier];
   const Icon = config.icon;
@@ -110,7 +111,8 @@ interface TierProgressBarProps {
   className?: string;
 }
 
-export function TierProgressBar({ moneyHealth, className }: TierProgressBarProps) {
+export function TierProgressBar({ moneyHealth: rawHealth, className }: TierProgressBarProps) {
+  const moneyHealth = Number.isFinite(rawHealth) ? Math.max(0, Math.min(100, rawHealth)) : 0;
   const currentTier = getRankTier(moneyHealth);
   const currentConfig = tiers[currentTier];
   const nextTier = getNextTier(currentTier);
@@ -146,7 +148,7 @@ export function TierProgressBar({ moneyHealth, className }: TierProgressBarProps
         />
       </div>
       <span className="text-[10px] whitespace-nowrap">
-        {Math.round(nextConfig.minHealth - moneyHealth)} to {nextConfig.name}
+        {Math.max(0, Math.round(nextConfig.minHealth - moneyHealth))} to {nextConfig.name}
       </span>
     </div>
   );
