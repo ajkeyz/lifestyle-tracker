@@ -1,23 +1,26 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { motion } from "framer-motion";
+import { RollingNumber } from "@/components/animated-counter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ShareCard } from "@/components/share-card";
 import { SocialShareCard } from "@/components/social-share-card";
 import { FriendLeague } from "@/components/leaderboard-card";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { useConfetti } from "@/components/confetti";
 import { useSound } from "@/hooks/use-sound";
 import { QuickWinsPopup } from "@/components/quick-wins-popup";
-import { ArrowLeft, Home, Trophy, Calendar, Share2, BookOpen, Sparkles, Flame, Brain } from "lucide-react";
+import { ArrowLeft, Home, Trophy, Calendar, Share2, BookOpen, Sparkles, Flame, Brain, RefreshCw } from "lucide-react";
 import { AppLogo } from "@/components/app-logo";
 import { Mascot, getMascotMoodForScore, getMascotScoreMessage, getMascotContextDialogue, CelebrationBurst, BODY_COLORS, type MascotContext } from "@/components/mascot";
+import { CleoCongratsPeek } from "@/components/cleo-edge-presence";
 import { useQuery } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
 import type { User, DailyDrop, LeaderboardEntry } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { trackStreakUpdated, trackShareClicked } from "@/lib/analytics";
 import { analyzeAnswerPatterns, toneColors } from "@/lib/game-insights";
+import { CleoAnalysis } from "@/components/cleo-analysis";
 import { cn } from "@/lib/utils";
 
 function ResultsBubble({ mood, context }: { mood: import("@/components/mascot").MascotMood; context: MascotContext }) {
@@ -86,8 +89,21 @@ export default function Results() {
     queryKey: ["/api/leaderboard"],
   });
 
+  // Guard: redirect to home if no todayResult, but with a grace period.
+  // The submission may still be processing on the server (Neon cold start),
+  // so refetch once before giving up and redirecting.
+  const redirectAttempts = useRef(0);
   useEffect(() => {
     if (!userLoading && user && !user.todayResult) {
+      if (redirectAttempts.current < 2) {
+        // First 2 attempts: refetch user data after a short delay
+        redirectAttempts.current++;
+        const timer = setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+        }, 1500);
+        return () => clearTimeout(timer);
+      }
+      // After 2 retries (~3s), give up and redirect
       navigate("/");
     }
   }, [user, userLoading, navigate]);
@@ -99,6 +115,13 @@ export default function Results() {
       const streakMilestones = [7, 14, 30, 60, 100];
       const isStreakMilestone = streakMilestones.includes(user.streak);
       const isFirstGame = user.gamesPlayed === 1;
+
+      // Score reveal sound + count ticks synced with RollingNumber animation
+      setTimeout(() => play("scoreReveal"), 200);
+      const tickTimers: ReturnType<typeof setTimeout>[] = [];
+      for (let i = 0; i < 6; i++) {
+        tickTimers.push(setTimeout(() => play("countTick"), 280 + i * 80));
+      }
 
       if (isPerfectScore) {
         setTimeout(() => {
@@ -146,7 +169,45 @@ export default function Results() {
     }
   }, [user]);
 
-  if (!user?.todayResult) {
+  const result = user?.todayResult ?? null;
+  const scenarios = dailyDrop?.scenarios || [];
+
+  const correctAnswers = useMemo(() => {
+    if (!result) return [];
+    return result.answers.map((answer: string, index: number) => {
+      const scenario = scenarios[index];
+      if (!scenario) return false;
+      const choice = scenario.choices.find((c: any) => c.label === answer);
+      return choice?.isCorrect || false;
+    });
+  }, [result, scenarios]);
+
+  const patternSummary = useMemo(() => {
+    if (!result || scenarios.length === 0) return null;
+    return analyzeAnswerPatterns(scenarios, result.answers);
+  }, [result, scenarios]);
+
+  // Rich context for the mascot — makes Cleo contextually aware on results page
+  const STREAK_MILESTONES = [7, 14, 30, 60, 100];
+  const mascotContext: MascotContext = useMemo(() => {
+    if (!result || !user) return { screen: "results" as const } as MascotContext;
+    return {
+      screen: "results",
+      score: result.score,
+      iq: result.iq,
+      moneyHealth: result.moneyHealth,
+      streakGained: user.streak > 0,
+      streakBroken: user.streak === 0 && user.highestStreak > 0,
+      isStreakMilestone: STREAK_MILESTONES.includes(user.streak),
+      username: user.username,
+      streak: user.streak,
+      percentile: leaderboard && leaderboard.length > 0
+        ? Math.round(((leaderboard.length - (leaderboard.findIndex(e => e.id === user.id) + 1)) / leaderboard.length) * 100)
+        : undefined,
+    };
+  }, [result, user, leaderboard]);
+
+  if (!result) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20 flex items-center justify-center">
         <p className="text-muted-foreground" data-testid="text-no-results">Loading results...</p>
@@ -154,53 +215,18 @@ export default function Results() {
     );
   }
 
-  const result = user.todayResult;
-  const scenarios = dailyDrop?.scenarios || [];
-
-  const correctAnswers = useMemo(() => {
-    return result.answers.map((answer, index) => {
-      const scenario = scenarios[index];
-      if (!scenario) return false;
-      const choice = scenario.choices.find((c) => c.label === answer);
-      return choice?.isCorrect || false;
-    });
-  }, [result.answers, scenarios]);
-
-  const patternSummary = useMemo(() => {
-    if (scenarios.length === 0) return null;
-    return analyzeAnswerPatterns(scenarios, result.answers);
-  }, [scenarios, result.answers]);
-
-  // Rich context for the mascot — makes Cleo contextually aware on results page
-  const STREAK_MILESTONES = [7, 14, 30, 60, 100];
-  const mascotContext: MascotContext = useMemo(() => ({
-    screen: "results",
-    score: result.score,
-    iq: result.iq,
-    moneyHealth: result.moneyHealth,
-    streakGained: user.streak > 0,
-    streakBroken: user.streak === 0 && user.highestStreak > 0,
-    isStreakMilestone: STREAK_MILESTONES.includes(user.streak),
-    username: user.username,
-    streak: user.streak,
-    // Estimate percentile from leaderboard rank
-    percentile: leaderboard && leaderboard.length > 0
-      ? Math.round(((leaderboard.length - (leaderboard.findIndex(e => e.id === user.id) + 1)) / leaderboard.length) * 100)
-      : undefined,
-  }), [result, user, leaderboard]);
-
   return (
     <>
       {showQuickWins && (
         <QuickWinsPopup
           score={result.score}
           moneyHealth={result.moneyHealth}
-          isFirstGame={user.gamesPlayed === 1}
+          isFirstGame={user?.gamesPlayed === 1}
           onClose={() => setShowQuickWins(false)}
         />
       )}
       <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
-        <header className="flex items-center justify-between gap-2 p-4 border-b bg-background/90 backdrop-blur-md sticky top-0 z-50">
+        <header className="flex items-center justify-between gap-2 px-4 h-14 border-b bg-card/80 backdrop-blur-xl sticky top-0 z-50 border-white/10">
         <div className="flex items-center gap-2 flex-wrap">
           <Button
             variant="ghost"
@@ -211,9 +237,8 @@ export default function Results() {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <AppLogo size="sm" />
-          <span className="font-bold" data-testid="text-results-header">Results</span>
+          <span className="font-display font-extrabold text-[15px] leading-none tracking-[-0.04em]" data-testid="text-results-header">Results</span>
         </div>
-        <ThemeToggle />
       </header>
 
       <main className="container max-w-2xl mx-auto p-4 space-y-6">
@@ -240,7 +265,7 @@ export default function Results() {
               />
 
               {/* Full-screen confetti for near-perfect or perfect scores */}
-              <CelebrationBurst trigger={result.score >= 380} />
+              <CelebrationBurst trigger={result.score >= 380} intensity={result.score >= 480 ? "epic" : "normal"} />
 
               <div className="flex flex-col items-center mb-4 relative z-10" data-testid="mascot-results">
                 <Mascot
@@ -263,6 +288,17 @@ export default function Results() {
                   <Trophy className="w-4 h-4" />
                   <span className="text-xs font-semibold tracking-wide uppercase" data-testid="text-drop-complete">Drop Complete</span>
                 </div>
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.4, type: "spring", stiffness: 300, damping: 20 }}
+                  className="mb-2"
+                >
+                  <span className="text-5xl font-display font-bold tabular-nums">
+                    <RollingNumber value={result.score} />
+                  </span>
+                  <span className="text-lg text-muted-foreground font-medium">/500</span>
+                </motion.div>
                 <h1
                   className={cn(
                     "text-3xl font-bold tracking-[-0.03em] mb-1",
@@ -273,7 +309,9 @@ export default function Results() {
                   {result.score >= 400 ? "Amazing!" : result.score >= 250 ? "Nice work!" : "Keep growing!"}
                 </h1>
                 <p className="text-muted-foreground text-sm" data-testid="text-come-back">
-                  Come back tomorrow for a new challenge
+                  {user?.streak && user.streak > 0
+                    ? `Keep your ${user.streak}-day streak alive!`
+                    : "Come back tomorrow to build your streak!"}
                 </p>
               </motion.div>
             </motion.div>
@@ -287,7 +325,7 @@ export default function Results() {
               dropNumber={dailyDrop?.dropNumber || 0}
               result={result}
               answers={correctAnswers}
-              streak={user.streak}
+              streak={user?.streak ?? 0}
             />
             </motion.div>
 
@@ -299,7 +337,7 @@ export default function Results() {
               className="flex justify-center"
             >
               <SocialShareCard
-                user={user}
+                user={user!}
                 score={result.score}
                 dropNumber={dailyDrop?.dropNumber}
                 trigger={
@@ -334,7 +372,7 @@ export default function Results() {
                     "link",
                     {
                       score_value: result.score,
-                      streak_value: user.streak,
+                      streak_value: user?.streak,
                     }
                   );
                   navigate("/share");
@@ -386,17 +424,31 @@ export default function Results() {
               </motion.div>
             )}
 
+            {/* Cleo AI Analysis */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.5, ease: "easeOut" }}
+            >
+              <CleoAnalysis
+                score={correctAnswers.filter(Boolean).length}
+                totalQuestions={scenarios.length}
+                moneyHealth={result.moneyHealth}
+              />
+            </motion.div>
+
             {leaderboard && leaderboard.length > 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.5, ease: "easeOut" }}
+                transition={{ duration: 0.4, delay: 0.55, ease: "easeOut" }}
               >
-                <FriendLeague entries={leaderboard} currentUserId={user.id} />
+                <FriendLeague entries={leaderboard} currentUserId={user?.id ?? ""} />
               </motion.div>
             )}
 
-            <Card className="p-4 bg-muted/50" data-testid="card-next-drop">
+            <Card className="p-4 bg-muted/50 rounded-xl relative overflow-hidden" data-testid="card-next-drop">
+              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary via-accent to-primary rounded-t-xl" aria-hidden="true" />
               <div className="flex items-center gap-3 flex-wrap">
                 <Calendar className="w-5 h-5 text-muted-foreground" />
                 <div>
@@ -407,6 +459,23 @@ export default function Results() {
                 </div>
               </div>
             </Card>
+
+            <Button
+              className="w-full gap-2 btn-premium border-0"
+              onClick={async () => {
+                try {
+                  const res = await fetch("/api/daily-drop/replay", { method: "POST" });
+                  if (res.ok) {
+                    queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+                    navigate("/play");
+                  }
+                } catch (e) { console.error("Replay failed", e); }
+              }}
+              data-testid="button-replay"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Replay Today's Drop
+            </Button>
 
             <Button
               variant="outline"
@@ -421,6 +490,11 @@ export default function Results() {
         )}
       </main>
     </div>
+    {/* Cleo slides in from top-right for streak milestones */}
+    <CleoCongratsPeek
+      trigger={!!user?.streak && user.streak >= 7 && [7, 14, 30, 60, 100].includes(user.streak)}
+      message={`${user?.streak}-day streak! You're on a roll!`}
+    />
     </>
   );
 }

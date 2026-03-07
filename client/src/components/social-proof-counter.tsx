@@ -2,18 +2,23 @@ import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Users, TrendingUp } from "lucide-react";
 
-interface DailyStats {
-  playersToday: number;
-  totalPlayers: number;
+interface FriendsActivity {
+  friendsPlayedToday: number;
+  totalFriends: number;
+  recentActivity: unknown[];
 }
 
 export function SocialProofCounter() {
-  const { data: stats } = useQuery<DailyStats>({
-    queryKey: ["/api/daily-stats"],
-    refetchInterval: 60000, // Refresh every minute
+  const { data: stats } = useQuery<FriendsActivity>({
+    queryKey: ["/api/friends/activity"],
+    refetchInterval: 60000,
   });
 
-  if (!stats || stats.playersToday === 0) return null;
+  if (!stats) return null;
+
+  if (stats.friendsPlayedToday === 0) {
+    return <span className="text-xs text-muted-foreground">Be the first of your friends to play today</span>;
+  }
 
   return (
     <motion.div
@@ -25,16 +30,16 @@ export function SocialProofCounter() {
       <div className="flex items-center gap-1">
         <Users className="w-4 h-4 text-muted-foreground" />
         <span className="font-medium text-foreground">
-          {stats.playersToday.toLocaleString()}
+          {stats.friendsPlayedToday}
         </span>
-        <span>played today</span>
+        <span>{stats.friendsPlayedToday === 1 ? "friend" : "friends"} played today</span>
       </div>
-      {stats.totalPlayers > 100 && (
+      {stats.totalFriends > 3 && (
         <>
           <span className="text-muted-foreground/50">|</span>
           <div className="flex items-center gap-1">
             <TrendingUp className="w-3 h-3 text-emerald-500 dark:text-emerald-400" />
-            <span>{stats.totalPlayers.toLocaleString()} total</span>
+            <span>{stats.totalFriends} friends</span>
           </div>
         </>
       )}

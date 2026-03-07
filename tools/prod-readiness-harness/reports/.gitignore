@@ -1,0 +1,4 @@
+# Ignore generated reports (they're regenerated on each run)
+*.json
+*.html
+!.gitignore

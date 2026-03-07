@@ -18,7 +18,21 @@
     "test:users": "tsx -r dotenv/config test-user-ops.ts",
     "test:game": "tsx -r dotenv/config test-game-ops.ts",
     "test:social": "tsx -r dotenv/config test-social-ops.ts",
-    "test:community": "tsx -r dotenv/config test-community-ops.ts"
+    "test:community": "tsx -r dotenv/config test-community-ops.ts",
+    "harness": "TEST_MODE=true tsx tools/survival-harness/src/index.ts",
+    "harness:smoke": "TEST_MODE=true tsx tools/survival-harness/src/index.ts run:batch --scenario tools/survival-harness/scenarios/smoke.json --record",
+    "harness:chaos": "TEST_MODE=true tsx tools/survival-harness/src/index.ts run:chaos --scenario tools/survival-harness/scenarios/chaos.json --record",
+    "harness:load": "TEST_MODE=true tsx tools/survival-harness/src/index.ts run:concurrent --scenario tools/survival-harness/scenarios/load.json",
+    "harness:full": "TEST_MODE=true tsx tools/survival-harness/src/index.ts run:concurrent --scenario tools/survival-harness/scenarios/full-suite.json --record --html-report",
+    "harness:health": "TEST_MODE=true tsx tools/survival-harness/src/index.ts health",
+    "test:smoke": "TEST_MODE=true tsx tools/prod-readiness-harness/src/cli/index.ts smoke",
+    "test:api": "TEST_MODE=true tsx tools/prod-readiness-harness/src/cli/index.ts api",
+    "test:load": "TEST_MODE=true tsx tools/prod-readiness-harness/src/cli/index.ts load",
+    "test:stress": "TEST_MODE=true tsx tools/prod-readiness-harness/src/cli/index.ts stress",
+    "test:soak": "TEST_MODE=true tsx tools/prod-readiness-harness/src/cli/index.ts soak",
+    "test:chaos": "TEST_MODE=true tsx tools/prod-readiness-harness/src/cli/index.ts chaos",
+    "test:security": "TEST_MODE=true tsx tools/prod-readiness-harness/src/cli/index.ts security",
+    "test:full": "TEST_MODE=true tsx tools/prod-readiness-harness/src/cli/index.ts full --format console,json,html --diff"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

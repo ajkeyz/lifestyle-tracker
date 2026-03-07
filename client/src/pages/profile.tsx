@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { AppLogo } from "@/components/app-logo";
 import { useToast } from "@/hooks/use-toast";
 import { AnimatedAvatar } from "@/components/animated-avatar";
@@ -30,6 +29,7 @@ import {
   Copy,
   Check,
   Settings,
+  BarChart3,
   Flame,
   TrendingUp,
   TrendingDown,
@@ -53,11 +53,26 @@ import {
   Pencil,
   Save,
   X,
+  ChevronDown,
+  ChevronRight,
+  Trophy,
+  Crown,
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation, Link, useParams } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { AnimatedCounter } from "@/components/animated-counter";
+import { ScoreTrendChart } from "@/components/trend-chart";
+import { MilestoneProgress } from "@/components/milestone-progress";
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from "@/components/ui/collapsible";
 import type { User } from "@shared/schema";
+import { BADGE_DEFINITIONS } from "@shared/schema";
+import { AmbientBackground } from "@/components/ambient-background";
+import { GradientStripe } from "@/components/gradient-stripe";
 
 function getMoneyHealthLabel(score: number): { label: string; color: string; trend: "up" | "stable" | "down" } {
   if (score >= 90) return { label: "Excellent", color: "text-emerald-500", trend: "up" };
@@ -68,7 +83,9 @@ function getMoneyHealthLabel(score: number): { label: string; color: string; tre
   return { label: "Starting Out", color: "text-red-500", trend: "down" };
 }
 
-function getAvatarGlowColor(moneyHealth: number): string {
+function getAvatarGlowColor(moneyHealth: number, membershipTier?: string): string {
+  if (membershipTier === "pro") return "from-yellow-400/40 via-amber-500/40 to-orange-500/40";
+  if (membershipTier === "plus") return "from-blue-400/40 via-indigo-500/40 to-purple-500/40";
   if (moneyHealth >= 75) return "from-emerald-500/30 to-green-500/30";
   if (moneyHealth >= 50) return "from-yellow-500/30 to-amber-500/30";
   return "from-orange-500/30 to-red-500/30";
@@ -172,6 +189,8 @@ export default function Profile() {
   const [editingWhyHere, setEditingWhyHere] = useState(false);
   const [philosophyDraft, setPhilosophyDraft] = useState("");
   const [whyHereDraft, setWhyHereDraft] = useState("");
+  const [philosophyOpen, setPhilosophyOpen] = useState(false);
+  const [whyHereOpen, setWhyHereOpen] = useState(false);
 
   const isOwnProfile = !params.userId;
 
@@ -331,20 +350,25 @@ export default function Profile() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
+        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg">
+          <Users className="w-8 h-8 text-white" />
+        </div>
         <p className="text-muted-foreground">Unable to load profile</p>
+        <Button variant="outline" onClick={() => window.location.reload()}>Try Again</Button>
       </div>
     );
   }
 
   const healthInfo = getMoneyHealthLabel(user.moneyHealth);
-  const glowColor = getAvatarGlowColor(user.moneyHealth);
+  const glowColor = getAvatarGlowColor(user.moneyHealth, user.membershipTier);
   const streakInfo = getStreakIntensity(user.streak);
   const TrendIcon = healthInfo.trend === "up" ? TrendingUp : healthInfo.trend === "down" ? TrendingDown : Minus;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
-      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-sm border-b px-4 py-3">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50 relative overflow-x-clip">
+      <AmbientBackground variant="default" />
+      <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-xl border-b border-white/10 px-4 h-14 flex items-center">
         <div className="max-w-md mx-auto flex items-center justify-between gap-2">
           <Button
             variant="ghost"
@@ -356,11 +380,13 @@ export default function Profile() {
           </Button>
           <div className="flex items-center gap-2">
             <AppLogo size="sm" />
-            <span className="font-display font-semibold tracking-[-0.02em]">
+            <span className="font-display font-extrabold text-[15px] leading-none tracking-[-0.04em]">
               {isOwnProfile ? "Profile" : user?.username || "Profile"}
             </span>
           </div>
-          <ThemeToggle />
+          <Button variant="ghost" size="icon" onClick={() => navigate("/stats")} data-testid="button-stats" aria-label="View statistics">
+            <BarChart3 className="w-4 h-4" />
+          </Button>
         </div>
       </header>
 
@@ -402,6 +428,21 @@ export default function Profile() {
                     <Flame className="w-4 h-4" />
                   </motion.div>
                 )}
+                {user.membershipTier !== "free" && (
+                  <motion.div
+                    className={`absolute -bottom-1 -left-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold text-white shadow-lg ${
+                      user.membershipTier === "pro"
+                        ? "bg-gradient-to-r from-yellow-500 to-amber-600"
+                        : "bg-gradient-to-r from-blue-500 to-indigo-600"
+                    }`}
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.5, type: "spring" }}
+                    data-testid="badge-membership"
+                  >
+                    {user.membershipTier === "pro" ? "PRO" : "PLUS"}
+                  </motion.div>
+                )}
               </div>
             </Floating3DAvatar>
 
@@ -420,7 +461,7 @@ export default function Profile() {
           </div>
 
           <div className="text-center space-y-1">
-            <h1 className="text-2xl font-semibold tracking-[-0.02em]" data-testid="text-username">
+            <h1 className="text-2xl font-display font-semibold tracking-[-0.02em]" data-testid="text-username">
               {user.username}
             </h1>
             {user.bio && (
@@ -511,6 +552,154 @@ export default function Profile() {
           </p>
         </motion.div>
 
+        {/* === ANIMATED STATS ROW === */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="grid grid-cols-4 gap-2"
+        >
+          {[
+            { icon: Flame, label: "Streak", value: user.streak, color: "text-orange-500", suffix: "d" },
+            { icon: Heart, label: "Health", value: user.moneyHealth, color: "text-emerald-500", suffix: "" },
+            { icon: Target, label: "Games", value: user.gamesPlayed, color: "text-blue-500", suffix: "" },
+            { icon: Star, label: "Best", value: user.highestStreak, color: "text-yellow-500", suffix: "d" },
+          ].map((stat) => (
+            <div key={stat.label} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-card/50 border border-border/50">
+              <stat.icon className={`w-4 h-4 ${stat.color}`} />
+              <span className="text-lg font-bold tabular-nums">
+                <AnimatedCounter value={stat.value} duration={1.2} suffix={stat.suffix} />
+              </span>
+              <span className="text-[10px] text-muted-foreground">{stat.label}</span>
+            </div>
+          ))}
+        </motion.div>
+
+        {/* === ACHIEVEMENTS === */}
+        {isOwnProfile && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+          >
+            <Card className="p-4 space-y-3 relative overflow-hidden" data-testid="card-achievements">
+              <GradientStripe variant="primary" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Trophy className="w-4 h-4 text-primary" />
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">
+                    Achievements
+                  </p>
+                  <Badge variant="outline" className="text-[10px] h-4 px-1.5">
+                    {user.badges?.filter((b) => b.unlocked).length ?? 0}/{BADGE_DEFINITIONS.length}
+                  </Badge>
+                </div>
+              </div>
+
+              {(() => {
+                const unlockedBadges = (user.badges ?? [])
+                  .filter((b) => b.unlocked)
+                  .slice(-3)
+                  .map((b) => {
+                    const def = BADGE_DEFINITIONS.find((d) => d.id === b.badgeId);
+                    return def ? { badgeId: b.badgeId, name: def.name, iconName: def.icon } : null;
+                  })
+                  .filter(Boolean) as { badgeId: string; name: string; iconName: string }[];
+
+                const nextBadge = (user.badges ?? [])
+                  .filter((b) => !b.unlocked && b.progress > 0)
+                  .sort((a, b) => {
+                    const aDef = BADGE_DEFINITIONS.find((d) => d.id === a.badgeId);
+                    const bDef = BADGE_DEFINITIONS.find((d) => d.id === b.badgeId);
+                    if (!aDef || !bDef) return 0;
+                    return (b.progress / bDef.maxProgress) - (a.progress / aDef.maxProgress);
+                  })[0];
+                const nextDef = nextBadge ? BADGE_DEFINITIONS.find((d) => d.id === nextBadge.badgeId) : null;
+
+                return (
+                  <>
+                    {unlockedBadges.length > 0 ? (
+                      <div className="flex items-center justify-center gap-3">
+                        {unlockedBadges.map((badge, i) => (
+                          <motion.div
+                            key={badge.badgeId}
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ delay: 0.2 + i * 0.1, type: "spring" }}
+                            className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/30 flex items-center justify-center"
+                            title={badge.name}
+                          >
+                            <Trophy className="w-4 h-4 text-primary" />
+                          </motion.div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-1">
+                        Start playing to earn badges.
+                      </p>
+                    )}
+
+                    {nextDef && nextBadge && (
+                      <div className="flex items-center gap-2 px-2.5 py-2 rounded-lg bg-primary/5 border border-primary/10">
+                        <Sparkles className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                        <span className="text-xs text-muted-foreground flex-1">
+                          Next: <span className="font-medium text-foreground">{nextDef.name}</span>{" "}
+                          ({nextBadge.progress}/{nextDef.maxProgress})
+                        </span>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full gap-2"
+                onClick={() => navigate("/achievements")}
+                data-testid="button-view-badges"
+              >
+                <Trophy className="w-3.5 h-3.5" />
+                View All Badges
+                <ChevronRight className="w-3 h-3" />
+              </Button>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* === ACTIVITY SPARKLINE (Last 14 Days) === */}
+        {isOwnProfile && user.gameHistory && user.gameHistory.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.18 }}
+            className="flex flex-col items-center gap-1.5"
+          >
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Last 14 Days</span>
+            <div className="flex items-end gap-[3px]">
+              {Array.from({ length: 14 }, (_, i) => {
+                const date = new Date();
+                date.setDate(date.getDate() - (13 - i));
+                const dateStr = date.toISOString().split("T")[0];
+                const game = user.gameHistory.find((g) => g.date.startsWith(dateStr));
+                const played = !!game;
+                const score = game?.score || 0;
+                const height = played ? Math.max(8, Math.min(24, (score / 500) * 24)) : 4;
+                return (
+                  <div
+                    key={i}
+                    className={`w-[6px] rounded-full transition-all ${
+                      played ? "bg-primary" : "bg-muted-foreground/20"
+                    }`}
+                    style={{ height: `${height}px` }}
+                    title={`${dateStr}: ${played ? `${score} pts` : "No game"}`}
+                  />
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+
         {/* === REFLECTION LINE === */}
         {isOwnProfile && (
           <motion.div
@@ -532,7 +721,8 @@ export default function Profile() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 }}
           >
-            <Card className="p-4 space-y-3" data-testid="card-share-username">
+            <Card className="p-4 space-y-3 relative overflow-hidden" data-testid="card-share-username">
+              <GradientStripe variant="primary" />
               <div className="flex items-center gap-2 text-sm font-medium">
                 <Users className="w-4 h-4 text-primary" />
                 <span>Play better with people who know you</span>
@@ -604,91 +794,119 @@ export default function Profile() {
           </motion.div>
         )}
 
-        {/* === MONEY PHILOSOPHY (own profile only) === */}
+        {/* === MONEY PHILOSOPHY (own profile only, collapsible) === */}
         {isOwnProfile && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
           >
-            <Card className="p-4 space-y-2" data-testid="card-money-philosophy">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">
-                  Money Philosophy
-                </p>
-                {!editingPhilosophy && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      setPhilosophyDraft(user.moneyPhilosophy || "");
-                      setEditingPhilosophy(true);
-                    }}
-                    data-testid="button-edit-philosophy"
-                  >
-                    <Pencil className="w-3.5 h-3.5" />
-                  </Button>
-                )}
-              </div>
+            <Collapsible open={philosophyOpen || editingPhilosophy} onOpenChange={setPhilosophyOpen}>
+              <Card className="p-4 space-y-2" data-testid="card-money-philosophy">
+                <CollapsibleTrigger asChild>
+                  <div className="flex items-center justify-between gap-2 cursor-pointer">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium shrink-0">
+                        Money Philosophy
+                      </p>
+                      {user.moneyPhilosophy && !philosophyOpen && !editingPhilosophy && (
+                        <span className="text-xs text-muted-foreground/50 truncate">
+                          — {user.moneyPhilosophy}
+                        </span>
+                      )}
+                    </div>
+                    <motion.div
+                      animate={{ rotate: philosophyOpen || editingPhilosophy ? 180 : 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+                    </motion.div>
+                  </div>
+                </CollapsibleTrigger>
 
-              <AnimatePresence mode="wait">
-                {editingPhilosophy ? (
-                  <motion.div
-                    key="editing"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="space-y-2"
-                  >
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <span>I'm trying to be more mindful about</span>
-                    </div>
-                    <Input
-                      value={philosophyDraft}
-                      onChange={(e) => setPhilosophyDraft(e.target.value.slice(0, 80))}
-                      placeholder="impulse upgrades, subscription creep..."
-                      className="text-sm"
-                      data-testid="input-philosophy"
-                    />
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[10px] text-muted-foreground/50">{philosophyDraft.length}/80</span>
-                      <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setEditingPhilosophy(false)}
-                          data-testid="button-cancel-philosophy"
-                        >
-                          <X className="w-3 h-3 mr-1" />
-                          Cancel
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={handleSavePhilosophy}
-                          disabled={updateFieldMutation.isPending}
-                          data-testid="button-save-philosophy"
-                        >
-                          <Save className="w-3 h-3 mr-1" />
-                          Save
-                        </Button>
-                      </div>
-                    </div>
-                  </motion.div>
-                ) : (
-                  <motion.div key="display" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                    {user.moneyPhilosophy ? (
-                      <p className="text-sm italic" data-testid="text-philosophy">
-                        "I'm trying to be more mindful about {user.moneyPhilosophy}"
-                      </p>
+                <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
+                  <AnimatePresence mode="wait">
+                    {editingPhilosophy ? (
+                      <motion.div
+                        key="editing"
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -20 }}
+                        className="space-y-2 pt-2"
+                      >
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <span>I'm trying to be more mindful about</span>
+                        </div>
+                        <Input
+                          value={philosophyDraft}
+                          onChange={(e) => setPhilosophyDraft(e.target.value.slice(0, 80))}
+                          placeholder="impulse upgrades, subscription creep..."
+                          className="text-sm"
+                          data-testid="input-philosophy"
+                        />
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[10px] text-muted-foreground/50">{philosophyDraft.length}/80</span>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setEditingPhilosophy(false)}
+                              data-testid="button-cancel-philosophy"
+                            >
+                              <X className="w-3 h-3 mr-1" />
+                              Cancel
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={handleSavePhilosophy}
+                              disabled={updateFieldMutation.isPending}
+                              data-testid="button-save-philosophy"
+                            >
+                              <Save className="w-3 h-3 mr-1" />
+                              Save
+                            </Button>
+                          </div>
+                        </div>
+                      </motion.div>
                     ) : (
-                      <p className="text-sm text-muted-foreground/50" data-testid="text-philosophy-empty">
-                        Tap the pencil to set your money philosophy
-                      </p>
+                      <motion.div
+                        key="display"
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 20 }}
+                        className="pt-2"
+                      >
+                        <div className="flex items-center justify-between">
+                          {user.moneyPhilosophy ? (
+                            <p className="text-sm italic flex-1" data-testid="text-philosophy">
+                              "I'm trying to be more mindful about {user.moneyPhilosophy}"
+                            </p>
+                          ) : (
+                            <p className="text-sm text-muted-foreground/50 flex-1" data-testid="text-philosophy-empty">
+                              Tap the pencil to set your money philosophy
+                            </p>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="shrink-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPhilosophyDraft(user.moneyPhilosophy || "");
+                              setPhilosophyOpen(true);
+                              setEditingPhilosophy(true);
+                            }}
+                            data-testid="button-edit-philosophy"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </motion.div>
                     )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </Card>
+                  </AnimatePresence>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
           </motion.div>
         )}
 
@@ -727,7 +945,8 @@ export default function Profile() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
           >
-            <Card className="p-4 space-y-3" data-testid="card-milestones">
+            <Card className="p-4 space-y-3 relative overflow-hidden" data-testid="card-milestones">
+              <GradientStripe variant="primary" />
               <div className="flex items-center gap-2">
                 <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">
                   Quiet Wins
@@ -738,119 +957,150 @@ export default function Profile() {
                 </Badge>
               </div>
 
-              <div className="space-y-2">
-                {milestones.map((m) => {
-                  const MIcon = m.icon;
-                  return (
-                    <motion.div
-                      key={m.id}
-                      className={`flex items-center gap-3 py-1.5 ${m.unlocked ? "" : "opacity-30"}`}
-                      data-testid={`milestone-${m.id}`}
-                    >
-                      <div className={`rounded-full p-1.5 ${m.unlocked ? "bg-primary/10" : "bg-muted"}`}>
-                        <MIcon className={`w-3.5 h-3.5 ${m.unlocked ? "text-primary" : "text-muted-foreground"}`} />
-                      </div>
-                      <span className="text-sm">{m.label}</span>
-                      {m.unlocked && (
-                        <Check className="w-3.5 h-3.5 text-primary ml-auto" />
-                      )}
-                    </motion.div>
-                  );
-                })}
-              </div>
+              <MilestoneProgress
+                value={milestones.filter(m => m.unlocked).length}
+                max={milestones.length}
+                milestones={milestones.map((m, i) => ({
+                  value: i + 1,
+                  label: m.label,
+                  icon: m.icon,
+                  reached: m.unlocked,
+                }))}
+                showLabels={false}
+                showTooltips={true}
+                gradient={true}
+                shimmer={milestones.every(m => m.unlocked)}
+              />
             </Card>
           </motion.div>
         )}
 
-        {/* === WHY I'M HERE (own profile only, private) === */}
+        {/* === SCORE TREND === */}
+        {isOwnProfile && user.gameHistory && user.gameHistory.length >= 3 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.32 }}
+          >
+            <ScoreTrendChart gameHistory={user.gameHistory} />
+          </motion.div>
+        )}
+
+        {/* === WHY I'M HERE (own profile only, collapsible) === */}
         {isOwnProfile && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.35 }}
           >
-            <Card className="p-4 space-y-2" data-testid="card-why-here">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">
-                    Why I'm Here
-                  </p>
-                  <Badge variant="outline" className="text-[10px]">
-                    <EyeOff className="w-2.5 h-2.5 mr-1" />
-                    Private
-                  </Badge>
-                </div>
-                {!editingWhyHere && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      setWhyHereDraft(user.whyImHere || "");
-                      setEditingWhyHere(true);
-                    }}
-                    data-testid="button-edit-why-here"
-                  >
-                    <Pencil className="w-3.5 h-3.5" />
-                  </Button>
-                )}
-              </div>
-
-              <AnimatePresence mode="wait">
-                {editingWhyHere ? (
-                  <motion.div
-                    key="editing"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="space-y-2"
-                  >
-                    <Textarea
-                      value={whyHereDraft}
-                      onChange={(e) => setWhyHereDraft(e.target.value.slice(0, 200))}
-                      placeholder="I use Lifestyle Creep because..."
-                      rows={3}
-                      className="text-sm resize-none"
-                      data-testid="input-why-here"
-                    />
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[10px] text-muted-foreground/50">{whyHereDraft.length}/200</span>
-                      <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setEditingWhyHere(false)}
-                          data-testid="button-cancel-why-here"
-                        >
-                          <X className="w-3 h-3 mr-1" />
-                          Cancel
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={handleSaveWhyHere}
-                          disabled={updateFieldMutation.isPending}
-                          data-testid="button-save-why-here"
-                        >
-                          <Save className="w-3 h-3 mr-1" />
-                          Save
-                        </Button>
-                      </div>
+            <Collapsible open={whyHereOpen || editingWhyHere} onOpenChange={setWhyHereOpen}>
+              <Card className="p-4 space-y-2" data-testid="card-why-here">
+                <CollapsibleTrigger asChild>
+                  <div className="flex items-center justify-between gap-2 cursor-pointer">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium shrink-0">
+                        Why I'm Here
+                      </p>
+                      <Badge variant="outline" className="text-[10px] shrink-0">
+                        <EyeOff className="w-2.5 h-2.5 mr-1" />
+                        Private
+                      </Badge>
+                      {user.whyImHere && !whyHereOpen && !editingWhyHere && (
+                        <span className="text-xs text-muted-foreground/50 truncate">
+                          — {user.whyImHere}
+                        </span>
+                      )}
                     </div>
-                  </motion.div>
-                ) : (
-                  <motion.div key="display" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                    {user.whyImHere ? (
-                      <p className="text-sm italic" data-testid="text-why-here">
-                        "{user.whyImHere}"
-                      </p>
+                    <motion.div
+                      animate={{ rotate: whyHereOpen || editingWhyHere ? 180 : 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+                    </motion.div>
+                  </div>
+                </CollapsibleTrigger>
+
+                <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
+                  <AnimatePresence mode="wait">
+                    {editingWhyHere ? (
+                      <motion.div
+                        key="editing"
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -20 }}
+                        className="space-y-2 pt-2"
+                      >
+                        <Textarea
+                          value={whyHereDraft}
+                          onChange={(e) => setWhyHereDraft(e.target.value.slice(0, 200))}
+                          placeholder="I use Lifestyle Creep because..."
+                          rows={3}
+                          className="text-sm resize-none"
+                          data-testid="input-why-here"
+                        />
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[10px] text-muted-foreground/50">{whyHereDraft.length}/200</span>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setEditingWhyHere(false)}
+                              data-testid="button-cancel-why-here"
+                            >
+                              <X className="w-3 h-3 mr-1" />
+                              Cancel
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={handleSaveWhyHere}
+                              disabled={updateFieldMutation.isPending}
+                              data-testid="button-save-why-here"
+                            >
+                              <Save className="w-3 h-3 mr-1" />
+                              Save
+                            </Button>
+                          </div>
+                        </div>
+                      </motion.div>
                     ) : (
-                      <p className="text-sm text-muted-foreground/50" data-testid="text-why-here-empty">
-                        Add a private note about why you play
-                      </p>
+                      <motion.div
+                        key="display"
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 20 }}
+                        className="pt-2"
+                      >
+                        <div className="flex items-center justify-between">
+                          {user.whyImHere ? (
+                            <p className="text-sm italic flex-1" data-testid="text-why-here">
+                              "{user.whyImHere}"
+                            </p>
+                          ) : (
+                            <p className="text-sm text-muted-foreground/50 flex-1" data-testid="text-why-here-empty">
+                              Add a private note about why you play
+                            </p>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="shrink-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setWhyHereDraft(user.whyImHere || "");
+                              setWhyHereOpen(true);
+                              setEditingWhyHere(true);
+                            }}
+                            data-testid="button-edit-why-here"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </motion.div>
                     )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </Card>
+                  </AnimatePresence>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
           </motion.div>
         )}
 
@@ -862,7 +1112,7 @@ export default function Profile() {
             transition={{ delay: 0.4 }}
           >
             <Link href="/profile-setup?edit=true" replace>
-              <Button variant="ghost" className="w-full gap-2 text-muted-foreground" data-testid="button-edit-profile">
+              <Button variant="outline" className="w-full gap-2 text-muted-foreground" data-testid="button-edit-profile">
                 <Settings className="w-4 h-4" />
                 Edit Profile
               </Button>

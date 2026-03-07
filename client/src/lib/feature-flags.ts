@@ -10,7 +10,9 @@ export type FeatureFlag =
   | "premium_ui_override"          // Force premium UI elements visible for testing
   | "new_game_modes"               // Enable upcoming game mode variations
   | "advanced_analytics"           // Extra analytics and tracking features
-  | "beta_social_features";        // Experimental social/community features
+  | "beta_social_features"         // Experimental social/community features
+  | "survival_mode"                // Survival Mode (Last Investor Standing)
+  | "simlab_enabled";              // Sim Lab (Financial Simulations)
 
 export interface FeatureFlagConfig {
   key: FeatureFlag;
@@ -52,6 +54,18 @@ export const FEATURE_FLAGS: Record<FeatureFlag, FeatureFlagConfig> = {
     name: "Beta Social Features",
     description: "Experimental community challenges and friend competitions",
     defaultEnabled: false,
+  },
+  survival_mode: {
+    key: "survival_mode",
+    name: "Survival Mode",
+    description: "Last Investor Standing — real-time multiplayer elimination",
+    defaultEnabled: true,
+  },
+  simlab_enabled: {
+    key: "simlab_enabled",
+    name: "Sim Lab",
+    description: "Financial simulations — Buy a House, RSU Liquidation, and more",
+    defaultEnabled: true,
   },
 };
 

@@ -1,9 +1,9 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AppLogo } from "@/components/app-logo";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { AnimatedAvatar } from "@/components/animated-avatar";
+import { RollingNumber } from "@/components/animated-counter";
 import { Home, Trophy, Crown, Users, Target, Check, X } from "lucide-react";
 import { useLocation, useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
@@ -16,7 +16,7 @@ import { Mascot, type MascotContext } from "@/components/mascot";
 export default function CoopResults() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const [, navigate] = useLocation();
-  const { fireConfetti } = useConfetti();
+  const { fireCelebration } = useConfetti();
 
   const { data: user } = useQuery<User>({
     queryKey: ["/api/user"],
@@ -38,22 +38,19 @@ export default function CoopResults() {
 
   useEffect(() => {
     if (result && isWinner) {
-      setTimeout(() => fireConfetti(), 300);
+      setTimeout(() => fireCelebration(), 300);
     }
-  }, [result, isWinner, fireConfetti]);
+  }, [result, isWinner, fireCelebration]);
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
-        <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b">
+        <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-xl border-b border-white/10">
           <div className="container flex h-14 items-center gap-4 px-4">
             <AppLogo size="sm" />
-            <h1 className="text-lg font-semibold tracking-[-0.02em]">
+            <h1 className="font-display font-extrabold text-[15px] leading-none tracking-[-0.04em]">
               Co-op Results
             </h1>
-            <div className="ml-auto">
-              <ThemeToggle />
-            </div>
           </div>
         </header>
         <main className="container px-4 py-8 max-w-md mx-auto">
@@ -68,8 +65,8 @@ export default function CoopResults() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="p-6 text-center">
           <p className="text-muted-foreground">Results not available</p>
-          <Button onClick={() => navigate("/")} className="mt-4">
-            Go Home
+          <Button onClick={() => navigate("/play-hub")} className="mt-4">
+            Back
           </Button>
         </Card>
       </div>
@@ -85,15 +82,12 @@ export default function CoopResults() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+      <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-xl border-b border-white/10">
         <div className="container flex h-14 items-center gap-4 px-4">
           <AppLogo size="sm" />
-          <h1 className="text-lg font-semibold tracking-[-0.02em]">
+          <h1 className="font-display font-extrabold text-[15px] leading-none tracking-[-0.04em]">
             Game Complete
           </h1>
-          <div className="ml-auto">
-            <ThemeToggle />
-          </div>
         </div>
       </header>
 
@@ -103,13 +97,14 @@ export default function CoopResults() {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ type: "spring", stiffness: 200, damping: 20 }}
         >
-          <Card className="overflow-hidden">
-            <CardHeader className="text-center bg-gradient-to-b from-primary/10 to-transparent pb-8 relative">
+          <Card>
+            <CardHeader className="text-center bg-gradient-to-b from-primary/10 to-transparent pb-8 relative rounded-t-xl">
               <div className="mx-auto mb-4">
                 <Mascot
                   mood={isWinner ? "celebrating" : isTie ? "happy" : "encouraging"}
                   size="md"
                   showBubble={true}
+                  speechDelay={1200}
                   context={mascotContext}
                 />
               </div>
@@ -120,19 +115,16 @@ export default function CoopResults() {
             <CardContent className="space-y-6 pt-6">
               <div className="flex items-center justify-between gap-4">
                 <div className="flex-1 text-center">
-                  <Avatar className={`h-16 w-16 mx-auto border-4 ${isWinner ? 'border-yellow-500' : isTie ? 'border-primary' : 'border-muted'}`}>
-                    <AvatarImage src={currentPlayerResult?.avatar} />
-                    <AvatarFallback>
-                      {currentPlayerResult?.username?.slice(0, 2).toUpperCase() || "ME"}
-                    </AvatarFallback>
-                  </Avatar>
+                  <div className={`mx-auto border-4 rounded-full ${isWinner ? 'border-yellow-500' : isTie ? 'border-primary' : 'border-muted'}`}>
+                    <AnimatedAvatar avatarId={currentPlayerResult?.avatar || "cosmic-cat"} size="lg" isAnimated={isWinner} />
+                  </div>
                   <p className="font-medium mt-2">You</p>
                   <motion.p
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     className="text-3xl font-display font-semibold text-primary"
                   >
-                    {currentPlayerResult?.score || 0}
+                    <RollingNumber value={currentPlayerResult?.score || 0} />
                   </motion.p>
                   <p className="text-sm text-muted-foreground">
                     {currentPlayerResult?.correctAnswers}/{result.totalQuestions} correct
@@ -142,12 +134,9 @@ export default function CoopResults() {
                 <div className="text-2xl font-bold text-muted-foreground">vs</div>
 
                 <div className="flex-1 text-center">
-                  <Avatar className={`h-16 w-16 mx-auto border-4 ${!isWinner && !isTie ? 'border-yellow-500' : isTie ? 'border-primary' : 'border-muted'}`}>
-                    <AvatarImage src={partnerResult?.avatar} />
-                    <AvatarFallback>
-                      {partnerResult?.username?.slice(0, 2).toUpperCase() || "FR"}
-                    </AvatarFallback>
-                  </Avatar>
+                  <div className={`mx-auto border-4 rounded-full ${!isWinner && !isTie ? 'border-yellow-500' : isTie ? 'border-primary' : 'border-muted'}`}>
+                    <AnimatedAvatar avatarId={partnerResult?.avatar || "cosmic-cat"} size="lg" isAnimated={!isWinner && !isTie} />
+                  </div>
                   <p className="font-medium mt-2">{partnerResult?.username || "Friend"}</p>
                   <motion.p
                     initial={{ opacity: 0 }}
@@ -155,7 +144,7 @@ export default function CoopResults() {
                     transition={{ delay: 0.2 }}
                     className="text-3xl font-display font-semibold text-foreground"
                   >
-                    {partnerResult?.score || 0}
+                    <RollingNumber value={partnerResult?.score || 0} />
                   </motion.p>
                   <p className="text-sm text-muted-foreground">
                     {partnerResult?.correctAnswers}/{result.totalQuestions} correct
@@ -233,11 +222,11 @@ export default function CoopResults() {
           <Button
             variant="outline"
             className="w-full h-12"
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/play-hub")}
             data-testid="button-go-home"
           >
             <Home className="h-5 w-5 mr-2" />
-            Back to Home
+            Back to Play
           </Button>
         </motion.div>
       </main>

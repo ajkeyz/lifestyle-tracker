@@ -2,33 +2,34 @@ import { useLocation, Link } from "wouter";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { 
-  Home, 
-  Users, 
-  MessageSquare, 
-  User,
-  Trophy
-} from "lucide-react";
+import { AnimatedAvatar } from "@/components/animated-avatar";
+import { Home, Gamepad2, Users2, User } from "lucide-react";
 import type { User as UserType } from "@shared/schema";
 
 interface NavItem {
   path: string;
   icon: typeof Home;
   label: string;
+  /** Show notification dot when true */
+  showDot?: boolean;
 }
-
-const navItems: NavItem[] = [
-  { path: "/", icon: Home, label: "Home" },
-  { path: "/leaderboard", icon: Trophy, label: "Ranks" },
-  { path: "/community", icon: MessageSquare, label: "Community" },
-  { path: "/friends", icon: Users, label: "Friends" },
-  { path: "/profile", icon: User, label: "Profile" },
-];
 
 export function BottomNav() {
   const [location] = useLocation();
   const { data: user } = useQuery<UserType>({ queryKey: ["/api/user"] });
+
+  // Check for unread social activity
+  const { data: socialUnread } = useQuery<{ hasUnread: boolean }>({
+    queryKey: ["/api/social/unread"],
+    refetchInterval: 60000, // check every minute
+  });
+
+  const navItems: NavItem[] = [
+    { path: "/", icon: Home, label: "Home" },
+    { path: "/play-hub", icon: Gamepad2, label: "Play" },
+    { path: "/social", icon: Users2, label: "Social", showDot: socialUnread?.hasUnread },
+    { path: "/profile", icon: User, label: "Profile" },
+  ];
 
   const isActive = (path: string) => {
     if (path === "/") return location === "/";
@@ -36,7 +37,7 @@ export function BottomNav() {
   };
 
   return (
-    <nav 
+    <nav
       className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-lg border-t safe-area-bottom"
       data-testid="bottom-nav"
     >
@@ -45,7 +46,7 @@ export function BottomNav() {
           const active = isActive(item.path);
           const Icon = item.icon;
           const isProfile = item.label === "Profile";
-          
+
           return (
             <Link
               key={item.path}
@@ -63,19 +64,37 @@ export function BottomNav() {
                 {active && (
                   <motion.div
                     layoutId="nav-indicator"
-                    className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-1 bg-primary rounded-b-full"
+                    className="absolute top-0 left-0 right-0 mx-auto w-8 h-1 bg-primary rounded-b-full"
                     transition={{ type: "spring", stiffness: 500, damping: 30 }}
                   />
                 )}
                 {isProfile && user?.avatar ? (
-                  <Avatar className={cn("w-5 h-5", active && "ring-2 ring-primary ring-offset-1 ring-offset-background")}>
-                    <AvatarImage src={user.avatar} alt={user.username || "Profile"} />
-                    <AvatarFallback className="text-[8px]">
-                      {(user.username || "U").charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+                  <div
+                    className={cn(
+                      "w-6 h-6 rounded-full overflow-hidden",
+                      active && "ring-2 ring-primary ring-offset-1 ring-offset-background"
+                    )}
+                  >
+                    <AnimatedAvatar
+                      avatarId={user.avatar}
+                      size="xs"
+                      isAnimated={false}
+                      className="w-6 h-6 [&>div]:w-6 [&>div]:h-6"
+                    />
+                  </div>
                 ) : (
-                  <Icon className={cn("w-5 h-5", active && "animate-bounce-subtle")} />
+                  <div className="relative">
+                    <Icon className={cn("w-5 h-5", active && "animate-bounce-subtle")} />
+                    {/* Notification dot */}
+                    {item.showDot && !active && (
+                      <motion.div
+                        className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500"
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: "spring", stiffness: 500 }}
+                      />
+                    )}
+                  </div>
                 )}
                 <span className="text-[10px] font-medium">{item.label}</span>
               </motion.div>
@@ -84,64 +103,6 @@ export function BottomNav() {
         })}
       </div>
     </nav>
-  );
-}
-
-interface FloatingPlayButtonProps {
-  onClick: () => void;
-  disabled?: boolean;
-  hasPlayedToday?: boolean;
-  className?: string;
-}
-
-export function FloatingPlayButton({
-  onClick,
-  disabled = false,
-  hasPlayedToday = false,
-  className,
-}: FloatingPlayButtonProps) {
-  return (
-    <motion.button
-      onClick={onClick}
-      disabled={disabled}
-      className={cn(
-        "fixed bottom-20 right-4 z-40",
-        "w-14 h-14 rounded-full",
-        "bg-gradient-to-br from-primary to-primary/80",
-        "text-white shadow-lg shadow-primary/30",
-        "flex items-center justify-center",
-        "disabled:opacity-50 disabled:cursor-not-allowed",
-        hasPlayedToday && "bg-gradient-to-br from-accent to-accent/80 shadow-accent/30",
-        className
-      )}
-      whileHover={{ scale: 1.1 }}
-      whileTap={{ scale: 0.95 }}
-      initial={{ scale: 0, rotate: -180 }}
-      animate={{ scale: 1, rotate: 0 }}
-      transition={{ type: "spring", stiffness: 260, damping: 20 }}
-      data-testid="fab-play"
-    >
-      {hasPlayedToday ? (
-        <Trophy className="w-6 h-6" />
-      ) : (
-        <motion.div
-          animate={{ scale: [1, 1.1, 1] }}
-          transition={{ duration: 2, repeat: Infinity }}
-        >
-          <svg viewBox="0 0 24 24" className="w-7 h-7 fill-current">
-            <path d="M8 5v14l11-7z" />
-          </svg>
-        </motion.div>
-      )}
-      
-      {!hasPlayedToday && !disabled && (
-        <motion.div
-          className="absolute inset-0 rounded-full bg-primary/30"
-          animate={{ scale: [1, 1.5], opacity: [0.5, 0] }}
-          transition={{ duration: 1.5, repeat: Infinity }}
-        />
-      )}
-    </motion.button>
   );
 }
 

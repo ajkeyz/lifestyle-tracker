@@ -17,10 +17,6 @@ async function fetchUser(): Promise<User | null> {
   return response.json();
 }
 
-async function logout(): Promise<void> {
-  window.location.href = "/api/logout";
-}
-
 export function useAuth() {
   const queryClient = useQueryClient();
   const { data: user, isLoading } = useQuery<User | null>({
@@ -31,9 +27,15 @@ export function useAuth() {
   });
 
   const logoutMutation = useMutation({
-    mutationFn: logout,
-    onSuccess: () => {
+    mutationFn: async () => {
+      // Clear all cached queries before navigating to prevent 401 loops
+      // when the page reloads in an unauthenticated state
       queryClient.setQueryData(["/api/auth/user"], null);
+      queryClient.clear();
+      // Navigate to server logout endpoint (full page redirect)
+      window.location.href = "/api/logout";
+      // Return a never-resolving promise since the page is navigating away
+      return new Promise<void>(() => {});
     },
   });
 

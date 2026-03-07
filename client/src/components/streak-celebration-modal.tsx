@@ -46,7 +46,7 @@ export function StreakCelebrationModal({ streak, onClose, isOpen }: StreakCelebr
           angle: 60,
           spread: 55,
           origin: { x: 0, y: 0.8 },
-          colors: ['#f97316', '#eab308', '#10b981', '#3b82f6', '#8b5cf6'],
+          colors: ['#f97316', '#eab308', '#7c3aed', '#3b82f6', '#8b5cf6'],
         });
 
         confetti({
@@ -54,7 +54,7 @@ export function StreakCelebrationModal({ streak, onClose, isOpen }: StreakCelebr
           angle: 120,
           spread: 55,
           origin: { x: 1, y: 0.8 },
-          colors: ['#f97316', '#eab308', '#10b981', '#3b82f6', '#8b5cf6'],
+          colors: ['#f97316', '#eab308', '#7c3aed', '#3b82f6', '#8b5cf6'],
         });
 
         if (Date.now() < end) {

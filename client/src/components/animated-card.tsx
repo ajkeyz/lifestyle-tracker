@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -7,22 +7,25 @@ interface AnimatedCardProps {
   className?: string;
   delay?: number;
   hoverEffect?: boolean;
+  animated?: boolean;
   onClick?: () => void;
   "data-testid"?: string;
 }
 
-export function AnimatedCard({ 
-  children, 
-  className, 
-  delay = 0, 
+export function AnimatedCard({
+  children,
+  className,
+  delay = 0,
   hoverEffect = false,
+  animated = true,
   onClick,
   "data-testid": dataTestId
 }: AnimatedCardProps) {
+  const prefersReducedMotion = useReducedMotion();
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={animated && !prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
+      animate={animated && !prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
       transition={{ duration: 0.4, delay, ease: "easeOut" }}
       whileHover={hoverEffect ? { y: -2, transition: { duration: 0.2 } } : undefined}
       whileTap={onClick ? { scale: 0.98 } : undefined}

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -111,6 +112,15 @@ export function Onboarding({ onComplete }: OnboardingProps) {
     completeMutation.mutate();
   };
 
+  // Allow Escape key to skip onboarding
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") handleSkip();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   return (
     <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
@@ -133,25 +143,34 @@ export function Onboarding({ onComplete }: OnboardingProps) {
             <Progress value={progress} className="h-2" data-testid="progress-onboarding" />
           </div>
 
-          <div className="text-center space-y-4 mb-8">
-            <div className="flex justify-center mb-4">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-                {step.icon}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentStep}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.25 }}
+              className="text-center space-y-4 mb-8"
+            >
+              <div className="flex justify-center mb-4">
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+                  {step.icon}
+                </div>
               </div>
-            </div>
-            <h2 className="text-2xl font-bold" data-testid="text-onboarding-title">
-              {step.title}
-            </h2>
-            <p className="text-muted-foreground" data-testid="text-onboarding-description">
-              {step.description}
-            </p>
-            {step.highlight && (
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium">
-                <Sparkles className="w-4 h-4" />
-                {step.highlight}
-              </div>
-            )}
-          </div>
+              <h2 className="text-2xl font-display font-bold" data-testid="text-onboarding-title">
+                {step.title}
+              </h2>
+              <p className="text-muted-foreground" data-testid="text-onboarding-description">
+                {step.description}
+              </p>
+              {step.highlight && (
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium">
+                  <Sparkles className="w-4 h-4" />
+                  {step.highlight}
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
 
           <div className="flex items-center justify-between gap-3">
             <Button
@@ -191,13 +210,14 @@ export function Onboarding({ onComplete }: OnboardingProps) {
               <button
                 key={index}
                 onClick={() => setCurrentStep(index)}
-                className={`w-2 h-2 rounded-full transition-colors ${
+                className={`p-1 w-2.5 h-2.5 rounded-full transition-colors ${
                   index === currentStep
                     ? "bg-primary"
                     : index < currentStep
                       ? "bg-primary/50"
                       : "bg-muted"
                 }`}
+                aria-label={`Go to step ${index + 1}`}
                 data-testid={`button-onboarding-dot-${index}`}
               />
             ))}

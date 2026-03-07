@@ -123,7 +123,7 @@ export default function Challenges() {
       queryClient.invalidateQueries({ queryKey: ["/api/challenges"] });
       setViewMode("list");
       resetForm();
-      toast({ title: "Challenge sent!", description: "Let's see if they can beat you" });
+      toast({ title: "Challenge sent!", description: "Let's see if they can beat you." });
     },
     onError: () => {
       toast({ title: "Failed to send challenge", variant: "destructive" });
@@ -138,7 +138,7 @@ export default function Challenges() {
     onSuccess: (challenge) => {
       queryClient.invalidateQueries({ queryKey: ["/api/challenges"] });
       if (challenge.winnerId === user?.id) {
-        toast({ title: "You won!", description: "Nice work! You beat the challenge" });
+        toast({ title: "You won!", description: "Nice work! You beat the challenge." });
       } else if (challenge.winnerId) {
         toast({ title: "Challenge complete", description: "Better luck next time!" });
       } else {

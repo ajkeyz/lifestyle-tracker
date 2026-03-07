@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { 
+import { AmbientBackground } from "@/components/ambient-background";
+import { Mascot, type MascotContext } from "@/components/mascot";
+import {
   Users,
   Search,
   Contact,
@@ -76,27 +78,51 @@ export default function FriendsSetup() {
 
   if (viewMode === "contacts") {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
-        <header className="flex items-center justify-between gap-2 p-4 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50 relative overflow-x-clip">
+        <AmbientBackground variant="default" />
+        <header className="flex items-center gap-3 px-4 h-14 border-b bg-card/80 backdrop-blur-xl sticky top-0 z-50 border-white/10">
+          <Button variant="ghost" size="icon" onClick={() => window.history.back()} aria-label="Go back">
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
           <div className="flex items-center gap-2">
             <AppLogo size="sm" />
-            <span className="font-semibold text-lg tracking-[-0.02em]" data-testid="text-app-title">Lifestyle Creep</span>
+            <span className="font-display font-extrabold text-[15px] leading-none tracking-[-0.04em]" data-testid="text-app-title">Lifestyle Creep</span>
           </div>
-          <ThemeToggle />
         </header>
 
         <main className="container max-w-md mx-auto p-4 space-y-6">
-          <div className="text-center py-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="text-center py-6"
+          >
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-accent/20 to-primary/20 flex items-center justify-center">
               <Contact className="w-8 h-8 text-accent" />
             </div>
-            <h1 className="text-2xl md:text-3xl font-semibold tracking-[-0.02em] mb-2" data-testid="text-contacts-title">
+            <h1 className="text-2xl md:text-3xl font-display font-semibold tracking-[-0.02em] mb-2" data-testid="text-contacts-title">
               Find Friends in Contacts
             </h1>
             <p className="text-muted-foreground" data-testid="text-contacts-description">
               See which of your contacts are already playing
             </p>
-          </div>
+          </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.15, type: "spring", stiffness: 300, damping: 20 }}
+                  className="flex justify-center py-2"
+                >
+                  <Mascot
+                    mood="waving"
+                    size="sm"
+                    showBubble={true}
+                    speechDelay={1400}
+                    message="More friends = more fun!"
+                    context={{ screen: "home", username: "", streak: 0 } satisfies MascotContext}
+                  />
+                </motion.div>
 
           <Card className="p-6 space-y-4">
             <div className="flex items-center gap-3 p-4 bg-muted/30 rounded-md" data-testid="contacts-privacy-info">
@@ -117,7 +143,7 @@ export default function FriendsSetup() {
           <div className="space-y-3">
             <Button
               size="lg"
-              className="w-full"
+              className="w-full btn-premium border-0"
               onClick={() => setViewMode("contacts-granted")}
               data-testid="button-allow-contacts"
             >
@@ -142,27 +168,51 @@ export default function FriendsSetup() {
 
   if (viewMode === "contacts-granted") {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
-        <header className="flex items-center justify-between gap-2 p-4 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50 relative overflow-x-clip">
+        <AmbientBackground variant="default" />
+        <header className="flex items-center gap-3 px-4 h-14 border-b bg-card/80 backdrop-blur-xl sticky top-0 z-50 border-white/10">
+          <Button variant="ghost" size="icon" onClick={() => window.history.back()} aria-label="Go back">
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
           <div className="flex items-center gap-2">
             <AppLogo size="sm" />
-            <span className="font-semibold text-lg tracking-[-0.02em]" data-testid="text-app-title">Lifestyle Creep</span>
+            <span className="font-display font-extrabold text-[15px] leading-none tracking-[-0.04em]" data-testid="text-app-title">Lifestyle Creep</span>
           </div>
-          <ThemeToggle />
         </header>
 
         <main className="container max-w-md mx-auto p-4 space-y-6">
-          <div className="text-center py-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="text-center py-8"
+          >
             <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-green-500/20 flex items-center justify-center">
               <Check className="w-10 h-10 text-green-500" />
             </div>
-            <h1 className="text-2xl md:text-3xl font-semibold tracking-[-0.02em] mb-2" data-testid="text-contacts-granted-title">
+            <h1 className="text-2xl md:text-3xl font-display font-semibold tracking-[-0.02em] mb-2" data-testid="text-contacts-granted-title">
               Contacts Enabled
             </h1>
             <p className="text-muted-foreground" data-testid="text-contacts-granted-description">
               We'll notify you when friends join the game
             </p>
-          </div>
+          </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.15, type: "spring", stiffness: 300, damping: 20 }}
+                  className="flex justify-center"
+                >
+                  <Mascot
+                    mood="waving"
+                    size="sm"
+                    showBubble={true}
+                    speechDelay={1400}
+                    message="More friends = more fun!"
+                    context={{ screen: "home", username: "", streak: 0 } satisfies MascotContext}
+                  />
+                </motion.div>
 
           <Card className="p-6">
             <div className="flex items-center gap-3 p-4 bg-muted/30 rounded-md" data-testid="contacts-status">
@@ -178,7 +228,7 @@ export default function FriendsSetup() {
 
           <Button
             size="lg"
-            className="w-full"
+            className="w-full btn-premium border-0"
             onClick={handleContinue}
             data-testid="button-continue-after-contacts"
           >
@@ -192,24 +242,48 @@ export default function FriendsSetup() {
 
   if (viewMode === "search") {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
-        <header className="flex items-center justify-between gap-2 p-4 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50 relative overflow-x-clip">
+        <AmbientBackground variant="default" />
+        <header className="flex items-center gap-3 px-4 h-14 border-b bg-card/80 backdrop-blur-xl sticky top-0 z-50 border-white/10">
+          <Button variant="ghost" size="icon" onClick={() => window.history.back()} aria-label="Go back">
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
           <div className="flex items-center gap-2">
             <AppLogo size="sm" />
-            <span className="font-semibold text-lg tracking-[-0.02em]" data-testid="text-app-title">Lifestyle Creep</span>
+            <span className="font-display font-extrabold text-[15px] leading-none tracking-[-0.04em]" data-testid="text-app-title">Lifestyle Creep</span>
           </div>
-          <ThemeToggle />
         </header>
 
         <main className="container max-w-md mx-auto p-4 space-y-6">
-          <div className="text-center py-6">
-            <h1 className="text-2xl md:text-3xl font-semibold tracking-[-0.02em] mb-2" data-testid="text-search-title">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="text-center py-6"
+          >
+            <h1 className="text-2xl md:text-3xl font-display font-semibold tracking-[-0.02em] mb-2" data-testid="text-search-title">
               Find a Friend
             </h1>
             <p className="text-muted-foreground" data-testid="text-search-description">
               Enter their username to connect
             </p>
-          </div>
+          </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.15, type: "spring", stiffness: 300, damping: 20 }}
+                  className="flex justify-center"
+                >
+                  <Mascot
+                    mood="waving"
+                    size="sm"
+                    showBubble={true}
+                    speechDelay={1400}
+                    message="More friends = more fun!"
+                    context={{ screen: "home", username: "", streak: 0 } satisfies MascotContext}
+                  />
+                </motion.div>
 
           <Card className="p-6 space-y-4">
             <div className="relative">
@@ -280,7 +354,7 @@ export default function FriendsSetup() {
             </Button>
             <Button
               size="lg"
-              className="w-full"
+              className="w-full btn-premium border-0"
               onClick={handleContinue}
               data-testid="button-continue"
             >
@@ -294,27 +368,51 @@ export default function FriendsSetup() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
-      <header className="flex items-center justify-between gap-2 p-4 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50 relative overflow-x-clip">
+      <AmbientBackground variant="default" />
+      <header className="flex items-center gap-3 px-4 h-14 border-b bg-card/80 backdrop-blur-xl sticky top-0 z-50 border-white/10">
+        <Button variant="ghost" size="icon" onClick={() => window.history.back()} aria-label="Go back">
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
         <div className="flex items-center gap-2">
           <AppLogo size="sm" />
-          <span className="font-semibold text-lg tracking-[-0.02em]" data-testid="text-app-title">Lifestyle Creep</span>
+          <span className="font-display font-extrabold text-[15px] leading-none tracking-[-0.04em]" data-testid="text-app-title">Lifestyle Creep</span>
         </div>
-        <ThemeToggle />
       </header>
 
       <main className="container max-w-md mx-auto p-4 space-y-6">
-        <div className="text-center py-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="text-center py-6"
+        >
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
             <Users className="w-8 h-8 text-primary" />
           </div>
-          <h1 className="text-2xl md:text-3xl font-semibold tracking-[-0.02em] mb-2" data-testid="text-friends-title">
+          <h1 className="text-2xl md:text-3xl font-display font-semibold tracking-[-0.02em] mb-2" data-testid="text-friends-title">
             Play with Friends
           </h1>
           <p className="text-muted-foreground" data-testid="text-friends-description">
             Compete on leaderboards and challenge each other
           </p>
-        </div>
+        </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.15, type: "spring", stiffness: 300, damping: 20 }}
+                  className="flex justify-center"
+                >
+                  <Mascot
+                    mood="waving"
+                    size="sm"
+                    showBubble={true}
+                    speechDelay={1400}
+                    message="More friends = more fun!"
+                    context={{ screen: "home", username: "", streak: 0 } satisfies MascotContext}
+                  />
+                </motion.div>
 
         <div className="space-y-3">
           <Card 

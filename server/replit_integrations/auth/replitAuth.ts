@@ -8,6 +8,16 @@ import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { authStorage } from "./storage";
 
+const isDevBypass = process.env.DEV_AUTH_BYPASS === "true";
+
+const DEV_USER_CLAIMS = {
+  sub: "dev-local-user",
+  email: "dev@localhost",
+  first_name: "Dev",
+  last_name: "User",
+  profile_image_url: "",
+};
+
 const getOidcConfig = memoize(
   async () => {
     return await client.discovery(
@@ -30,12 +40,13 @@ export function getSession() {
   return session({
     secret: process.env.SESSION_SECRET!,
     store: sessionStore,
-    resave: true,
-    saveUninitialized: true,
+    // P1-10: Don't save empty sessions — prevents session table bloat from bots/crawlers
+    resave: false,
+    saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: true,
-      sameSite: "none" as const,
+      secure: !isDevBypass,
+      sameSite: isDevBypass ? "lax" as const : "none" as const,
       maxAge: sessionTtl,
     },
   });
@@ -71,6 +82,36 @@ export async function setupAuth(app: Express) {
   app.use(getSession());
   app.use(passport.initialize());
   app.use(passport.session());
+
+  passport.serializeUser((user: Express.User, cb) => cb(null, user));
+  passport.deserializeUser((user: Express.User, cb) => cb(null, user));
+
+  if (isDevBypass) {
+    console.log("[auth] Dev auth bypass enabled — skipping OIDC");
+
+    app.get("/api/login", async (req, res) => {
+      const devUser: any = {
+        claims: DEV_USER_CLAIMS,
+        expires_at: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 365,
+      };
+      await upsertUser(DEV_USER_CLAIMS);
+      req.login(devUser, (err) => {
+        if (err) {
+          console.error("Dev login error:", err);
+          return res.status(500).json({ message: "Dev login failed" });
+        }
+        res.redirect("/");
+      });
+    });
+
+    app.get("/api/callback", (_req, res) => res.redirect("/"));
+
+    app.get("/api/logout", (req, res) => {
+      req.logout(() => res.redirect("/"));
+    });
+
+    return;
+  }
 
   const config = await getOidcConfig();
 
@@ -110,9 +151,6 @@ export async function setupAuth(app: Express) {
     }
   };
 
-  passport.serializeUser((user: Express.User, cb) => cb(null, user));
-  passport.deserializeUser((user: Express.User, cb) => cb(null, user));
-
   app.get("/api/login", (req, res, next) => {
     ensureStrategy(req.hostname);
     passport.authenticate(`replitauth:${req.hostname}`, {
@@ -142,6 +180,23 @@ export async function setupAuth(app: Express) {
 }
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
+  if (isDevBypass) {
+    // In dev mode, check if user has an active session.
+    // After logout, req.isAuthenticated() returns false — respect that
+    // instead of auto-creating a new dev user on every request.
+    if (!req.isAuthenticated() && !req.user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    if (!req.user) {
+      const devUser: any = {
+        claims: DEV_USER_CLAIMS,
+        expires_at: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 365,
+      };
+      req.user = devUser;
+    }
+    return next();
+  }
+
   const user = req.user as any;
 
   if (!req.isAuthenticated() || !user.expires_at) {

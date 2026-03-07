@@ -62,7 +62,7 @@ export function SocialShareCard({ user, score, dropNumber, trigger }: SocialShar
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-    toast({ title: "Copied to clipboard!", description: "Ready to paste" });
+    toast({ title: "Copied to clipboard!", description: "Ready to paste." });
   };
 
   const shareToTwitter = () => {
@@ -82,7 +82,7 @@ export function SocialShareCard({ user, score, dropNumber, trigger }: SocialShar
   const downloadCard = () => {
     toast({
       title: "Coming soon!",
-      description: "Image download feature in development"
+      description: "Image download feature in development."
     });
   };
 

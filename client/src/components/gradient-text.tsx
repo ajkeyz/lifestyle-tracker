@@ -119,7 +119,7 @@ export function GlowText({
   };
 
   const glowColorVar = {
-    primary: "16,185,129",
+    primary: "124,92,191",
     accent: "245,158,11",
     white: "255,255,255",
   };

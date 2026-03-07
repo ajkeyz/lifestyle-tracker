@@ -1,7 +1,9 @@
+import { useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, X, Coins } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toneColors, type ChoiceTone } from "@/lib/game-insights";
+import { useSoundEffect } from "@/hooks/use-sound";
 
 function getPointTier(points: number): { label: string; color: string; bgColor: string } {
   const displayPoints = Math.max(0, points);
@@ -10,6 +12,34 @@ function getPointTier(points: number): { label: string; color: string; bgColor: 
   if (points >= 50) return { label: String(displayPoints), color: "text-amber-500 dark:text-amber-400", bgColor: "bg-amber-500/10" };
   if (points >= 20) return { label: String(displayPoints), color: "text-muted-foreground", bgColor: "bg-muted/50" };
   return { label: String(displayPoints), color: "text-muted-foreground/60", bgColor: "bg-muted/30" };
+}
+
+// ─── Points Burst Particles (#7) ───
+function PointsBurst() {
+  const particles = useMemo(() =>
+    Array.from({ length: 8 }).map((_, i) => ({
+      tx: (Math.random() - 0.5) * 50,
+      ty: (Math.random() - 0.5) * 40 - 10,
+      delay: i * 0.03,
+      size: 2 + Math.random() * 2,
+    })),
+    []
+  );
+
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-visible">
+      {particles.map((p, i) => (
+        <motion.div
+          key={i}
+          className="absolute top-1/2 left-1/2 rounded-full bg-primary"
+          style={{ width: p.size, height: p.size }}
+          initial={{ scale: 1, opacity: 1, x: 0, y: 0 }}
+          animate={{ scale: 0, opacity: 0, x: p.tx, y: p.ty }}
+          transition={{ duration: 0.6, delay: p.delay, ease: "easeOut" }}
+        />
+      ))}
+    </div>
+  );
 }
 
 interface ChoiceCardProps {
@@ -25,6 +55,8 @@ interface ChoiceCardProps {
   index: number;
   disabled?: boolean;
   tone?: ChoiceTone;
+  communityPct?: number;    // #9 community answer distribution
+  eliminated?: boolean;     // #11 lifeline 50/50
 }
 
 export function ChoiceCard({
@@ -40,16 +72,26 @@ export function ChoiceCard({
   index,
   disabled = false,
   tone,
+  communityPct,
+  eliminated = false,
 }: ChoiceCardProps) {
   const showCorrectness = showResult && (isSelected || isCorrect);
   const pointTier = points !== undefined ? getPointTier(points) : null;
   const earnedPoints = points !== undefined ? Math.max(0, points) : 0;
+  const isDisabledByElimination = eliminated && !showResult;
+
+  // Play coin collect sound when points burst appears on correct answer
+  useSoundEffect("coinCollect", showResult && isCorrect && revealStage >= 3);
 
   return (
     <motion.button
       initial={{ opacity: 0, y: 10 }}
       animate={{
-        opacity: showResult && !isSelected && !isCorrect ? 0.4 : 1,
+        opacity: isDisabledByElimination
+          ? 0.25
+          : showResult && !isSelected && !isCorrect
+            ? 0.4
+            : 1,
         y: 0,
         x: showResult && isSelected && !isCorrect ? [-3, 3, -3, 3, -2, 2, 0] : 0,
       }}
@@ -57,22 +99,30 @@ export function ChoiceCard({
         opacity: { duration: 0.3 },
         y: { duration: 0.4, delay: index * 0.06, type: "spring", stiffness: 300 },
       }}
-      whileTap={!showResult && !disabled ? { scale: 0.98, transition: { duration: 0.1 } } : {}}
-      onClick={!disabled ? onSelect : undefined}
-      disabled={disabled}
+      whileTap={!showResult && !disabled && !isDisabledByElimination
+        ? { scale: 0.97, transition: { duration: 0.08, type: "spring", stiffness: 500 } }
+        : {}
+      }
+      onClick={!disabled && !isDisabledByElimination ? onSelect : undefined}
+      disabled={disabled || isDisabledByElimination}
       className={cn(
         "group relative w-full rounded-xl border-2 text-left",
         "transition-colors duration-200 ease-out",
         "flex items-start gap-3 px-4 py-3.5",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-        !showResult && !isSelected && "border-border bg-card hover-elevate",
+        // #6: hover glow
+        !showResult && !isSelected && !isDisabledByElimination && "choice-hover-glow",
+        !showResult && !isSelected && !isDisabledByElimination && "border-border bg-card hover-elevate",
         !showResult && isSelected && [
           "border-primary bg-primary/10",
-          "ring-2 ring-primary/20"
+          "ring-2 ring-primary/20",
+          "shadow-[0_0_0_2px_hsl(var(--primary)/0.15)]",
         ],
         showResult && isCorrect && "border-primary bg-primary/5",
         showResult && isSelected && !isCorrect && "border-destructive bg-destructive/5",
-        disabled && "cursor-not-allowed"
+        // #11: eliminated by lifeline
+        isDisabledByElimination && "cursor-not-allowed line-through border-dashed border-muted/40",
+        disabled && !isDisabledByElimination && "cursor-not-allowed"
       )}
       role="radio"
       aria-checked={isSelected}
@@ -91,7 +141,8 @@ export function ChoiceCard({
           !showResult && !isSelected && "bg-secondary text-secondary-foreground",
           !showResult && isSelected && "bg-primary text-primary-foreground",
           showResult && isCorrect && "bg-primary text-primary-foreground",
-          showResult && isSelected && !isCorrect && "bg-destructive text-destructive-foreground"
+          showResult && isSelected && !isCorrect && "bg-destructive text-destructive-foreground",
+          isDisabledByElimination && "bg-muted/30 text-muted-foreground/30"
         )}
         data-testid={`choice-label-${label.toLowerCase()}`}
       >
@@ -125,7 +176,7 @@ export function ChoiceCard({
 
       <div className="flex-1 min-w-0">
         <div className="flex items-start gap-2">
-          {tone && !showResult && (
+          {tone && !showResult && !isDisabledByElimination && (
             <span
               className={cn(
                 "flex-shrink-0 w-2 h-2 rounded-full mt-1.5 opacity-60",
@@ -139,7 +190,8 @@ export function ChoiceCard({
             className={cn(
               "text-[0.9375rem] font-medium leading-[1.45] transition-colors flex-1",
               showResult && isCorrect && "text-foreground",
-              showResult && isSelected && !isCorrect && "text-foreground"
+              showResult && isSelected && !isCorrect && "text-foreground",
+              isDisabledByElimination && "text-muted-foreground/40"
             )}
             data-testid={`choice-text-${label.toLowerCase()}`}
           >
@@ -154,14 +206,14 @@ export function ChoiceCard({
               animate={{ opacity: 1, height: "auto", y: 0 }}
               exit={{ opacity: 0, height: 0, y: -8 }}
               transition={{ duration: 0.35, ease: "easeOut" }}
-              className="mt-2 space-y-1 overflow-hidden"
+              className="mt-2 space-y-1.5 overflow-hidden"
             >
               {points !== undefined && (
                 <motion.div
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.1 }}
-                  className="flex items-center gap-1.5"
+                  className="relative flex items-center gap-1.5"
                   data-testid={`points-earned-${label.toLowerCase()}`}
                 >
                   <Coins className={cn("w-3.5 h-3.5", isCorrect ? "text-primary" : "text-destructive")} />
@@ -181,6 +233,8 @@ export function ChoiceCard({
                       Good
                     </span>
                   )}
+                  {/* #7: Points burst particles on correct answer */}
+                  {isCorrect && <PointsBurst />}
                 </motion.div>
               )}
               {feedback && (
@@ -188,6 +242,7 @@ export function ChoiceCard({
                   {feedback}
                 </p>
               )}
+              {/* #9: Community answer distribution bar — removed for cleaner UX */}
             </motion.div>
           )}
         </AnimatePresence>

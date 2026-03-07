@@ -11,16 +11,6 @@ interface Activity {
   timestamp: Date;
 }
 
-const sampleActivities: Activity[] = [
-  { id: "1", type: "score", username: "MoneyMaster", value: 480, timestamp: new Date() },
-  { id: "2", type: "streak", username: "FinanceGuru", value: 30, timestamp: new Date() },
-  { id: "3", type: "perfect", username: "BudgetBoss", timestamp: new Date() },
-  { id: "4", type: "join", username: "NewPlayer123", timestamp: new Date() },
-  { id: "5", type: "challenge", username: "SavingsKing", timestamp: new Date() },
-  { id: "6", type: "level_up", username: "InvestorPro", value: 50, timestamp: new Date() },
-  { id: "7", type: "score", username: "DebtDestroyer", value: 450, timestamp: new Date() },
-  { id: "8", type: "streak", username: "CashFlow", value: 14, timestamp: new Date() },
-];
 
 interface LiveActivityTickerProps {
   activities?: Activity[];
@@ -29,7 +19,7 @@ interface LiveActivityTickerProps {
 }
 
 export function LiveActivityTicker({
-  activities = sampleActivities,
+  activities = [],
   interval = 4000,
   className,
 }: LiveActivityTickerProps) {
@@ -99,6 +89,10 @@ export function LiveActivityTicker({
     }
   };
 
+  if (!activities?.length) {
+    return <span className={cn("text-xs text-muted-foreground", className)}>Activity will appear once friends join</span>;
+  }
+
   const Icon = getIcon(activity.type);
 
   return (
@@ -134,7 +128,7 @@ interface ActivityFeedProps {
 }
 
 export function ActivityFeed({
-  activities = sampleActivities,
+  activities = [],
   maxItems = 5,
   className,
 }: ActivityFeedProps) {

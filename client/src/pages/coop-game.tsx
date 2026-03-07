@@ -4,9 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ScenarioCard } from "@/components/scenario-card";
+import { ScenarioCard } from "@/components/scenario-card-improved";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { TimerProgress } from "@/components/animated-progress";
+import { TeachingCard } from "@/components/teaching-card";
+import { AnswerStreakIndicator } from "@/components/answer-streak-indicator";
+import { SpeedBonusBadge } from "@/components/speed-bonus-badge";
+import { LifelineButton } from "@/components/lifeline-button";
 import { AppLogo } from "@/components/app-logo";
 import { ArrowRight, Clock, Check, Loader2, Wifi, WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -29,7 +32,7 @@ export default function CoopGame() {
   const { play } = useSound();
   const { vibrateSuccess, vibrateError } = useHaptic();
   const { fireMiniCorrect } = useConfetti();
-  
+
   const [timeRemaining, setTimeRemaining] = useState(TIMER_DURATION);
   const [timerRunning, setTimerRunning] = useState(false);
   const [localAnswered, setLocalAnswered] = useState(false);
@@ -37,6 +40,18 @@ export default function CoopGame() {
   const [wsConnected, setWsConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const playedWarnings = useRef<Set<number>>(new Set());
+
+  // #4: Screen flash state
+  const [answerFlash, setAnswerFlash] = useState<"correct" | "incorrect" | null>(null);
+  // #10: Streak tracking
+  const [streak, setStreak] = useState(0);
+  // #11: Lifeline state
+  const [lifelineUsed, setLifelineUsed] = useState(false);
+  const [eliminatedChoices, setEliminatedChoices] = useState<string[]>([]);
+  // #12: Speed bonus tracking
+  const answerTimeRef = useRef<number>(0);
+  const timerStartTime = useRef<number>(Date.now());
+  const [showSpeedBadge, setShowSpeedBadge] = useState(false);
 
   const { data: user } = useQuery<User>({
     queryKey: ["/api/user"],
@@ -103,6 +118,9 @@ export default function CoopGame() {
         setPartnerAnswered(false);
         setTimeRemaining(TIMER_DURATION);
         setTimerRunning(true);
+        setShowSpeedBadge(false);
+        setEliminatedChoices([]);
+        timerStartTime.current = Date.now();
         playedWarnings.current.clear();
         refetchSession();
       }
@@ -129,7 +147,7 @@ export default function CoopGame() {
     ws.onmessage = (event) => {
       try {
         const message: CoopMessage = JSON.parse(event.data);
-        
+
         switch (message.type) {
           case 'answer_submitted':
             if ((message.payload as { playerId: string }).playerId !== user.id) {
@@ -140,12 +158,16 @@ export default function CoopGame() {
             refetchSession();
             setTimerRunning(true);
             setTimeRemaining(TIMER_DURATION);
+            timerStartTime.current = Date.now();
             break;
           case 'next_question':
             setLocalAnswered(false);
             setPartnerAnswered(false);
             setTimeRemaining(TIMER_DURATION);
             setTimerRunning(true);
+            setShowSpeedBadge(false);
+            setEliminatedChoices([]);
+            timerStartTime.current = Date.now();
             playedWarnings.current.clear();
             refetchSession();
             break;
@@ -187,6 +209,7 @@ export default function CoopGame() {
   useEffect(() => {
     if (session?.status === 'playing' && !timerRunning) {
       setTimerRunning(true);
+      timerStartTime.current = Date.now();
     }
   }, [session?.status, timerRunning]);
 
@@ -194,6 +217,9 @@ export default function CoopGame() {
     if (!currentScenario || localAnswered) return;
     play("timeUp");
     setLocalAnswered(true);
+    // #10: Reset streak on timeout
+    setStreak(0);
+    setShowSpeedBadge(false);
   }, [currentScenario, localAnswered, play]);
 
   useEffect(() => {
@@ -224,18 +250,50 @@ export default function CoopGame() {
     if (!currentScenario || localAnswered) return;
 
     const choice = currentScenario.choices.find((c) => c.label === label);
+
+    // #12: Track answer time
+    const elapsed = Math.floor((Date.now() - timerStartTime.current) / 1000);
+    answerTimeRef.current = elapsed;
+
     if (choice?.isCorrect) {
       play("correct");
       vibrateSuccess();
       fireMiniCorrect();
+      // #4: Flash correct
+      setAnswerFlash("correct");
+      // #10: Increment streak
+      setStreak(prev => prev + 1);
+      // #12: Show speed badge
+      setShowSpeedBadge(true);
     } else {
       play("incorrect");
       vibrateError();
+      // #4: Flash incorrect
+      setAnswerFlash("incorrect");
+      // #10: Reset streak
+      setStreak(0);
+      setShowSpeedBadge(false);
     }
 
+    // #4: Clear flash after animation
+    setTimeout(() => setAnswerFlash(null), 400);
+
     setTimerRunning(false);
+    setEliminatedChoices([]);
     submitAnswerMutation.mutate({ scenarioId: currentScenario.id, choiceLabel: label });
   }, [currentScenario, localAnswered, play, vibrateSuccess, vibrateError, fireMiniCorrect, submitAnswerMutation]);
+
+  // #11: Lifeline handler
+  const handleLifeline = useCallback(() => {
+    if (!currentScenario || lifelineUsed || localAnswered) return;
+    setLifelineUsed(true);
+    play("whoosh");
+
+    const wrongChoices = currentScenario.choices.filter(c => !c.isCorrect);
+    const shuffled = [...wrongChoices].sort(() => Math.random() - 0.5);
+    const toEliminate = shuffled.slice(0, 2).map(c => c.label);
+    setEliminatedChoices(toEliminate);
+  }, [currentScenario, lifelineUsed, localAnswered, play]);
 
   const handleNext = useCallback(() => {
     nextQuestionMutation.mutate();
@@ -266,6 +324,16 @@ export default function CoopGame() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
+      {/* #4: Full-screen answer flash overlay */}
+      <AnimatePresence>
+        {answerFlash && (
+          <div
+            key={answerFlash}
+            className={answerFlash === "correct" ? "screen-flash-correct" : "screen-flash-incorrect"}
+          />
+        )}
+      </AnimatePresence>
+
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
         <div className="container flex h-14 items-center justify-between px-4">
           <div className="flex items-center gap-3">
@@ -273,6 +341,8 @@ export default function CoopGame() {
             <span className="text-sm text-muted-foreground">Co-op Mode</span>
           </div>
           <div className="flex items-center gap-2">
+            {/* #10: Answer streak indicator */}
+            <AnswerStreakIndicator streak={streak} mode="coop" />
             {wsConnected ? (
               <Wifi className="h-4 w-4 text-primary" />
             ) : (
@@ -282,6 +352,19 @@ export default function CoopGame() {
           </div>
         </div>
       </header>
+
+      {/* Critical timer vignette overlay */}
+      <AnimatePresence>
+        {!localAnswered && timeRemaining <= 5 && timerRunning && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="vignette-critical"
+            aria-hidden="true"
+          />
+        )}
+      </AnimatePresence>
 
       <main className="container px-4 py-4 max-w-2xl mx-auto">
         <div className="flex items-center justify-between mb-4">
@@ -364,16 +447,45 @@ export default function CoopGame() {
               : { duration: 0.1 }
           }
         >
+          {/* Clock icon — shakes with increasing intensity as time runs out */}
           <motion.div
-            animate={timeRemaining <= 5 ? { scale: [1, 1.25, 1] } : { scale: 1 }}
-            transition={timeRemaining <= 5 ? { duration: 0.5, repeat: Infinity } : {}}
+            animate={
+              timeRemaining <= 3
+                ? { rotate: [-8, 8, -8, 8, -6, 6, 0], scale: [1, 1.3, 1.1, 1.3, 1] }
+                : timeRemaining <= 5
+                  ? { rotate: [-5, 5, -5, 5, 0], scale: [1, 1.2, 1] }
+                  : timeRemaining <= 10
+                    ? { rotate: [-2, 2, -2, 0], scale: 1 }
+                    : { rotate: 0, scale: 1 }
+            }
+            transition={
+              timeRemaining <= 3
+                ? { duration: 0.3, repeat: Infinity, ease: "easeInOut" }
+                : timeRemaining <= 5
+                  ? { duration: 0.4, repeat: Infinity, ease: "easeInOut" }
+                  : timeRemaining <= 10
+                    ? { duration: 0.6, repeat: Infinity, ease: "easeInOut" }
+                    : {}
+            }
             className="flex-shrink-0"
           >
             <Clock className={cn(
-              "h-3.5 w-3.5 transition-colors duration-700",
-              timeRemaining <= 5 ? "text-destructive" : timeRemaining <= 10 ? "text-amber-500" : "text-muted-foreground"
+              "h-3.5 w-3.5 transition-colors duration-500",
+              timeRemaining <= 3
+                ? "text-destructive drop-shadow-[0_0_4px_hsl(var(--destructive)/0.6)]"
+                : timeRemaining <= 5
+                  ? "text-destructive"
+                  : timeRemaining <= 10
+                    ? "text-amber-500"
+                    : "text-muted-foreground"
             )} />
           </motion.div>
+
+          {/* #5: Heartbeat dot when critical */}
+          {timeRemaining <= 5 && timerRunning && !localAnswered && (
+            <div className="heartbeat-dot flex-shrink-0" aria-hidden="true" />
+          )}
+
           <div className="timer-bar-track flex-1">
             <div
               className={cn(
@@ -397,16 +509,28 @@ export default function CoopGame() {
           </motion.span>
         </motion.div>
 
-        {/* Critical vignette for coop timer */}
-        <AnimatePresence>
-          {!localAnswered && timeRemaining <= 5 && timerRunning && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="vignette-critical"
-              aria-hidden="true"
+        {/* #11: Lifeline button */}
+        {currentScenario && !effectiveLocalAnswered && (
+          <div className="flex items-center justify-between mb-3">
+            <LifelineButton
+              used={lifelineUsed}
+              onUse={handleLifeline}
+              disabled={effectiveLocalAnswered}
             />
+            <div />
+          </div>
+        )}
+
+        {/* #12: Speed bonus badge after answering */}
+        <AnimatePresence>
+          {effectiveLocalAnswered && showSpeedBadge && (
+            <div className="flex justify-center mb-3">
+              <SpeedBonusBadge
+                answerTimeSeconds={answerTimeRef.current}
+                timerDuration={TIMER_DURATION}
+                show={showSpeedBadge}
+              />
+            </div>
           )}
         </AnimatePresence>
 
@@ -427,8 +551,25 @@ export default function CoopGame() {
                 questionNumber={currentIndex + 1}
                 totalQuestions={totalScenarios}
                 timeRemaining={timeRemaining}
+                timerRunning={timerRunning && !localAnswered}
+                eliminatedChoices={eliminatedChoices}
               />
             </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* #8: Compact teaching card for co-op */}
+        <AnimatePresence>
+          {effectiveLocalAnswered && currentScenario && (
+            <div className="mt-3">
+              <TeachingCard
+                scenario={currentScenario}
+                selectedLabel={currentPlayer?.answers[currentScenario.id] || null}
+                didTimeOut={!currentPlayer?.answers[currentScenario.id]}
+                questionIndex={currentIndex}
+                showFull={false}
+              />
+            </div>
           )}
         </AnimatePresence>
 

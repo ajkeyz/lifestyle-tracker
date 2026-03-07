@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 interface GlassCardProps {
@@ -8,6 +8,7 @@ interface GlassCardProps {
   gradient?: boolean;
   glow?: boolean;
   animate?: boolean;
+  animated?: boolean;
   hover?: "lift" | "glow" | "scale" | "none";
 }
 
@@ -18,8 +19,11 @@ export function GlassCard({
   gradient = false,
   glow = false,
   animate = false,
+  animated,
   hover = "lift"
 }: GlassCardProps) {
+  const prefersReducedMotion = useReducedMotion();
+  const shouldAnimate = (animated !== undefined ? animated : animate) && !prefersReducedMotion;
   const blurClasses = {
     sm: "backdrop-blur-sm",
     md: "backdrop-blur-md",
@@ -55,7 +59,7 @@ export function GlassCard({
     </div>
   );
 
-  if (animate) {
+  if (shouldAnimate) {
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}

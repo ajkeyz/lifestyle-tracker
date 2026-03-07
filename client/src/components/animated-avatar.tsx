@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { 
   Cat, Dog, Bird, Bot, Skull, Ghost, Fish, Rabbit, 
   Squirrel, Bug, Flame, Rocket, Sparkles, Zap, Star,
@@ -45,6 +45,7 @@ interface AnimatedAvatarProps {
   size?: "xs" | "sm" | "md" | "lg" | "xl";
   showRing?: boolean;
   isAnimated?: boolean;
+  animated?: boolean;
   onClick?: () => void;
   selected?: boolean;
   className?: string;
@@ -66,15 +67,18 @@ const iconSizes = {
   xl: "w-16 h-16",
 };
 
-export function AnimatedAvatar({ 
-  avatarId, 
-  size = "md", 
+export function AnimatedAvatar({
+  avatarId,
+  size = "md",
   showRing = false,
   isAnimated = true,
+  animated,
   onClick,
   selected = false,
   className = ""
 }: AnimatedAvatarProps) {
+  const prefersReducedMotion = useReducedMotion();
+  const shouldAnimate = (animated !== undefined ? animated : isAnimated) && !prefersReducedMotion;
   const config = getAvatarConfig(avatarId);
   const Icon = config.icon;
   
@@ -88,11 +92,11 @@ export function AnimatedAvatar({
       {showRing && (
         <motion.div
           className={`absolute inset-0 rounded-full bg-gradient-to-r ${config.gradient} -m-1`}
-          animate={isAnimated ? { 
+          animate={shouldAnimate ? {
             rotate: 360,
             scale: [1, 1.02, 1]
           } : undefined}
-          transition={isAnimated ? { 
+          transition={shouldAnimate ? {
             rotate: { duration: 8, repeat: Infinity, ease: "linear" },
             scale: { duration: 2, repeat: Infinity, ease: "easeInOut" }
           } : undefined}
@@ -113,18 +117,18 @@ export function AnimatedAvatar({
       
       <motion.div
         className={`${sizeClasses[size]} rounded-full bg-gradient-to-br ${config.gradient} flex items-center justify-center relative overflow-hidden`}
-        animate={isAnimated ? { 
+        animate={shouldAnimate ? {
           boxShadow: [
             `0 0 20px 0px rgba(var(--${config.accentColor}-rgb, 139, 92, 246), 0.3)`,
             `0 0 30px 5px rgba(var(--${config.accentColor}-rgb, 139, 92, 246), 0.5)`,
             `0 0 20px 0px rgba(var(--${config.accentColor}-rgb, 139, 92, 246), 0.3)`,
           ]
         } : undefined}
-        transition={isAnimated ? { duration: 2, repeat: Infinity, ease: "easeInOut" } : undefined}
+        transition={shouldAnimate ? { duration: 2, repeat: Infinity, ease: "easeInOut" } : undefined}
       >
         <div className="absolute inset-0 bg-gradient-to-t from-black/20 dark:from-black/40 to-transparent" />
 
-        {isAnimated && (
+        {shouldAnimate && (
           <motion.div
             className="absolute inset-0 bg-gradient-to-r from-transparent via-foreground/10 dark:via-foreground/20 to-transparent"
             animate={{ x: ["-100%", "100%"] }}
@@ -133,11 +137,11 @@ export function AnimatedAvatar({
         )}
         
         <motion.div
-          animate={isAnimated ? { 
+          animate={shouldAnimate ? {
             y: [0, -2, 0],
             rotate: [0, -5, 5, 0]
           } : undefined}
-          transition={isAnimated ? { 
+          transition={shouldAnimate ? {
             duration: 3,
             repeat: Infinity,
             ease: "easeInOut"
