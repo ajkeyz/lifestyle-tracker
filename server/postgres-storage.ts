@@ -623,9 +623,10 @@ export class PostgresStorage implements IStorage {
     const drop = prefetchedDrop || await this.getDailyDrop();
     const user = prefetchedUser || await this.getOrCreateUser(sessionId);
 
-    // Idempotency check
+    // Idempotency check (allow replays where todayResult was cleared)
     const today = getTodayDateString();
-    if (user.lastPlayedDate === today) {
+    const isReplay = user.lastPlayedDate === today && !user.todayResult;
+    if (user.lastPlayedDate === today && user.todayResult) {
       throw new Error("Already played today");
     }
 
@@ -683,15 +684,20 @@ export class PostgresStorage implements IStorage {
       stats: newStats,
     };
 
-    const yesterday = getYesterdayDateString();
-    const wasFrozenYesterday = user.frozenDates.includes(yesterday);
-    const playedYesterday = user.lastPlayedDate === yesterday;
-
+    // On replay, preserve existing streak and gamesPlayed
     let newStreak: number;
-    if (playedYesterday || wasFrozenYesterday) {
-      newStreak = user.streak + 1;
+    if (isReplay) {
+      newStreak = user.streak;
     } else {
-      newStreak = 1;
+      const yesterday = getYesterdayDateString();
+      const wasFrozenYesterday = user.frozenDates.includes(yesterday);
+      const playedYesterday = user.lastPlayedDate === yesterday;
+
+      if (playedYesterday || wasFrozenYesterday) {
+        newStreak = user.streak + 1;
+      } else {
+        newStreak = 1;
+      }
     }
 
     const newHighestStreak = Math.max(user.highestStreak, newStreak);
@@ -722,7 +728,11 @@ export class PostgresStorage implements IStorage {
     };
 
     const existingHistory = Array.isArray(user.gameHistory) ? user.gameHistory : [];
-    const newGameHistory = [...existingHistory, historyEntry].slice(-30);
+    // On replay, replace today's entry instead of adding a duplicate
+    const filteredHistory = isReplay
+      ? existingHistory.filter(h => h.date !== today)
+      : existingHistory;
+    const newGameHistory = [...filteredHistory, historyEntry].slice(-30);
 
     const newCategoryStats = [...(Array.isArray(user.categoryStats) ? user.categoryStats : [])];
     categoryBreakdown.forEach(({ category, correct, total }) => {
@@ -788,8 +798,8 @@ export class PostgresStorage implements IStorage {
         highestStreak: newHighestStreak,
         streakCalendar: newStreakCalendar,
         moneyHealth,
-        totalScore: user.totalScore + totalScore,
-        gamesPlayed: user.gamesPlayed + 1,
+        totalScore: isReplay ? user.totalScore : user.totalScore + totalScore,
+        gamesPlayed: isReplay ? user.gamesPlayed : user.gamesPlayed + 1,
         lastPlayedDate: today,
         stats: newStats,
         todayResult: result,

@@ -286,9 +286,9 @@ export async function registerRoutes(
         storage.getDailyDrop(),
       ]);
 
-      // Fast-fail: skip entirely if already played
+      // Fast-fail: skip entirely if already played (but allow replays where todayResult was cleared)
       const today = new Date().toISOString().split("T")[0];
-      if (user?.lastPlayedDate === today) {
+      if (user?.lastPlayedDate === today && user?.todayResult) {
         return res.status(400).json({ error: "Already played today" });
       }
 
