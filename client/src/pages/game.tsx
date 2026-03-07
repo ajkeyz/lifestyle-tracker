@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ScenarioCard } from "@/components/scenario-card-improved";
@@ -36,6 +36,7 @@ export default function Game() {
   const { play } = useSound();
   const { vibrateSuccess, vibrateError } = useHaptic();
   const { fireMiniCorrect } = useConfetti();
+  const prefersReducedMotion = useReducedMotion();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [showResults, setShowResults] = useState<Record<string, boolean>>({});
@@ -259,7 +260,7 @@ export default function Game() {
       play("whoosh");
       setShowSpeedBadge(false);
       setEliminatedChoices([]);
-      window.scrollTo(0, 0);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }, [currentIndex, totalScenarios, play]);
 
@@ -307,13 +308,13 @@ export default function Game() {
     onSwipeLeft: () => {
       if (currentIndex < totalScenarios - 1) {
         setCurrentIndex(prev => prev + 1);
-        window.scrollTo(0, 0);
+        window.scrollTo({ top: 0, behavior: "smooth" });
       }
     },
     onSwipeRight: () => {
       if (currentIndex > 0) {
         setCurrentIndex(prev => prev - 1);
-        window.scrollTo(0, 0);
+        window.scrollTo({ top: 0, behavior: "smooth" });
       }
     },
   });
@@ -450,7 +451,7 @@ export default function Game() {
               : "bg-background/95"
         )}
         animate={
-          currentScenario && !showResults[currentScenario.id] && timerRunning && timeRemaining <= 5
+          currentScenario && !showResults[currentScenario.id] && timerRunning && timeRemaining <= 5 && !prefersReducedMotion
             ? { x: [-3, 3, -3, 3, -2, 2, 0] }
             : { x: 0 }
         }
@@ -615,13 +616,12 @@ export default function Game() {
           <div className="grid gap-5" {...swipeHandlers}>
             {/* #11: Lifeline button + #12: Speed bonus in a row */}
             {currentScenario && !showResults[currentScenario.id] && (
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-start">
                 <LifelineButton
                   used={lifelineUsed}
                   onUse={handleLifeline}
                   disabled={showResults[currentScenario.id] || false}
                 />
-                <div /> {/* spacer */}
               </div>
             )}
 
@@ -720,20 +720,22 @@ export default function Game() {
               {/* Micro affirmation — removed for cleaner UX */}
 
               {currentIndex < totalScenarios - 1 ? (
-                <Button
-                  onClick={handleNext}
-                  disabled={!showResults[currentScenario.id]}
-                  size="lg"
-                  className={cn(
-                    "w-full text-base font-semibold btn-premium relative overflow-hidden",
-                    !showResults[currentScenario.id] && "opacity-50"
-                  )}
-                  aria-label="Continue to next question"
-                  data-testid="button-next"
-                >
-                  Continue
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
+                <motion.div whileTap={{ scale: 0.97 }}>
+                  <Button
+                    onClick={handleNext}
+                    disabled={!showResults[currentScenario.id]}
+                    size="lg"
+                    className={cn(
+                      "w-full text-base font-semibold btn-premium relative overflow-hidden",
+                      !showResults[currentScenario.id] && "opacity-50"
+                    )}
+                    aria-label="Continue to next question"
+                    data-testid="button-next"
+                  >
+                    Continue
+                    <ArrowRight className="w-5 h-5 ml-2" />
+                  </Button>
+                </motion.div>
               ) : (
                 <Button
                   onClick={() => {
@@ -771,7 +773,7 @@ export default function Game() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5 }}
-                className="text-center text-xs text-muted-foreground/50"
+                className="text-center text-xs text-muted-foreground/50 hidden md:block"
               >
                 Press <kbd className="px-1.5 py-0.5 rounded bg-muted font-mono text-muted-foreground">1</kbd>-
                 <kbd className="px-1.5 py-0.5 rounded bg-muted font-mono text-muted-foreground">4</kbd> to answer
@@ -793,7 +795,7 @@ export default function Game() {
                   current={currentIndex}
                   onDotClick={(i) => {
                     setCurrentIndex(i);
-                    window.scrollTo(0, 0);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
                   }}
                 />
               </motion.div>

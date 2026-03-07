@@ -2,15 +2,17 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { 
-  Laptop, 
-  Globe, 
-  ShieldAlert, 
-  GraduationCap, 
+import { AmbientBackground } from "@/components/ambient-background";
+import { Mascot, type MascotContext } from "@/components/mascot";
+import {
+  Laptop,
+  Globe,
+  ShieldAlert,
+  GraduationCap,
   Briefcase,
   ChevronRight,
-  Check
+  Check,
+  ArrowLeft
 } from "lucide-react";
 import { AppLogo } from "@/components/app-logo";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -116,29 +118,47 @@ export default function Setup() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
-      <header className="flex items-center justify-between gap-2 p-4 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50 relative overflow-x-clip">
+      <AmbientBackground variant="default" />
+      <header className="flex items-center gap-3 px-4 h-14 border-b bg-card/80 backdrop-blur-xl sticky top-0 z-50 border-white/10">
+        <Button variant="ghost" size="icon" onClick={() => window.history.back()} aria-label="Go back">
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
         <div className="flex items-center gap-2">
           <AppLogo size="sm" />
-          <span className="font-bold text-lg" data-testid="text-app-title">Lifestyle Creep</span>
+          <span className="font-display font-extrabold text-[15px] leading-none tracking-[-0.04em]" data-testid="text-app-title">Lifestyle Creep</span>
         </div>
-        <ThemeToggle />
       </header>
 
       <main className="container max-w-2xl mx-auto p-4 space-y-6">
-        <motion.div 
+        <motion.div
           className="text-center py-6"
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
         >
-          <h1 className="text-2xl md:text-3xl font-semibold mb-2 tracking-[-0.02em]" data-testid="text-setup-title">
+          <h1 className="text-2xl md:text-3xl font-display font-semibold mb-2 tracking-[-0.02em]" data-testid="text-setup-title">
             Choose Your Mode
           </h1>
           <p className="text-muted-foreground" data-testid="text-setup-description">
             Pick a scenario style that matches your life
           </p>
         </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.15, type: "spring", stiffness: 300, damping: 20 }}
+                  className="flex justify-center"
+                >
+                  <Mascot
+                    mood="waving"
+                    size="sm"
+                    showBubble={true}
+                    message="Pick what fits your life!"
+                    context={{ screen: "home", username: "", streak: 0 } satisfies MascotContext}
+                  />
+                </motion.div>
 
         <motion.div 
           className="space-y-3"
@@ -238,7 +258,7 @@ export default function Setup() {
         >
           <Button
             size="lg"
-            className="w-full h-14 text-lg font-semibold"
+            className="w-full h-14 text-lg font-semibold btn-premium border-0"
             disabled={!selectedMode || setModeMutation.isPending}
             onClick={handleContinue}
             data-testid="button-continue"

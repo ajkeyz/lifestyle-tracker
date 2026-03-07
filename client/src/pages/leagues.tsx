@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { AmbientBackground } from "@/components/ambient-background";
 import { 
   Users,
   Plus,
@@ -33,6 +33,8 @@ import {
 } from "lucide-react";
 import { AppLogo } from "@/components/app-logo";
 import { EmptyState } from "@/components/empty-state";
+import { AnimatedAvatar } from "@/components/animated-avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -185,7 +187,7 @@ export default function Leagues() {
   };
 
   const renderHeader = () => (
-    <header className="flex items-center justify-between gap-2 flex-wrap p-4 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+    <header className="flex items-center justify-between gap-2 flex-wrap px-4 h-14 border-b bg-card/80 backdrop-blur-xl sticky top-0 z-50 border-white/10">
       <div className="flex items-center gap-2 flex-wrap">
         {viewMode !== "list" && (
           <Button 
@@ -205,7 +207,7 @@ export default function Leagues() {
           </Button>
         )}
         <AppLogo size="sm" />
-        <span className="font-bold text-lg flex items-center gap-2" data-testid="text-app-title">
+        <span className="font-display font-extrabold text-[15px] leading-none tracking-[-0.04em] flex items-center gap-2" data-testid="text-app-title">
           Friend Leagues
           {isBetaFeaturesEnabled && (
             <Badge variant="outline" className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20 text-xs">
@@ -214,17 +216,17 @@ export default function Leagues() {
           )}
         </span>
       </div>
-      <ThemeToggle />
     </header>
   );
 
   if (viewMode === "create") {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
+      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50 relative overflow-x-clip">
+        <AmbientBackground variant="default" />
         {renderHeader()}
         <main className="container max-w-md mx-auto p-4 space-y-6">
           <div className="text-center py-4">
-            <h1 className="text-2xl font-bold mb-2" data-testid="text-create-title">Create a League</h1>
+            <h1 className="text-2xl font-display font-bold mb-2" data-testid="text-create-title">Create a League</h1>
             <p className="text-muted-foreground text-sm">Challenge your friends to weekly money battles</p>
           </div>
 
@@ -307,17 +309,10 @@ export default function Leagues() {
             </Card>
           )}
 
-          <Card className="p-4 bg-muted/30">
-            <p className="text-sm text-center text-muted-foreground" data-testid="text-weekly-reset">
-              <Sparkles className="w-4 h-4 inline mr-1" />
-              Every week is a fresh chance to climb.
-            </p>
-          </Card>
-
           <div className="space-y-3">
-            <Button 
-              size="lg" 
-              className="w-full" 
+            <Button
+              size="lg"
+              className="w-full btn-premium border-0"
               onClick={handleCreateLeague}
               disabled={createMutation.isPending}
               data-testid="button-create-league"
@@ -358,11 +353,12 @@ export default function Leagues() {
 
   if (viewMode === "join") {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
+      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50 relative overflow-x-clip">
+        <AmbientBackground variant="default" />
         {renderHeader()}
         <main className="container max-w-md mx-auto p-4 space-y-6">
           <div className="text-center py-4">
-            <h1 className="text-2xl font-bold mb-2" data-testid="text-join-title">Join a League</h1>
+            <h1 className="text-2xl font-display font-bold mb-2" data-testid="text-join-title">Join a League</h1>
             <p className="text-muted-foreground text-sm">Enter the invite code your friend shared</p>
           </div>
 
@@ -380,16 +376,9 @@ export default function Leagues() {
             </div>
           </Card>
 
-          <Card className="p-4 bg-muted/30">
-            <p className="text-sm text-center text-muted-foreground" data-testid="text-weekly-reset-join">
-              <Sparkles className="w-4 h-4 inline mr-1" />
-              Every week is a fresh chance to climb.
-            </p>
-          </Card>
-
-          <Button 
-            size="lg" 
-            className="w-full" 
+          <Button
+            size="lg"
+            className="w-full btn-premium border-0"
             onClick={handleJoinLeague}
             disabled={joinMutation.isPending}
             data-testid="button-join-league"
@@ -411,14 +400,15 @@ export default function Leagues() {
     const sortedMembers = [...selectedLeague.members].sort((a, b) => a.weeklyRank - b.weeklyRank);
 
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
+      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50 relative overflow-x-clip">
+        <AmbientBackground variant="default" />
         {renderHeader()}
         <main className="container max-w-md mx-auto p-4 space-y-4">
           <Card className="p-6 text-center">
             <div className="w-16 h-16 mx-auto mb-2 rounded-full bg-primary/10 flex items-center justify-center">
               <LeagueIcon icon={selectedLeague.emoji} className="w-8 h-8 text-primary" />
             </div>
-            <h1 className="text-2xl font-bold mb-1" data-testid="text-league-name">{selectedLeague.name}</h1>
+            <h1 className="text-2xl font-display font-bold mb-1" data-testid="text-league-name">{selectedLeague.name}</h1>
             <div className="flex items-center justify-center gap-2 flex-wrap text-muted-foreground text-sm">
               {selectedLeague.privacy === "private" ? (
                 <Lock className="w-4 h-4" />
@@ -455,13 +445,6 @@ export default function Leagues() {
             </div>
           </Card>
 
-          <Card className="p-4 bg-muted/30">
-            <p className="text-sm text-center text-muted-foreground">
-              <Sparkles className="w-4 h-4 inline mr-1" />
-              Every week is a fresh chance to climb.
-            </p>
-          </Card>
-
           <Card className="p-4">
             <div className="flex items-center gap-2 flex-wrap mb-4">
               <Trophy className="w-5 h-5 text-accent" />
@@ -485,6 +468,7 @@ export default function Leagues() {
                     }`}>
                       {index === 0 ? <Crown className="w-4 h-4" /> : index + 1}
                     </div>
+                    <AnimatedAvatar avatarId={member.avatar || "cosmic-cat"} size="xs" isAnimated={false} />
                     <div>
                       <p className="font-medium" data-testid={`text-member-${index + 1}-name`}>
                         {member.username}
@@ -570,31 +554,36 @@ export default function Leagues() {
 
   if (viewMode === "detail" && leagueLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
+      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50 relative overflow-x-clip">
+        <AmbientBackground variant="default" />
         {renderHeader()}
-        <main className="container max-w-md mx-auto p-4 flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <main className="container max-w-md mx-auto p-4">
+          <div className="space-y-4 p-4">
+            <Skeleton className="h-20 w-full rounded-xl" />
+            <Skeleton className="h-20 w-full rounded-xl" />
+            <Skeleton className="h-20 w-full rounded-xl" />
+          </div>
         </main>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50 relative overflow-x-clip">
+      <AmbientBackground variant="default" />
       {renderHeader()}
       <main className="container max-w-md mx-auto p-4 space-y-4">
         <div className="flex gap-3">
-          <Button 
-            className="flex-1" 
+          <Button
+            className="flex-1 btn-premium border-0"
             onClick={() => setViewMode("create")}
             data-testid="button-create-new"
           >
             <Plus className="w-4 h-4 mr-2" />
             Create League
           </Button>
-          <Button 
-            variant="outline" 
-            className="flex-1" 
+          <Button
+            className="flex-1 btn-premium border-0"
             onClick={() => setViewMode("join")}
             data-testid="button-join-existing"
           >
@@ -611,8 +600,10 @@ export default function Leagues() {
         </Card>
 
         {leaguesLoading ? (
-          <div className="flex justify-center py-8">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <div className="space-y-4 p-4">
+            <Skeleton className="h-20 w-full rounded-xl" />
+            <Skeleton className="h-20 w-full rounded-xl" />
+            <Skeleton className="h-20 w-full rounded-xl" />
           </div>
         ) : leagues && leagues.length > 0 ? (
           <div className="space-y-3">
@@ -620,9 +611,9 @@ export default function Leagues() {
             {leagues.map((league) => {
               const myRank = league.members.find((m) => m.userId === user?.id)?.weeklyRank || 0;
               return (
-                <Card 
+                <Card
                   key={league.id}
-                  className="p-4 cursor-pointer"
+                  className="p-4 cursor-pointer hover-elevate hover:border-primary/20 transition-all rounded-2xl"
                   onClick={() => {
                     setSelectedLeagueId(league.id);
                     setViewMode("detail");

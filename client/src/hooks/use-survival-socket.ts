@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { SurvivalMatch, SurvivalMessage, SurvivalPlayer } from "@shared/schema";
 
-const MAX_RECONNECT_ATTEMPTS = 3;
+const MAX_RECONNECT_ATTEMPTS = 7;
 const RECONNECT_DELAY = 2000;
 
 export function useSurvivalSocket(matchId: string | null) {
@@ -123,7 +123,7 @@ export function useSurvivalSocket(matchId: string | null) {
       // Reconnect if match is still active
       if (reconnectAttempts.current < MAX_RECONNECT_ATTEMPTS && matchIdRef.current) {
         reconnectAttempts.current++;
-        setTimeout(connect, RECONNECT_DELAY * reconnectAttempts.current);
+        setTimeout(connect, RECONNECT_DELAY * Math.pow(1.5, reconnectAttempts.current - 1));
       }
     };
 

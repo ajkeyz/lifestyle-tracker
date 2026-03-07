@@ -73,6 +73,8 @@ import { useTheme } from "@/components/theme-provider";
 import { ReferralCard } from "@/components/referral-card";
 import { AnimatedAvatar } from "@/components/animated-avatar";
 import type { User } from "@shared/schema";
+import { AmbientBackground } from "@/components/ambient-background";
+import { GradientStripe } from "@/components/gradient-stripe";
 
 // ─── Inline helpers ───────────────────────────────────────────────────
 
@@ -254,9 +256,10 @@ export default function Settings() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50 relative overflow-x-clip">
+      <AmbientBackground variant="default" />
       {/* Header */}
-      <header className="flex items-center gap-3 p-4 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+      <header className="flex items-center gap-3 px-4 h-14 border-b bg-card/80 backdrop-blur-xl sticky top-0 z-50 border-white/10">
         <Button
           variant="ghost"
           size="icon"
@@ -265,28 +268,29 @@ export default function Settings() {
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <h1 className="font-bold text-lg" data-testid="text-page-title">Settings</h1>
+        <h1 className="font-display font-extrabold text-[15px] leading-none tracking-[-0.04em]" data-testid="text-page-title">Settings</h1>
       </header>
 
       <main className="container max-w-2xl mx-auto p-4 space-y-6">
 
         {/* ─── Profile Banner ───────────────────────────────── */}
         <Card
-          className="cursor-pointer overflow-hidden border-0 bg-gradient-to-br from-card via-card to-primary/5 dark:to-primary/10"
+          className="relative cursor-pointer overflow-hidden border-0 bg-gradient-to-br from-card via-card to-primary/5 dark:to-primary/10 rounded-2xl"
           onClick={() => navigate("/profile")}
           data-testid="card-profile-banner"
         >
           <CardContent className="p-5">
+            <GradientStripe variant="primary" />
             <div className="flex items-center gap-4">
               <AnimatedAvatar
-                avatarId={user.avatarId || "cosmic-cat"}
+                avatarId={user.avatar || "cosmic-cat"}
                 size="lg"
                 isAnimated={false}
               />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-0.5">
                   <h2 className="font-display font-bold text-xl truncate">
-                    {user.displayName || user.username}
+                    {user.username}
                   </h2>
                   {user.membershipTier === "pro" && (
                     <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gradient-to-r from-yellow-500 to-orange-500 text-white flex-shrink-0">
@@ -310,7 +314,7 @@ export default function Settings() {
         {/* ─── Appearance ───────────────────────────────────── */}
         <div>
           <SectionHeader>Appearance</SectionHeader>
-          <Card className="overflow-hidden" data-testid="card-appearance">
+          <Card className="overflow-hidden rounded-2xl" data-testid="card-appearance">
             <CardContent className="p-4">
               <div className="flex gap-2">
                 {([
@@ -340,7 +344,7 @@ export default function Settings() {
         {/* ─── Gameplay ─────────────────────────────────────── */}
         <div>
           <SectionHeader>Gameplay</SectionHeader>
-          <Card className="overflow-hidden" data-testid="card-gameplay">
+          <Card className="overflow-hidden rounded-2xl" data-testid="card-gameplay">
             {/* Low Pressure Mode */}
             <Collapsible open={lowPressureOpen} onOpenChange={setLowPressureOpen}>
               <div className="flex items-center gap-3 px-4 py-3">
@@ -457,7 +461,7 @@ export default function Settings() {
         {/* ─── Features ─────────────────────────────────────── */}
         <div>
           <SectionHeader>Features</SectionHeader>
-          <Card className="overflow-hidden" data-testid="card-features">
+          <Card className="overflow-hidden rounded-2xl" data-testid="card-features">
             <SettingsRow
               icon={BookOpen}
               iconClassName="bg-gradient-to-br from-yellow-500/20 to-amber-500/20 text-yellow-600"
@@ -518,7 +522,7 @@ export default function Settings() {
         {!user.lowPressureMode && (
           <div>
             <SectionHeader>Friends</SectionHeader>
-            <Card className="overflow-hidden" data-testid="card-friends-section">
+            <Card className="overflow-hidden rounded-2xl" data-testid="card-friends-section">
               {/* Rankings header */}
               <div className="flex items-center justify-between px-4 pt-4 pb-2">
                 <div className="flex items-center gap-2">
@@ -606,7 +610,7 @@ export default function Settings() {
         {/* ─── About & Support ──────────────────────────────── */}
         <div>
           <SectionHeader>About & Support</SectionHeader>
-          <Card className="overflow-hidden" data-testid="card-about-support">
+          <Card className="overflow-hidden rounded-2xl" data-testid="card-about-support">
             <SettingsRow
               icon={HelpCircle}
               iconClassName="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 text-blue-500"
@@ -666,7 +670,7 @@ export default function Settings() {
         {/* ─── Admin (conditional) ──────────────────────────── */}
         {adminCheck?.hasAccess && (
           <div>
-            <Card className="overflow-hidden" data-testid="card-admin">
+            <Card className="overflow-hidden rounded-2xl" data-testid="card-admin">
               <SettingsRow
                 icon={Settings2}
                 iconClassName="bg-gradient-to-br from-slate-700/20 to-slate-900/20 text-slate-500"
@@ -681,7 +685,7 @@ export default function Settings() {
         {/* ─── Data & Account ───────────────────────────────── */}
         <div>
           <SectionHeader>Data & Account</SectionHeader>
-          <Card className="overflow-hidden" data-testid="card-data-account">
+          <Card className="overflow-hidden rounded-2xl" data-testid="card-data-account">
             {/* Download Data */}
             <div className="flex items-center gap-3 px-4 py-3">
               <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">

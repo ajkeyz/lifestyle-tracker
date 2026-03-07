@@ -14,7 +14,11 @@ export function SocialProofCounter() {
     refetchInterval: 60000,
   });
 
-  if (!stats || stats.friendsPlayedToday === 0) return null;
+  if (!stats) return null;
+
+  if (stats.friendsPlayedToday === 0) {
+    return <span className="text-xs text-muted-foreground">Be the first of your friends to play today</span>;
+  }
 
   return (
     <motion.div

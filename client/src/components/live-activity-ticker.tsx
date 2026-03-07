@@ -89,7 +89,9 @@ export function LiveActivityTicker({
     }
   };
 
-  if (activities.length === 0) return null;
+  if (!activities?.length) {
+    return <span className={cn("text-xs text-muted-foreground", className)}>Activity will appear once friends join</span>;
+  }
 
   const Icon = getIcon(activity.type);
 

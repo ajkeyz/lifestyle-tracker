@@ -177,7 +177,7 @@ function ArcadeShareCard({
 
 export default function ArcadeResults() {
   const [, navigate] = useLocation();
-  const { fireFullscreen } = useConfetti();
+  const { fireCelebration } = useConfetti();
   const hasConfettied = useRef(false);
 
   const params = new URLSearchParams(window.location.search);
@@ -217,10 +217,10 @@ export default function ArcadeResults() {
   useEffect(() => {
     if (percentage >= 80 && !hasConfettied.current) {
       hasConfettied.current = true;
-      const timer = setTimeout(() => fireFullscreen?.(), 600);
+      const timer = setTimeout(() => fireCelebration?.(), 600);
       return () => clearTimeout(timer);
     }
-  }, [percentage, fireFullscreen]);
+  }, [percentage, fireCelebration]);
 
   const mascotContext: MascotContext = {
     screen: "results",
@@ -252,7 +252,7 @@ export default function ArcadeResults() {
           animate={{ opacity: 1, y: 0 }}
           className="space-y-6"
         >
-          <div className="text-center space-y-3">
+          <div className="text-center space-y-3 relative">
             {/* Ambient radial glow based on performance */}
             <div
               className="absolute inset-0 pointer-events-none"
@@ -303,7 +303,7 @@ export default function ArcadeResults() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4 }}
-              className={`text-2xl font-semibold ${gradeColor}`}
+              className={cn("text-3xl font-display font-bold tracking-[-0.03em]", gradeColor)}
               data-testid="text-arcade-grade"
             >
               {grade}

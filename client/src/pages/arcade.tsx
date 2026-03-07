@@ -385,27 +385,32 @@ export default function Arcade() {
   useEffect(() => {
     if (!gameStarted || !timerRunning || !currentScenario || showResults[currentScenario.id]) return;
 
-    // Adjust warning thresholds for experimental mode
     const warningThreshold = isExperimentalMode ? 8 : 10;
     const criticalThreshold = isExperimentalMode ? 4 : 5;
+    const startTime = Date.now();
+    const startValue = timeRemaining;
 
     const interval = setInterval(() => {
-      setTimeRemaining((prev) => {
-        if (prev <= 1) {
-          handleTimeUp();
-          return 0;
-        }
-        if (prev === warningThreshold + 1 && !playedWarnings.current.has(warningThreshold)) {
-          playedWarnings.current.add(warningThreshold);
-          play("timerWarning");
-        }
-        if (prev === criticalThreshold + 1 && !playedWarnings.current.has(criticalThreshold)) {
-          playedWarnings.current.add(criticalThreshold);
-          play("timerCritical");
-        }
-        return prev - 1;
-      });
-    }, 1000);
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      const newTime = Math.max(0, startValue - elapsed);
+
+      if (newTime !== timeRemaining) {
+        setTimeRemaining(newTime);
+      }
+
+      if (newTime <= 0) {
+        handleTimeUp();
+        return;
+      }
+      if (newTime === warningThreshold && !playedWarnings.current.has(warningThreshold)) {
+        playedWarnings.current.add(warningThreshold);
+        play("timerWarning");
+      }
+      if (newTime === criticalThreshold && !playedWarnings.current.has(criticalThreshold)) {
+        playedWarnings.current.add(criticalThreshold);
+        play("timerCritical");
+      }
+    }, 100);
 
     return () => clearInterval(interval);
   }, [gameStarted, timerRunning, currentScenario, showResults, handleTimeUp, play, isExperimentalMode]);
@@ -436,7 +441,7 @@ export default function Arcade() {
       timerStartTime.current = Date.now();
       playedWarnings.current.clear();
       play("whoosh");
-      window.scrollTo(0, 0);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }, [currentIndex, totalScenarios, timerDuration, play]);
 
@@ -474,13 +479,13 @@ export default function Arcade() {
     onSwipeLeft: () => {
       if (currentIndex < totalScenarios - 1) {
         setCurrentIndex(prev => prev + 1);
-        window.scrollTo(0, 0);
+        window.scrollTo({ top: 0, behavior: "smooth" });
       }
     },
     onSwipeRight: () => {
       if (currentIndex > 0) {
         setCurrentIndex(prev => prev - 1);
-        window.scrollTo(0, 0);
+        window.scrollTo({ top: 0, behavior: "smooth" });
       }
     },
   });
@@ -935,13 +940,12 @@ export default function Arcade() {
 
             {/* #11: Lifeline button */}
             {currentScenario && !showResults[currentScenario.id] && (
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-start">
                 <LifelineButton
                   used={lifelineUsed}
                   onUse={handleLifeline}
                   disabled={showResults[currentScenario.id] || false}
                 />
-                <div />
               </div>
             )}
 
@@ -1079,7 +1083,7 @@ export default function Arcade() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5 }}
-                className="text-center text-xs text-muted-foreground/50"
+                className="text-center text-xs text-muted-foreground/50 hidden md:block"
               >
                 Press <kbd className="px-1.5 py-0.5 rounded bg-muted font-mono text-muted-foreground">1</kbd>-
                 <kbd className="px-1.5 py-0.5 rounded bg-muted font-mono text-muted-foreground">4</kbd> to answer
@@ -1101,7 +1105,7 @@ export default function Arcade() {
                   current={currentIndex}
                   onDotClick={(i) => {
                     setCurrentIndex(i);
-                    window.scrollTo(0, 0);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
                   }}
                 />
               </motion.div>

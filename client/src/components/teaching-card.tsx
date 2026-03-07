@@ -36,7 +36,7 @@ export function TeachingCard({
       initial={{ opacity: 0, y: 16, height: 0 }}
       animate={{ opacity: 1, y: 0, height: "auto" }}
       exit={{ opacity: 0, y: 8, height: 0 }}
-      transition={{ duration: 0.5, delay: 1.5 }}
+      transition={{ duration: 0.5, delay: showFull === false ? 0.6 : 1.5 }}
       className="space-y-2.5 overflow-hidden"
       data-testid="panel-teaching-card"
     >

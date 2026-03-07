@@ -12,6 +12,7 @@ import { AnimatedCounter, RollingNumber } from "@/components/animated-counter";
 import { DebugScreen, useDebugGesture } from "@/components/debug-screen";
 import { AmbientBackground } from "@/components/ambient-background";
 import { AppLogo } from "@/components/app-logo";
+import { GradientText } from "@/components/gradient-text";
 import { Mascot, getMascotMoodForStreak, type MascotContext } from "@/components/mascot";
 import { CleoPlayNudge } from "@/components/cleo-edge-presence";
 import { DailyProgressCard } from "@/components/daily-progress-card";
@@ -20,6 +21,7 @@ import { LevelProgress } from "@/components/level-progress";
 import { ResourceBar } from "@/components/resource-bar";
 import { IdentityStatsCard } from "@/components/identity-stats-card";
 import { useProgression } from "@/hooks/use-progression";
+import { useToast } from "@/hooks/use-toast";
 
 import {
   Play,
@@ -124,6 +126,7 @@ export default function Home() {
   const [showDebugScreen, setShowDebugScreen] = useState(false);
   const { handleTap } = useDebugGesture(() => setShowDebugScreen(true));
 
+  const { toast } = useToast();
   const {
     unlocks,
     nextUnlock,
@@ -204,7 +207,7 @@ export default function Home() {
   const [cleoGreeting, setCleoGreeting] = useState<string | undefined>(() => {
     const hour = new Date().getHours();
     const timeOfDay = hour < 12 ? "Morning" : hour < 17 ? "Afternoon" : "Evening";
-    return `${timeOfDay}, ${user?.username || authUser?.username || "there"}!`;
+    return `${timeOfDay}, ${user?.username || authUser?.firstName || "there"}!`;
   });
 
   useEffect(() => {
@@ -224,6 +227,7 @@ export default function Home() {
       navigator.share({ text: shareText }).catch(() => {});
     } else {
       navigator.clipboard.writeText(shareText);
+      toast({ title: "Copied!", description: "Share link copied to clipboard" });
     }
   };
 
@@ -236,9 +240,9 @@ export default function Home() {
         <AmbientBackground variant="default" />
         <header className="flex items-center justify-between px-4 h-14 border-b bg-card/80 backdrop-blur-xl sticky top-0 z-50 border-white/10">
           <div className="flex items-center gap-2.5 min-h-[40px]">
-            <AppLogo size="sm" />
+            <AppLogo size="sm" glow />
             <span
-              className="font-display font-extrabold text-[15px] leading-none tracking-[-0.04em] text-white drop-shadow-[0_0_12px_rgba(255,255,255,0.15)]"
+              className="font-display font-extrabold text-[15px] leading-none tracking-[-0.04em] text-foreground drop-shadow-[0_0_12px_rgba(255,255,255,0.15)]"
               style={{ fontFeatureSettings: '"ss01", "ss02"' }}
             >
               Lifestyle Creep
@@ -248,7 +252,7 @@ export default function Home() {
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 shrink-0"
+              className="h-10 w-10 shrink-0"
               onClick={() => navigate("/settings")}
               data-testid="button-settings"
               aria-label="Open settings"
@@ -261,9 +265,15 @@ export default function Home() {
         <main className="container max-w-2xl mx-auto p-4 space-y-4">
           {userLoading ? (
             <div className="space-y-4">
-              <Skeleton className="h-40 w-full" />
-              <Skeleton className="h-24 w-full" />
-              <Skeleton className="h-48 w-full" />
+              <Skeleton className="h-48 w-full rounded-xl" />
+              <div className="flex gap-3">
+                <Skeleton className="h-16 flex-1 rounded-lg" />
+                <Skeleton className="h-16 flex-1 rounded-lg" />
+                <Skeleton className="h-16 flex-1 rounded-lg" />
+              </div>
+              <Skeleton className="h-6 w-full rounded-lg" />
+              <Skeleton className="h-24 w-full rounded-xl" />
+              <Skeleton className="h-20 w-full rounded-xl" />
             </div>
           ) : user ? (
             <>
@@ -333,6 +343,9 @@ export default function Home() {
                           <span className="text-xs font-medium">{themeConfig.label}</span>
                         </div>
                       </div>
+                      <h2 className="text-lg font-display font-bold tracking-tight mb-1">
+                        <GradientText variant="primary">Today's Drop</GradientText>
+                      </h2>
                       <p className="text-muted-foreground text-sm mb-1" data-testid="text-tagline">
                         5 real-life money decisions in 2-4 minutes
                       </p>
@@ -342,20 +355,11 @@ export default function Home() {
                       >
                         {whyThisMatters}
                       </p>
-                      <div className="mb-2">
-                        <SocialProofCounter />
-                      </div>
-                      <div className="mb-3">
-                        <LiveActivityTicker
-                          activities={friendsActivity?.recentActivity as any}
-                          className="text-xs"
-                        />
-                      </div>
                       <Button
                         size="lg"
                         className={cn(
                           "gap-2 relative overflow-hidden font-bold",
-                          hasPlayedToday ? "" : "btn-premium border-0"
+                          hasPlayedToday ? "bg-emerald-600 hover:bg-emerald-700 text-white border-0" : "btn-premium border-0"
                         )}
                         onClick={() => {
                           if (hasPlayedToday) navigate("/results");
@@ -391,6 +395,15 @@ export default function Home() {
                           <ChevronRight className="w-3 h-3" />
                         </Button>
                       )}
+
+                      <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                        <SocialProofCounter />
+                        <span className="text-border">·</span>
+                        <LiveActivityTicker
+                          activities={friendsActivity?.recentActivity as any}
+                          className="text-xs"
+                        />
+                      </div>
 
                       {hasPlayedToday && user.todayResult && (
                         <motion.div
@@ -435,13 +448,14 @@ export default function Home() {
                         data-testid="mascot-home"
                         onClick={handleTap}
                         style={{ cursor: "pointer" }}
+                        whileTap={{ scale: 0.95 }}
                         animate={{
                           y: [0, -6, 0],
                           rotate: [0, 1.5, 0, -1.5, 0],
                         }}
                         transition={{
-                          y: { duration: 3, repeat: Infinity, ease: "easeInOut" },
-                          rotate: { duration: 5, repeat: Infinity, ease: "easeInOut" },
+                          y: { duration: 3, repeat: 2, ease: "easeInOut" },
+                          rotate: { duration: 5, repeat: 2, ease: "easeInOut" },
                         }}
                       >
                         <Mascot
@@ -475,7 +489,7 @@ export default function Home() {
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.05 }}
+                  transition={{ duration: 0.4, delay: 0.1 }}
                 >
                   <Card className="p-4 border-accent/30 bg-accent/5" data-testid="card-comeback">
                     <div className="flex items-start gap-3">
@@ -534,7 +548,7 @@ export default function Home() {
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.18 }}
+                  transition={{ duration: 0.4, delay: 0.2 }}
                 >
                   <NextUnlockCard
                     mode={nextUnlock.mode}
@@ -549,7 +563,7 @@ export default function Home() {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.05 }}
+                transition={{ duration: 0.4, delay: 0.3 }}
               >
                 <Card
                   className={cn(
@@ -599,7 +613,7 @@ export default function Home() {
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: 0.05 }}
+                transition={{ duration: 0.4, delay: 0.4 }}
               >
                 <TipCardCarousel
                   tips={DAILY_TIPS.map((content, index) => ({

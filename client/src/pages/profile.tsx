@@ -71,6 +71,8 @@ import {
 } from "@/components/ui/collapsible";
 import type { User } from "@shared/schema";
 import { BADGE_DEFINITIONS } from "@shared/schema";
+import { AmbientBackground } from "@/components/ambient-background";
+import { GradientStripe } from "@/components/gradient-stripe";
 
 function getMoneyHealthLabel(score: number): { label: string; color: string; trend: "up" | "stable" | "down" } {
   if (score >= 90) return { label: "Excellent", color: "text-emerald-500", trend: "up" };
@@ -348,8 +350,12 @@ export default function Profile() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
+        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg">
+          <Users className="w-8 h-8 text-white" />
+        </div>
         <p className="text-muted-foreground">Unable to load profile</p>
+        <Button variant="outline" onClick={() => window.location.reload()}>Try Again</Button>
       </div>
     );
   }
@@ -360,8 +366,9 @@ export default function Profile() {
   const TrendIcon = healthInfo.trend === "up" ? TrendingUp : healthInfo.trend === "down" ? TrendingDown : Minus;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
-      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-sm border-b px-4 py-3">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50 relative overflow-x-clip">
+      <AmbientBackground variant="default" />
+      <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-xl border-b border-white/10 px-4 h-14 flex items-center">
         <div className="max-w-md mx-auto flex items-center justify-between gap-2">
           <Button
             variant="ghost"
@@ -373,7 +380,7 @@ export default function Profile() {
           </Button>
           <div className="flex items-center gap-2">
             <AppLogo size="sm" />
-            <span className="font-display font-semibold tracking-[-0.02em]">
+            <span className="font-display font-extrabold text-[15px] leading-none tracking-[-0.04em]">
               {isOwnProfile ? "Profile" : user?.username || "Profile"}
             </span>
           </div>
@@ -454,7 +461,7 @@ export default function Profile() {
           </div>
 
           <div className="text-center space-y-1">
-            <h1 className="text-2xl font-semibold tracking-[-0.02em]" data-testid="text-username">
+            <h1 className="text-2xl font-display font-semibold tracking-[-0.02em]" data-testid="text-username">
               {user.username}
             </h1>
             {user.bio && (
@@ -575,7 +582,8 @@ export default function Profile() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 }}
           >
-            <Card className="p-4 space-y-3" data-testid="card-achievements">
+            <Card className="p-4 space-y-3 relative overflow-hidden" data-testid="card-achievements">
+              <GradientStripe variant="primary" />
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Trophy className="w-4 h-4 text-primary" />
@@ -713,7 +721,8 @@ export default function Profile() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 }}
           >
-            <Card className="p-4 space-y-3" data-testid="card-share-username">
+            <Card className="p-4 space-y-3 relative overflow-hidden" data-testid="card-share-username">
+              <GradientStripe variant="primary" />
               <div className="flex items-center gap-2 text-sm font-medium">
                 <Users className="w-4 h-4 text-primary" />
                 <span>Play better with people who know you</span>
@@ -936,7 +945,8 @@ export default function Profile() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
           >
-            <Card className="p-4 space-y-3" data-testid="card-milestones">
+            <Card className="p-4 space-y-3 relative overflow-hidden" data-testid="card-milestones">
+              <GradientStripe variant="primary" />
               <div className="flex items-center gap-2">
                 <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">
                   Quiet Wins
@@ -1102,7 +1112,7 @@ export default function Profile() {
             transition={{ delay: 0.4 }}
           >
             <Link href="/profile-setup?edit=true" replace>
-              <Button variant="ghost" className="w-full gap-2 text-muted-foreground" data-testid="button-edit-profile">
+              <Button variant="outline" className="w-full gap-2 text-muted-foreground" data-testid="button-edit-profile">
                 <Settings className="w-4 h-4" />
                 Edit Profile
               </Button>
