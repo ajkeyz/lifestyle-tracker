@@ -1,6 +1,5 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { motion } from "framer-motion";
-import { RollingNumber } from "@/components/animated-counter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ShareCard } from "@/components/share-card";
@@ -9,7 +8,7 @@ import { FriendLeague } from "@/components/leaderboard-card";
 import { useConfetti } from "@/components/confetti";
 import { useSound } from "@/hooks/use-sound";
 import { QuickWinsPopup } from "@/components/quick-wins-popup";
-import { ArrowLeft, Home, Trophy, Calendar, Share2, BookOpen, Sparkles, Flame, Brain, RefreshCw, Users, UserCircle, ChevronRight, BellRing, Check } from "lucide-react";
+import { ArrowLeft, Home, Calendar, Share2, BookOpen, Brain, RefreshCw, Users, UserCircle, ChevronRight, BellRing, Check } from "lucide-react";
 import { AppLogo } from "@/components/app-logo";
 import { Mascot, getMascotMoodForScore, getMascotScoreMessage, getMascotContextDialogue, CelebrationBurst, BODY_COLORS, type MascotContext } from "@/components/mascot";
 import { CleoCongratsPeek } from "@/components/cleo-edge-presence";
@@ -367,50 +366,26 @@ export default function Results() {
                 />
                 <ResultsBubble mood={dynamicMascotMood} context={mascotContext} />
               </div>
+            </motion.div>
 
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3, duration: 0.4 }}
-                className="relative z-10"
-              >
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent/15 border border-accent/30 text-accent mb-3">
-                  <Trophy className="w-4 h-4" />
-                  <span className="text-xs font-semibold tracking-wide uppercase" data-testid="text-drop-complete">Drop Complete</span>
-                </div>
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.4, type: "spring", stiffness: 300, damping: 20 }}
-                  className="mb-2"
-                >
-                  <span className="text-5xl font-display font-bold tabular-nums">
-                    <RollingNumber value={result.score} />
-                  </span>
-                  <span className="text-lg text-muted-foreground font-medium">/500</span>
-                </motion.div>
-                <h1
-                  className={cn(
-                    "text-3xl font-bold tracking-[-0.03em] mb-1",
-                    result.score >= 400 ? "gradient-text" : ""
-                  )}
-                  data-testid="text-great-job"
-                >
-                  {result.score >= 400 ? "Amazing!" : result.score >= 250 ? "Nice work!" : "Keep growing!"}
-                </h1>
-                <p className="text-muted-foreground text-sm" data-testid="text-come-back">
-                  {user?.streak && user.streak > 0
-                    ? `Keep your ${user.streak}-day streak alive!`
-                    : "Come back tomorrow to build your streak!"}
-                </p>
-              </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2, ease: "easeOut" }}
+            >
+            <ShareCard
+              dropNumber={dailyDrop?.dropNumber || 0}
+              result={result}
+              answers={correctAnswers}
+              streak={user?.streak ?? 0}
+            />
             </motion.div>
 
             {mascotContext.percentile !== undefined && mascotContext.percentile > 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 20, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ duration: 0.5, delay: 0.15, type: "spring", stiffness: 300, damping: 24 }}
+                transition={{ duration: 0.5, delay: 0.3, type: "spring", stiffness: 300, damping: 24 }}
               >
                 <Card className="p-5 text-center relative overflow-hidden" data-testid="card-percentile">
                   <div
@@ -434,19 +409,6 @@ export default function Results() {
                 </Card>
               </motion.div>
             )}
-
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2, ease: "easeOut" }}
-            >
-            <ShareCard
-              dropNumber={dailyDrop?.dropNumber || 0}
-              result={result}
-              answers={correctAnswers}
-              streak={user?.streak ?? 0}
-            />
-            </motion.div>
 
             {/* Social Share Button */}
             <motion.div
