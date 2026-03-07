@@ -559,9 +559,10 @@ export async function registerRoutes(
         },
       };
 
-      // Set headers for file download
+      // Set headers for file download (sanitize username to prevent header injection)
+      const safeUsername = (user.username || "user").replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 30);
       res.setHeader('Content-Type', 'application/json');
-      res.setHeader('Content-Disposition', `attachment; filename="lifestyle-creep-data-${user.username}-${new Date().toISOString().split('T')[0]}.json"`);
+      res.setHeader('Content-Disposition', `attachment; filename="lifestyle-creep-data-${safeUsername}-${new Date().toISOString().split('T')[0]}.json"`);
 
       res.json(exportData);
     } catch (error) {
@@ -642,7 +643,16 @@ export async function registerRoutes(
   app.post("/api/notification-prefs", requireAuth, async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
-      const prefs = req.body;
+      const raw = req.body;
+
+      // Validate notification preferences shape — only allow known boolean fields
+      const allowedKeys = ["dailyReminder", "streakAlert", "friendActivity", "leagueUpdates", "challenges", "marketing"];
+      const prefs: Record<string, boolean> = {};
+      for (const key of allowedKeys) {
+        if (key in raw && typeof raw[key] === "boolean") {
+          prefs[key] = raw[key];
+        }
+      }
       
       const user = await storage.updateUser(sessionId, {
         notificationPrefs: prefs,
@@ -1372,6 +1382,14 @@ export async function registerRoutes(
 
       if (tier !== "free" && tier !== "plus" && tier !== "pro") {
         return res.status(400).json({ error: "Invalid tier. Must be 'free', 'plus', or 'pro'" });
+      }
+
+      // SECURITY: Only admins can directly set membership tiers.
+      // In production, tier upgrades should go through a payment provider
+      // (e.g., Stripe) webhook that calls storage.updateMembershipTier.
+      const isAdmin = await storage.isAdmin(sessionId);
+      if (!isAdmin) {
+        return res.status(403).json({ error: "Membership changes require payment processing. Contact support." });
       }
 
       const updatedUser = await storage.updateMembershipTier(sessionId, tier);

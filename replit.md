@@ -81,6 +81,16 @@ Preferred communication style: Simple, everyday language.
 - **Static Scenarios**: Pre-generated financial scenarios stored locally, cycled daily.
 - **Categories**: Wide range of financial topics including tech, investing, debt, budgeting, etc.
 
+### Security Measures
+- **CSRF Protection**: Origin header validation middleware blocks cross-origin state-changing requests in production.
+- **Security Headers**: X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy, CSP, HSTS.
+- **Rate Limiting**: Custom per-endpoint rate limiter keyed by session ID with periodic cleanup.
+- **Input Validation**: Zod schemas on all POST endpoints; community content sanitized (HTML stripped).
+- **SQL Safety**: Drizzle ORM parameterized queries; manual SQL uses `sql` tagged templates with proper parameterization.
+- **Auth**: Replit OIDC + Passport.js; `requireAuth` middleware on all sensitive endpoints.
+- **Membership Tier**: Admin-only direct tier changes; production upgrades require payment provider integration.
+- **WebSocket**: Authenticated via HTTP session on upgrade; heartbeat + inactivity timeout; participant checks on co-op/survival endpoints.
+
 ### Environment Variables
 - `DATABASE_URL`
 - `SESSION_SECRET`

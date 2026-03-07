@@ -17,6 +17,25 @@ declare module "http" {
   }
 }
 
+// CSRF protection: validate Origin header on state-changing requests
+app.use((req: Request, res: Response, next: NextFunction) => {
+  if (isProduction && ["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) {
+    const origin = req.get("Origin");
+    const host = req.get("Host");
+    if (origin && host) {
+      try {
+        const originHost = new URL(origin).host;
+        if (originHost !== host) {
+          return res.status(403).json({ error: "Cross-origin request blocked" });
+        }
+      } catch {
+        return res.status(403).json({ error: "Invalid origin" });
+      }
+    }
+  }
+  next();
+});
+
 // P0-4: Security headers — replaces the need for helmet in environments where it can't be installed
 app.use((_req: Request, res: Response, next: NextFunction) => {
   // Prevent MIME-type sniffing

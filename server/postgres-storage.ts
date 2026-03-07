@@ -284,11 +284,11 @@ export class PostgresStorage implements IStorage {
       await db.execute(sql`
         UPDATE lifestyle_users
         SET friend_ids = (
-          SELECT jsonb_agg(elem)
+          SELECT COALESCE(jsonb_agg(elem), '[]'::jsonb)
           FROM jsonb_array_elements(friend_ids) AS elem
-          WHERE elem::text != ${`"${userId}"`}::jsonb::text
+          WHERE elem::text != to_jsonb(${userId}::text)::text
         )
-        WHERE friend_ids @> ${`["${userId}"]`}::jsonb
+        WHERE friend_ids @> jsonb_build_array(${userId}::text)
       `);
 
       // 4. Delete community content
@@ -3135,8 +3135,10 @@ export class PostgresStorage implements IStorage {
 
   async deleteUsersByPrefix(prefix: string): Promise<number> {
     try {
+      // Escape SQL LIKE wildcards (%, _) in user-provided prefix
+      const safePrefix = prefix.replace(/[%_]/g, '\\$&');
       const result = await db.delete(appSchema.lifestyleUsers)
-        .where(like(appSchema.lifestyleUsers.id, `${prefix}%`));
+        .where(like(appSchema.lifestyleUsers.id, `${safePrefix}%`));
       // result may or may not have rowCount depending on driver
       return (result as any)?.rowCount ?? 0;
     } catch (err: any) {
