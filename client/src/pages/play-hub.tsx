@@ -180,7 +180,9 @@ export default function PlayHub() {
                       const res = await fetch("/api/daily-drop/replay", { method: "POST" });
                       if (res.ok) {
                         const { queryClient } = await import("@/lib/queryClient");
-                        queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+                        queryClient.setQueryData(["/api/user"], (old: any) =>
+                          old ? { ...old, todayResult: null } : old
+                        );
                         navigate("/play");
                       }
                     } catch { toast({ title: "Replay failed", description: "Could not start replay. Try again.", variant: "destructive" }); }

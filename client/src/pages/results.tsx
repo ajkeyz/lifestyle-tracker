@@ -570,7 +570,9 @@ export default function Results() {
                 try {
                   const res = await fetch("/api/daily-drop/replay", { method: "POST" });
                   if (res.ok) {
-                    queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+                    queryClient.setQueryData(["/api/user"], (old: any) =>
+                      old ? { ...old, todayResult: null } : old
+                    );
                     navigate("/play");
                   }
                 } catch (e) { console.error("Replay failed", e); }
