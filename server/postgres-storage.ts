@@ -834,11 +834,7 @@ export class PostgresStorage implements IStorage {
       this.applyBadgeProgress(badges, "comeback_king", newStreak);
     }
 
-    // ── PERF: Fire-and-forget DB write ──────────────────────────────
-    // The client doesn't need to wait for the DB write to see their results.
-    // The route-level idempotency cache prevents double-processing.
-    // This turns a 1-5s blocking write into ~0ms from the client's perspective.
-    db.update(appSchema.lifestyleUsers)
+    await db.update(appSchema.lifestyleUsers)
       .set({
         streak: newStreak,
         highestStreak: newHighestStreak,
@@ -856,19 +852,15 @@ export class PostgresStorage implements IStorage {
         perfectGames: newPerfectGames,
         updatedAt: new Date(),
       })
-      .where(eq(appSchema.lifestyleUsers.id, sessionId))
-      .then(async () => {
-        console.log(`[submit-game] Saved results for ${sessionId} (score: ${totalScore})`);
-        try {
-          await db.update(appSchema.leagueMembers)
-            .set({ weeklyScore: sql`${appSchema.leagueMembers.weeklyScore} + ${totalScore}` })
-            .where(eq(appSchema.leagueMembers.userId, sessionId));
-        } catch (leagueErr) {
-          console.error(`[submit-game] Failed to update league scores for ${sessionId}:`, leagueErr);
-        }
-      })
-      .catch((err) => {
-        console.error(`[submit-game] FAILED to save results for ${sessionId}:`, err);
+      .where(eq(appSchema.lifestyleUsers.id, sessionId));
+
+    console.log(`[submit-game] Saved results for ${sessionId} (score: ${totalScore})`);
+
+    db.update(appSchema.leagueMembers)
+      .set({ weeklyScore: sql`${appSchema.leagueMembers.weeklyScore} + ${totalScore}` })
+      .where(eq(appSchema.leagueMembers.userId, sessionId))
+      .catch((leagueErr) => {
+        console.error(`[submit-game] Failed to update league scores for ${sessionId}:`, leagueErr);
       });
 
     return result;
