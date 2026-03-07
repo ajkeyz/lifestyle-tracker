@@ -51,6 +51,8 @@ interface MascotProps {
   size?: "xs" | "sm" | "md" | "lg" | "xl";
   message?: string;
   showBubble?: boolean;
+  /** Delay in ms before the speech bubble first appears (default 1200) */
+  speechDelay?: number;
   disableTapBubble?: boolean;
   className?: string;
   onClick?: () => void;
@@ -2070,12 +2072,12 @@ function SpeechBubble({ message, position = "right", mood }: {
     bottom: { top: -6, left: `calc(50% - ${nudgeX}px)`, transform: "translateX(-50%) rotate(45deg)", width: 12, height: 12, borderRadius: "4px 0 0 0" },
   };
 
-  // Entry animation on the inner motion.div only — no transform conflicts with outer positioning
+  // Entry animation — soft fade-in with gentle scale
   const enterFrom = {
-    right:  { opacity: 0, scale: 0.82, x: -6 },
-    left:   { opacity: 0, scale: 0.82, x: 6 },
-    top:    { opacity: 0, scale: 0.82, y: 5 },
-    bottom: { opacity: 0, scale: 0.82, y: -5 },
+    right:  { opacity: 0, scale: 0.92, x: -4 },
+    left:   { opacity: 0, scale: 0.92, x: 4 },
+    top:    { opacity: 0, scale: 0.92, y: 4 },
+    bottom: { opacity: 0, scale: 0.92, y: -4 },
   }[position];
 
   return (
@@ -2093,8 +2095,8 @@ function SpeechBubble({ message, position = "right", mood }: {
       <motion.div
         initial={enterFrom}
         animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
-        exit={{ opacity: 0, scale: 0.8 }}
-        transition={{ type: "spring", stiffness: 400, damping: 28 }}
+        exit={{ opacity: 0, scale: 0.92, transition: { duration: 0.2, ease: "easeIn" } }}
+        transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
       >
         <div className="relative">
           {/* Rounded tail — counter-shifted so it still points at the mascot */}
@@ -2184,6 +2186,7 @@ export function Mascot({
   size = "md",
   message,
   showBubble = true,
+  speechDelay = 1200,
   disableTapBubble = false,
   className,
   onClick,
@@ -2208,8 +2211,9 @@ export function Mascot({
   }, [message, context, mood]);
 
   const [currentMessage, setCurrentMessage] = useState(computeInitialMessage);
-  const [bubbleVisible, setBubbleVisibleRaw] = useState(showBubble);
-  const bubbleVisibleRef = useRef(showBubble);
+  // Start hidden; the initial appearance is deferred by speechDelay
+  const [bubbleVisible, setBubbleVisibleRaw] = useState(false);
+  const bubbleVisibleRef = useRef(false);
   const setBubbleVisible = useCallback((v: boolean) => {
     bubbleVisibleRef.current = v;
     setBubbleVisibleRaw(v);
@@ -2217,7 +2221,21 @@ export function Mascot({
   const [tapCount, setTapCount] = useState(0);
   const [isEasterEgg, setIsEasterEgg] = useState(false);
   const [currentMood, setCurrentMood] = useState<MascotMood>(mood);
-  const [isSpeaking, setIsSpeaking] = useState(showBubble);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  // Deferred initial appearance — lets the page settle before Cleo speaks
+  const initialDelayFired = useRef(false);
+  useEffect(() => {
+    if (initialDelayFired.current || !showBubble) return;
+    const t = setTimeout(() => {
+      initialDelayFired.current = true;
+      const msg = computeInitialMessage();
+      setCurrentMessage(msg);
+      setBubbleVisible(true);
+      setIsSpeaking(true);
+    }, speechDelay);
+    return () => clearTimeout(t);
+  }, [showBubble, speechDelay, computeInitialMessage, setBubbleVisible]);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const tapResetRef = useRef<ReturnType<typeof setTimeout>>();

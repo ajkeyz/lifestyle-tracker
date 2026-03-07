@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Check, X, Coins } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toneColors, type ChoiceTone } from "@/lib/game-insights";
+import { useSoundEffect } from "@/hooks/use-sound";
 
 function getPointTier(points: number): { label: string; color: string; bgColor: string } {
   const displayPoints = Math.max(0, points);
@@ -78,6 +79,9 @@ export function ChoiceCard({
   const pointTier = points !== undefined ? getPointTier(points) : null;
   const earnedPoints = points !== undefined ? Math.max(0, points) : 0;
   const isDisabledByElimination = eliminated && !showResult;
+
+  // Play coin collect sound when points burst appears on correct answer
+  useSoundEffect("coinCollect", showResult && isCorrect && revealStage >= 3);
 
   return (
     <motion.button

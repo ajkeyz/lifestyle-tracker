@@ -4,6 +4,7 @@ import { Star, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useConfetti } from "@/components/confetti";
+import { useSound } from "@/hooks/use-sound";
 
 interface AchievementData {
   id: string;
@@ -35,6 +36,7 @@ export function AchievementOverlayProvider({ children }: { children: ReactNode }
   const [queue, setQueue] = useState<AchievementData[]>([]);
   const current = queue[0] ?? null;
   const { fireConfetti } = useConfetti();
+  const { play } = useSound();
 
   const showAchievement = useCallback((data: AchievementData) => {
     setQueue((q) => [...q, data]);
@@ -47,10 +49,11 @@ export function AchievementOverlayProvider({ children }: { children: ReactNode }
   // Auto-dismiss after 4s
   const handleAnimationComplete = useCallback(() => {
     const timer = setTimeout(dismiss, 4000);
-    // Fire confetti when overlay appears
+    // Fire confetti + fanfare when overlay appears
     try { fireConfetti(); } catch {}
+    play("achievementReveal");
     return () => clearTimeout(timer);
-  }, [dismiss, fireConfetti]);
+  }, [dismiss, fireConfetti, play]);
 
   return (
     <AchievementOverlayContext.Provider value={{ showAchievement }}>

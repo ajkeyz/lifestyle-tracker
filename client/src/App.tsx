@@ -158,10 +158,10 @@ function AuthenticatedRouter() {
   useAchievementToast();
   const [location] = useLocation();
 
-  // Hide bottom nav on immersive pages (exact match for /play, prefix match for others)
+  // Hide bottom nav on immersive pages and setup flows
   const hideBottomNav =
     location === "/play" ||
-    ["/results", "/coop-game", "/arcade", "/survival", "/simlab"].some((path) =>
+    ["/results", "/coop-game", "/arcade", "/survival", "/simlab", "/setup", "/profile-setup", "/notifications-setup", "/friends-setup"].some((path) =>
       location.startsWith(path)
     );
 

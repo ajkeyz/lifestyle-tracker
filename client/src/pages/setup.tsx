@@ -149,12 +149,13 @@ export default function Setup() {
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.15, type: "spring", stiffness: 300, damping: 20 }}
-                  className="flex justify-center"
+                  className="flex justify-center py-2"
                 >
                   <Mascot
                     mood="waving"
                     size="sm"
                     showBubble={true}
+                    speechDelay={1400}
                     message="Pick what fits your life!"
                     context={{ screen: "home", username: "", streak: 0 } satisfies MascotContext}
                   />

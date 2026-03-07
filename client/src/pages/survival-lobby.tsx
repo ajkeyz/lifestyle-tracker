@@ -229,6 +229,7 @@ export default function SurvivalLobby() {
                   mood="hyped"
                   size="sm"
                   showBubble={true}
+                  speechDelay={1400}
                   message="Only the savviest survive!"
                   context={{ screen: "survival-lobby", username: "", streak: 0 } satisfies MascotContext}
                 />

@@ -153,6 +153,7 @@ export default function Game() {
 
   const handleSelectChoice = useCallback((label: string) => {
     if (!currentScenario || showResults[currentScenario.id]) return;
+    play("tap");
 
     const choice = currentScenario.choices.find((c) => c.label === label);
 
@@ -245,6 +246,11 @@ export default function Game() {
         playedWarnings.current.add(5);
         play("timerCritical");
       }
+      // Heartbeat at 3, 2, 1 seconds
+      if (remaining <= 3 && remaining > 0 && !playedWarnings.current.has(remaining + 100)) {
+        playedWarnings.current.add(remaining + 100);
+        play("heartbeat");
+      }
     }, 100); // Check every 100ms for more accurate timing
 
     return () => clearInterval(interval);
@@ -257,7 +263,8 @@ export default function Game() {
       setTimerRunning(true);
       timerStartTime.current = Date.now(); // Reset timer start time
       playedWarnings.current.clear();
-      play("whoosh");
+      play("readyDing");
+      setTimeout(() => play("whoosh"), 80);
       setShowSpeedBadge(false);
       setEliminatedChoices([]);
       window.scrollTo({ top: 0, behavior: "smooth" });
