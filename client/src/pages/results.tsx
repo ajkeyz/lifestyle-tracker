@@ -9,7 +9,7 @@ import { FriendLeague } from "@/components/leaderboard-card";
 import { useConfetti } from "@/components/confetti";
 import { useSound } from "@/hooks/use-sound";
 import { QuickWinsPopup } from "@/components/quick-wins-popup";
-import { ArrowLeft, Home, Trophy, Calendar, Share2, BookOpen, Sparkles, Flame, Brain, RefreshCw } from "lucide-react";
+import { ArrowLeft, Home, Trophy, Calendar, Share2, BookOpen, Sparkles, Flame, Brain, RefreshCw, Users, UserCircle, ChevronRight, BellRing, Check } from "lucide-react";
 import { AppLogo } from "@/components/app-logo";
 import { Mascot, getMascotMoodForScore, getMascotScoreMessage, getMascotContextDialogue, CelebrationBurst, BODY_COLORS, type MascotContext } from "@/components/mascot";
 import { CleoCongratsPeek } from "@/components/cleo-edge-presence";
@@ -70,12 +70,69 @@ function ResultsBubble({ mood, context }: { mood: import("@/components/mascot").
   );
 }
 
+function NextDropCard() {
+  const [reminderSet, setReminderSet] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleRemind = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/push/remind-next-drop", { method: "POST", credentials: "include" });
+      if (res.ok) {
+        setReminderSet(true);
+      }
+    } catch {
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Card className="p-4 bg-muted/50 rounded-xl relative overflow-hidden" data-testid="card-next-drop">
+      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary via-accent to-primary rounded-t-xl" aria-hidden="true" />
+      <div className="flex items-center gap-3">
+        <Calendar className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+        <div className="flex-1">
+          <p className="text-sm font-medium" data-testid="text-next-drop-label">Next Drop</p>
+          <p className="text-xs text-muted-foreground" data-testid="text-next-drop-time">
+            Tomorrow at midnight UTC
+          </p>
+        </div>
+        <Button
+          variant={reminderSet ? "ghost" : "outline"}
+          size="sm"
+          className={cn("gap-1 text-xs h-7 flex-shrink-0", reminderSet && "text-green-500")}
+          onClick={handleRemind}
+          disabled={reminderSet || loading}
+          data-testid="button-remind-next-drop"
+        >
+          {reminderSet ? (
+            <>
+              <Check className="w-3 h-3" />
+              Set
+            </>
+          ) : loading ? (
+            "..."
+          ) : (
+            <>
+              <BellRing className="w-3 h-3" />
+              Remind Me
+            </>
+          )}
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
 export default function Results() {
   const [, navigate] = useLocation();
   const { firePerfectScore, fireStreakMilestone, fireAchievement } = useConfetti();
   const { play } = useSound();
   const confettiFired = useRef(false);
   const [showQuickWins, setShowQuickWins] = useState(false);
+  const [revealPhase, setRevealPhase] = useState<"anticipation" | "building" | "final">("anticipation");
+  const revealStarted = useRef(false);
 
   const { data: user, isLoading: userLoading } = useQuery<User>({
     queryKey: ["/api/user"],
@@ -169,6 +226,26 @@ export default function Results() {
     }
   }, [user]);
 
+  // Dynamic mascot mood during score reveal animation
+  useEffect(() => {
+    if (user?.todayResult && !revealStarted.current) {
+      revealStarted.current = true;
+      // Phase 1: "anticipation" — mascot starts nervous/thinking (already set as initial state)
+      // Phase 2: "building" — score is counting up, mascot shifts to intermediate mood
+      const buildTimer = setTimeout(() => {
+        setRevealPhase("building");
+      }, 600);
+      // Phase 3: "final" — score reveal complete, mascot settles on final mood
+      const finalTimer = setTimeout(() => {
+        setRevealPhase("final");
+      }, 1400);
+      return () => {
+        clearTimeout(buildTimer);
+        clearTimeout(finalTimer);
+      };
+    }
+  }, [user?.todayResult]);
+
   const result = user?.todayResult ?? null;
   const scenarios = dailyDrop?.scenarios || [];
 
@@ -186,6 +263,19 @@ export default function Results() {
     if (!result || scenarios.length === 0) return null;
     return analyzeAnswerPatterns(scenarios, result.answers);
   }, [result, scenarios]);
+
+  // Dynamic mascot mood that shifts during score reveal animation
+  const dynamicMascotMood = useMemo(() => {
+    if (!result) return "thinking" as const;
+    const finalMood = getMascotMoodForScore(result.score);
+    if (revealPhase === "anticipation") return "thinking" as const;
+    if (revealPhase === "building") {
+      if (result.score >= 380) return "encouraging" as const;
+      if (result.score >= 260) return "thinking" as const;
+      return "sad" as const;
+    }
+    return finalMood;
+  }, [result, revealPhase]);
 
   // Rich context for the mascot — makes Cleo contextually aware on results page
   const STREAK_MILESTONES = [7, 14, 30, 60, 100];
@@ -269,13 +359,13 @@ export default function Results() {
 
               <div className="flex flex-col items-center mb-4 relative z-10" data-testid="mascot-results">
                 <Mascot
-                  mood={getMascotMoodForScore(result.score)}
+                  mood={dynamicMascotMood}
                   size="xl"
                   showBubble={false}
                   disableTapBubble={true}
                   context={mascotContext}
                 />
-                <ResultsBubble mood={getMascotMoodForScore(result.score)} context={mascotContext} />
+                <ResultsBubble mood={dynamicMascotMood} context={mascotContext} />
               </div>
 
               <motion.div
@@ -315,6 +405,35 @@ export default function Results() {
                 </p>
               </motion.div>
             </motion.div>
+
+            {mascotContext.percentile !== undefined && mascotContext.percentile > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 0.5, delay: 0.15, type: "spring", stiffness: 300, damping: 24 }}
+              >
+                <Card className="p-5 text-center relative overflow-hidden" data-testid="card-percentile">
+                  <div
+                    className="pointer-events-none absolute inset-0 opacity-30"
+                    style={{
+                      background: `radial-gradient(ellipse 80% 60% at 50% 40%, hsl(var(--accent) / 0.25) 0%, transparent 70%)`,
+                    }}
+                    aria-hidden="true"
+                  />
+                  <div className="relative z-10 flex flex-col items-center gap-2">
+                    <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-accent/15 border border-accent/25">
+                      <Users className="w-5 h-5 text-accent" />
+                    </div>
+                    <p className="text-3xl font-display font-bold tabular-nums" data-testid="text-percentile-value">
+                      {mascotContext.percentile}%
+                    </p>
+                    <p className="text-sm text-muted-foreground font-medium" data-testid="text-percentile-label">
+                      You beat {mascotContext.percentile}% of players today
+                    </p>
+                  </div>
+                </Card>
+              </motion.div>
+            )}
 
             <motion.div
               initial={{ opacity: 0, y: 30 }}
@@ -362,7 +481,12 @@ export default function Results() {
                 data-testid="button-deep-dive"
               >
                 <BookOpen className="w-4 h-4 mr-2" />
-                Deep Dive
+                {(() => {
+                  const mistakeCount = correctAnswers.filter(a => a === false).length;
+                  if (mistakeCount === 0) return "See why you aced it";
+                  if (mistakeCount === 1) return "Review your 1 mistake";
+                  return `Review your ${mistakeCount} mistakes`;
+                })()}
               </Button>
               <Button
                 onClick={() => {
@@ -447,18 +571,36 @@ export default function Results() {
               </motion.div>
             )}
 
-            <Card className="p-4 bg-muted/50 rounded-xl relative overflow-hidden" data-testid="card-next-drop">
-              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary via-accent to-primary rounded-t-xl" aria-hidden="true" />
-              <div className="flex items-center gap-3 flex-wrap">
-                <Calendar className="w-5 h-5 text-muted-foreground" />
-                <div>
-                  <p className="text-sm font-medium" data-testid="text-next-drop-label">Next Drop</p>
-                  <p className="text-xs text-muted-foreground" data-testid="text-next-drop-time">
-                    Tomorrow at midnight UTC
-                  </p>
-                </div>
-              </div>
-            </Card>
+            <NextDropCard />
+
+            {user && !user.profileSetupComplete && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.6, ease: "easeOut" }}
+              >
+                <Card
+                  className="p-5 border-primary/25 bg-primary/5 cursor-pointer hover-elevate"
+                  onClick={() => navigate("/profile-setup?postgame=true")}
+                  data-testid="card-profile-setup-prompt"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-primary/15 flex items-center justify-center flex-shrink-0">
+                      <UserCircle className="w-6 h-6 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-sm" data-testid="text-setup-prompt-title">
+                        {user.gamesPlayed === 1 ? "Great first game!" : "Nice work!"} Set up your profile
+                      </h3>
+                      <p className="text-xs text-muted-foreground mt-0.5" data-testid="text-setup-prompt-desc">
+                        Pick a username and avatar to show up on leaderboards and compete with friends
+                      </p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                  </div>
+                </Card>
+              </motion.div>
+            )}
 
             <Button
               className="w-full gap-2 btn-premium border-0"

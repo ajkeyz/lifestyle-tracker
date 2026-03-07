@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
@@ -18,14 +18,34 @@ import {
   Flame,
   TrendingUp,
   UserPlus,
+  Bell,
+  Loader2,
 } from "lucide-react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, Link } from "wouter";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import type { User as UserType, CommunityScenario } from "@shared/schema";
 
 export default function Social() {
   const [, navigate] = useLocation();
   const qc = useQueryClient();
+  const { toast } = useToast();
+  const [nudgedFriends, setNudgedFriends] = useState<Set<string>>(new Set());
+
+  const nudgeMutation = useMutation({
+    mutationFn: async (friendId: string) => {
+      const res = await apiRequest("POST", `/api/friends/${friendId}/nudge`);
+      return res.json();
+    },
+    onSuccess: (_, friendId) => {
+      setNudgedFriends((prev) => new Set(prev).add(friendId));
+      toast({ title: "Nudge sent!", description: "Your friend will get a reminder to play." });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Can't nudge", description: err.message || "Try again later.", variant: "destructive" });
+    },
+  });
 
   // Mark social activity as read when this screen mounts
   useEffect(() => {
@@ -216,6 +236,34 @@ export default function Social() {
                           )}
                         </div>
                       </div>
+
+                      {/* Nudge button */}
+                      {friend.streak === 0 && !nudgedFriends.has(friend.id) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-xs gap-1 text-muted-foreground hover:text-primary flex-shrink-0"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            nudgeMutation.mutate(friend.id);
+                          }}
+                          disabled={nudgeMutation.isPending}
+                          data-testid={`button-nudge-${friend.id}`}
+                        >
+                          {nudgeMutation.isPending ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <Bell className="w-3 h-3" />
+                          )}
+                          Nudge
+                        </Button>
+                      )}
+                      {nudgedFriends.has(friend.id) && (
+                        <Badge variant="outline" className="text-[10px] h-5 flex-shrink-0 text-green-500 border-green-500/30">
+                          Nudged
+                        </Badge>
+                      )}
                     </motion.div>
                   </Link>
                 ))}

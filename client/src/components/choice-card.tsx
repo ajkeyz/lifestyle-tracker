@@ -88,17 +88,32 @@ export function ChoiceCard({
       initial={{ opacity: 0, y: 10 }}
       animate={{
         opacity: isDisabledByElimination
-          ? 0.25
+          ? 0.15
           : showResult && !isSelected && !isCorrect
             ? 0.4
             : 1,
         y: 0,
         x: showResult && isSelected && !isCorrect ? [-3, 3, -3, 3, -2, 2, 0] : 0,
+        scale: isDisabledByElimination ? 0.92 : 1,
+        rotateX: isDisabledByElimination ? 8 : 0,
+        filter: isDisabledByElimination ? "blur(1px)" : "blur(0px)",
       }}
       transition={{
-        opacity: { duration: 0.3 },
+        opacity: isDisabledByElimination
+          ? { duration: 0.5, ease: "easeOut" }
+          : { duration: 0.3 },
+        scale: isDisabledByElimination
+          ? { duration: 0.5, ease: [0.36, 0, 0.66, -0.56] }
+          : { duration: 0.3 },
+        rotateX: isDisabledByElimination
+          ? { duration: 0.4, ease: "easeOut" }
+          : { duration: 0.2 },
+        filter: isDisabledByElimination
+          ? { duration: 0.6, delay: 0.1 }
+          : { duration: 0.2 },
         y: { duration: 0.4, delay: index * 0.06, type: "spring", stiffness: 300 },
       }}
+      style={{ transformPerspective: 600 }}
       whileTap={!showResult && !disabled && !isDisabledByElimination
         ? { scale: 0.97, transition: { duration: 0.08, type: "spring", stiffness: 500 } }
         : {}
@@ -129,6 +144,25 @@ export function ChoiceCard({
       aria-label={`Choice ${label}: ${text}${showResult && pointTier ? `, worth ${pointTier.label} points` : ''}`}
       data-testid={`choice-${label.toLowerCase()}`}
     >
+      <AnimatePresence>
+        {isDisabledByElimination && (
+          <motion.div
+            className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center rounded-xl overflow-hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3, delay: 0.15 }}
+          >
+            <motion.div
+              className="absolute w-[120%] h-[2px] bg-destructive/40 rounded-full"
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: 1 }}
+              transition={{ duration: 0.4, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+              style={{ rotate: "-8deg" }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <motion.div
         animate={showResult && revealStage >= 1 ? {
           scale: isCorrect || isSelected ? [1, 1.15, 1] : 1,

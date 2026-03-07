@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { Plus, Smile, Flame, Lightbulb, AlertTriangle, Target, Coins, Heart, Eye, ThumbsUp } from "lucide-react";
 import { useHaptic } from "@/hooks/use-haptic";
 
-interface Reaction {
+export interface Reaction {
   id: string;
   count: number;
   userReacted: boolean;

@@ -2,14 +2,14 @@
 
 ## Overview
 
-Lifestyle Creep is a daily money decision game inspired by Wordle. Players face 5 real-life financial scenarios each day, make choices within a time limit, and compete with friends on leaderboards. The game teaches financial literacy through engaging gameplay that takes 2-4 minutes daily.
+Lifestyle Creep is a daily money decision game, inspired by Wordle, designed to enhance financial literacy through engaging gameplay. Players tackle 5 real-life financial scenarios daily, making timed choices and competing on social leaderboards. The project aims to provide a quick, educational, and competitive experience in financial decision-making.
 
-Core gameplay loop:
-- Daily drops with 5 financial scenarios (same for all players)
-- Multiple choice answers with 20-second timer per question
-- Scoring: each correct answer = 100 points (score = correctCount × 100, max 500)
-- Streak tracking and social leaderboards
-- Share results in Wordle-style format
+Key capabilities include:
+- Daily financial scenarios (5 per day, same for all players).
+- Timed multiple-choice answers for each scenario.
+- Scoring system based on correct answers, streak tracking, and social leaderboards.
+- Shareable results in a Wordle-like format.
+- A business vision to make financial education accessible and engaging, with market potential among casual gamers and individuals seeking to improve financial literacy.
 
 ## User Preferences
 
@@ -17,197 +17,72 @@ Preferred communication style: Simple, everyday language.
 
 ## System Architecture
 
-### Frontend Architecture
-- **Framework**: React 18 with TypeScript
-- **Routing**: Wouter (lightweight React router)
-- **State Management**: TanStack React Query for server state
-- **Styling**: Tailwind CSS with shadcn/ui component library
-- **Build Tool**: Vite with custom plugins for Replit integration
-- **Theme**: Dark/light mode support with CSS custom properties
-- **Animations**: Framer Motion for page transitions, staggered animations, and micro-interactions
-- **Typography**: Plus Jakarta Sans (primary — body + display), Inter (fallback), Fira Code (mono)
-  - Headings: font-semibold, tracking-[-0.02em], text-wrap: balance (auto via CSS base)
-  - Body: font-medium for choice/answer text, font-regular for prose
-  - Labels/Overlines: text-[11px], font-semibold, tracking-[0.12em], uppercase
-  - Question text: text-[1.2rem] sm:text-[1.4rem] md:text-[1.55rem], leading-[1.4]
-  - Dark mode: +0.01em letter-spacing globally for legibility
-  - font-feature-settings: "cv11", "ss01" for stylistic alternates
-- **Color Palette**: Emerald/teal primary (#10b981), gold accent (#f59e0b)
+### Frontend
+- **Framework**: React 18 with TypeScript.
+- **Routing**: Wouter.
+- **State Management**: TanStack React Query.
+- **Styling**: Tailwind CSS with shadcn/ui.
+- **Build Tool**: Vite.
+- **Theme**: Dark/light mode support.
+- **Animations**: Framer Motion for transitions and micro-interactions.
+- **Typography**: Plus Jakarta Sans, Inter, Fira Code with specific stylistic enhancements.
+- **Color Palette**: Emerald/teal primary, gold accent.
 
-### UI Enhancement Components
+**UI Enhancements & Features**:
+- **Celebrations**: Confetti, animated progress bars, and rolling number animations for scores.
+- **Visual Polish**: Glassmorphism cards, gradient backgrounds, and shimmering skeleton loaders.
+- **Game Feedback**: Enhanced scenario cards with category icons, animated answer reveals, and shake effects. Streak fire animations for milestones.
+- **Micro-interactions**: Animated icons and various circular progress indicators.
+- **Character Mascot**: "Cleo" an animated SVG mascot with 10 emotional states, contextual dialogue, and mood-reactive animations.
+- **Social Features**: Live player counts, animated leaderboards, notification toasts, activity feed with reactions, and friend nudges.
+- **Premium Touches**: Integrated sound system, theme customizer with multiple color themes, and daily rewards calendar.
+- **User Experience (UX) Polish**: Streamlined onboarding, persistent status bar, detailed results page with percentile stats and deep-dive CTAs, dynamic mascot reactions, image sharing, and lifeline animations.
 
-**Stage 1 - Core Celebrations:**
-- `confetti.tsx` - 5 confetti types (fireworks, stars, money rain, side cannons, celebration combo)
-- `animated-progress.tsx` - Timer with pulse animation at 5 seconds, glow effects
-- `RollingNumber` - Spring-animated score display with scale/glow on completion
+**Key Pages**:
+- Authentication, Profile management, Onboarding flows (Notifications, Friends setup).
+- Home for daily drops, Game screen with timed questions and feedback.
+- Deep Dive for scenario explanations, Tips Library, Weekly Recap.
+- Results, Leaderboard, Leagues (create/join/manage), Challenges.
+- Shareable results card, Streak protection features.
+- Community features for scenario submission, voting, and discussion.
+- Co-op game mode (lobby, real-time play, results) with WebSocket synchronization.
+- Arcade mode for re-playable scenarios with tiered access.
 
-**Stage 2 - Visual Polish:**
-- `glass-card.tsx` - Glassmorphism cards with blur/glow variants
-- `gradient-background.tsx` - Mesh gradient backgrounds with floating orbs
-- `enhanced-skeleton.tsx` - Shimmer/pulse skeleton loading states
-
-**Stage 3 - Game Feedback:**
-- `scenario-card.tsx` - Enhanced with 19 category icons/colors, animated answer reveals, shake effects for wrong answers
-- `streak-fire.tsx` - StreakFire component with intensity levels (7, 30, 100 day milestones), StreakMilestone progress bar
-
-**Stage 4 - Micro-interactions:**
-- `animated-icons.tsx` - Animated icons (check, trophy, star, heart, zap, crown, award, target, trending)
-- `progress-ring.tsx` - Circular progress indicators (ProgressRing, MultiProgressRing, ScoreRing, TimerRing)
-
-**Stage 4.5 - Character Mascot System:**
-- `mascot.tsx` - "Cleo" the animated SVG mascot with 10 emotional states (idle, happy, celebrating, thinking, sad, encouraging, sleeping, shocked, proud, waving)
-  - SVG-based with Framer Motion animations (breathing, blinking, bouncing, sprout wiggle)
-  - Speech bubble system with contextual dialogue (6+ categories of randomized lines)
-  - Color-shifting body based on mood (emerald=default, gold=celebrating, indigo=thinking, gray=sad)
-  - Interactive tap responses with random dialogue cycling
-  - Sprout leaf on head that responds to mood (perky when happy, droopy when sad)
-  - Celebration particles, sleep Zzz effects, waving arm animations
-  - Helper functions: getMascotMoodForScore(), getMascotMoodForStreak(), getMascotScoreMessage()
-  - Two variants: Mascot (standalone with bubble) and MascotInline (compact card format)
-  - Integrated on: Home (CTA card), Results (score reaction), Game (post-answer feedback)
-
-**Stage 5 - Social Features:**
-- `live-players.tsx` - LivePlayers count with pulse animation, RecentPlayerActivity feed
-- `leaderboard-animations.tsx` - AnimatedLeaderboard with rank changes, LeaderboardPodium
-- `notification-toast.tsx` - NotificationToast system, AchievementUnlock overlay
-
-**Stage 6 - Premium Touches:**
-- `sound-system.tsx` - SoundSystemProvider with Web Audio API (click, correct, incorrect, tick, timeWarning, complete, levelUp, streak, achievement)
-- `theme-customizer.tsx` - ThemeProvider with 6 color themes (emerald, blue, purple, rose, orange, cyan), dark/light toggle
-- `daily-rewards.tsx` - DailyRewards calendar with claim animations, RewardClaimAnimation overlay
-
-Key pages:
-- Auth (`/`) - Sign-in page with Replit Auth (Apple, Google, Email)
-- Profile (`/profile`) - User profile view with username, stats, friend discovery via username sharing
-- Profile Setup (`/profile-setup`) - Username, avatar, bio, privacy settings
-- Notifications Setup (`/notifications-setup`) - Pre-permission screen for notifications
-- Friends Setup (`/friends-setup`) - Friend discovery (username search, invite contacts)
-- Mode Selection (`/setup`) - Choose game mode (Tech, Global, Fraud, Student, Boss)
-- Home (`/`) - Daily drop info, streak, play button (after auth)
-- Deep Dive (`/deep-dive`) - Post-game explanations for each scenario with community stats, tips library links, and keyboard navigation
-- Tips Library (`/tips`) - 27+ categorized financial tips with search, filtering, and category deep-linking via ?category= URL param
-- Weekly Recap (`/weekly-recap`) - Spotify Wrapped-style weekly summary with best/worst decisions, improvement areas, league rank, funny title
-- Settings (`/settings`) - Low Pressure Mode toggle and app settings
-- Help (`/help`) - FAQ cards with answers, contact support, and report scenario buttons
-- Game (`/play`) - Timed scenario questions with context buffers, supportive timer messages, tone cues, micro-affirmations, post-answer reflections, and counterfactuals
-- Results (`/results`) - Score breakdown, sharing, pattern recognition summary
-- Leaderboard (`/leaderboard`) - Friend rankings
-- Leagues (`/leagues`) - Friend leagues with weekly competitions, create/join/leave leagues
-- Challenges (`/challenges`) - Challenge friends to compare Money Health, streak, or accuracy; includes trash talk presets and badge rewards
-- Share (`/share`) - Customizable share card for results with theme colors, hide numbers toggle, league name, and social sharing
-- Streak Protection - Freeze tokens to protect streaks, visual 28-day calendar, milestone fire animations (7, 14, 30, 60, 100 days)
-- Community (`/community`) - User-submitted scenarios for community voting and discussion
-- Community Detail (`/community/:id`) - Scenario detail with comments, financial advice, and voting
-- Community Submit (`/community/submit`) - Form to submit new real or hypothetical financial scenarios
-- Co-op Lobby (`/coop-lobby`) - Create or join a co-op game session with 6-character code, mode selection (Daily Drop vs Arcade)
-- Co-op Game (`/coop-game/:sessionId`) - Play with a friend in real-time with synchronized timer and WebSocket updates
-- Co-op Results (`/coop-results/:sessionId`) - View shared results showing both players' scores and winner
-- Arcade (`/arcade`) - Replayable game mode with different scenarios, tier-based daily play limits (free=1, plus=3, pro=unlimited), free tier can replay game 0 unlimited times
-- Arcade Results (`/arcade-results`) - Score breakdown after arcade game with play-again option
-
-### Backend Architecture
-- **Framework**: Express 5 on Node.js
-- **Session Management**: express-session with MemoryStore (development)
-- **API Pattern**: RESTful JSON endpoints under `/api/`
-- **Build**: esbuild for production bundling
-
-Key endpoints:
-- `GET /api/user` - Get or create session user
-- `GET /api/daily-drop` - Fetch today's scenarios
-- `POST /api/submit-game` - Submit answers and calculate score
-- `GET /api/leaderboard` - Fetch rankings
-- `GET /api/check-username/:username` - Check username availability
-- `POST /api/profile` - Update user profile (username, avatar, bio, privacy)
-- `GET /api/leagues` - Get user's leagues
-- `GET /api/leagues/:id` - Get specific league details
-- `POST /api/leagues` - Create a new league
-- `POST /api/leagues/join` - Join a league by invite code
-- `POST /api/leagues/:id/leave` - Leave a league
-- `GET /api/friends` - Get user's friends for challenge selection
-- `GET /api/challenges` - Get user's challenges (sent and received)
-- `POST /api/challenges` - Create a new challenge
-- `POST /api/challenges/:id/respond` - Accept or decline a challenge
-- `GET /api/streak-calendar` - Get user's streak calendar (last 30 days)
-- `POST /api/use-freeze` - Use a freeze token to protect streak
-- `POST /api/add-freeze-token` - Add freeze tokens to user account
-- `GET /api/badges` - Get user's badge/achievement progress
-- `POST /api/low-pressure-mode` - Toggle low pressure mode on/off
-- `POST /api/notification-prefs` - Update notification preferences
-- `POST /api/streak-buyback` - Restore lost streak (Plus only, once per month)
-- `POST /api/late-pass` - Play yesterday's drop (Plus only)
-- `POST /api/toggle-plus` - Toggle Plus membership status (demo)
-- `GET /api/community/scenarios` - Get community scenarios with optional filters
-- `GET /api/community/scenarios/:id` - Get single community scenario
-- `POST /api/community/scenarios` - Create a new community scenario
-- `POST /api/community/scenarios/:id/vote` - Vote on a community scenario
-- `GET /api/community/scenarios/:id/comments` - Get comments for a scenario
-- `POST /api/community/comments` - Add a comment to a scenario
-- `POST /api/community/comments/:id/vote` - Vote on a comment
-- `GET /api/community/realest-of-week` - Get top scenarios of the week
-- `POST /api/coop/create` - Create a new co-op session with mode selection (body: {mode: "daily"|"arcade", arcadeGameIndex?: number})
-- `GET /api/coop/session/:sessionId` - Get co-op session details
-- `POST /api/coop/join` - Join a co-op session by code
-- `POST /api/coop/session/:sessionId/start` - Start the co-op game (host only)
-- `POST /api/coop/session/:sessionId/answer` - Submit answer in co-op game
-- `POST /api/coop/session/:sessionId/next` - Move to next question (both must answer)
-- `GET /api/coop/session/:sessionId/result` - Get co-op game results
-- WebSocket `/ws` - Real-time co-op game synchronization
-- `GET /api/arcade-status` - Get arcade play limits and remaining plays
-- `GET /api/arcade-drop` - Fetch arcade scenarios (different from daily drop)
-- `POST /api/submit-arcade` - Submit arcade game answers
-
-### Data Storage
-- **ORM**: Drizzle ORM with PostgreSQL dialect
-- **Schema Location**: `shared/schema.ts`
-- **Migrations**: `drizzle-kit push` for schema sync
-- **Current State**: In-memory storage implementation (database schema ready but storage uses memory)
-
-Data models:
-- User (id, username, avatar, bio, allowFriendsToFind, isProfilePrivate, profileSetupComplete, mode, streak, highestStreak, freezeTokens, frozenDates, streakCalendar, moneyHealth, stats, todayResult)
-- StreakDay (date, played, frozen, score?)
-- DailyDrop (id, dropNumber, date, scenarios)
-- Scenario (id, category, context, question, choices with feedback)
-- League (id, name, emoji/icon, privacy, inviteCode, createdBy, members, weekStartDate, previousWeekWinner)
-- LeagueMember (userId, username, avatar, weeklyScore, weeklyRank, isWeeklyWinner)
-- Challenge (id, challengerId, challengeeId, type [money_health/streak/accuracy], trashTalk, customMessage, status [pending/accepted/completed/expired/declined], winnerId, badgeAwarded, createdAt)
-- CommunityScenario (id, authorId, authorUsername, authorAvatar, authorBadges, authorMoneyHealth, type, category, title, context, question, upvotes, downvotes, isRealistOfWeek, createdAt)
-- CommunityComment (id, scenarioId, authorId, authorUsername, authorAvatar, authorBadges, authorMoneyHealth, content, isFinancialAdvice, upvotes, createdAt)
-- CommunityVote (id, scenarioId, commentId, userId, voteType)
+### Backend
+- **Framework**: Express 5 on Node.js.
+- **API Pattern**: RESTful JSON endpoints.
+- **Build**: esbuild.
+- **Data Storage**: Drizzle ORM with PostgreSQL dialect.
+- **Data Models**: User, DailyDrop, Scenario, League, Challenge, CommunityScenario, CommunityComment, CommunityVote, Co-op Session details.
 
 ### Shared Code
-- `shared/schema.ts` - TypeScript interfaces and Zod validation schemas
-- Used by both frontend and backend for type safety
+- `shared/schema.ts` provides TypeScript interfaces and Zod validation schemas for type safety across frontend and backend.
 
 ## External Dependencies
 
 ### Database
-- **PostgreSQL** - Primary database (via DATABASE_URL environment variable)
-- **Drizzle ORM** - Type-safe database queries
-- **connect-pg-simple** - PostgreSQL session store (available but not currently active)
+- **PostgreSQL**: Primary database.
+- **Drizzle ORM**: For type-safe database interactions.
 
 ### UI Components
-- **shadcn/ui** - Pre-built accessible components (new-york style)
-- **Radix UI** - Headless component primitives
-- **Lucide React** - Icon library
+- **shadcn/ui**: Pre-built accessible components.
+- **Radix UI**: Headless component primitives.
+- **Lucide React**: Icon library.
 
 ### Development Tools
-- **Vite** - Development server with HMR
-- **Replit plugins** - Error overlay, cartographer, dev banner
+- **Vite**: Development server.
 
 ### PWA & Offline Support
-- **Service Worker** - Caches static assets, daily drop data, and provides offline fallback
-- **Push Notifications** - Web push via web-push library with VAPID authentication
-- **Manifest** - Full PWA manifest with app icons and theme colors
+- **Service Worker**: For caching and offline capabilities.
+- **Web Push API**: For push notifications (via `web-push` library).
+- **Manifest**: PWA manifest for app installation.
 
 ### Scenario System
-- **Static Scenarios** - 30 days of pre-generated financial scenarios (150 total) in `server/static-scenarios.ts`
-- **Day Cycling** - Uses `getDayNumber() % 30` to cycle through scenario sets (day 758 → day 8 scenarios)
-- **Categories** - tech, scam, travel, lifestyle, investing, career, debt, relationships, housing, insurance, tax, credit, emergency, budgeting, health, giving, saving, family, windfall
-- **No External Dependencies** - Scenarios load instantly without API calls
+- **Static Scenarios**: Pre-generated financial scenarios stored locally, cycled daily.
+- **Categories**: Wide range of financial topics including tech, investing, debt, budgeting, etc.
 
-### Environment Variables Required
-- `DATABASE_URL` - PostgreSQL connection string
-- `SESSION_SECRET` - Session encryption key (has fallback for dev)
-- `OPENAI_API_KEY` - OpenAI API key (used for other features, not scenarios)
-- `VAPID_PUBLIC_KEY` - Public key for push notifications (optional, disables push if missing)
-- `VAPID_PRIVATE_KEY` - Private key for push notifications (optional, disables push if missing)
+### Environment Variables
+- `DATABASE_URL`
+- `SESSION_SECRET`
+- `VAPID_PUBLIC_KEY`
+- `VAPID_PRIVATE_KEY`

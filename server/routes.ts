@@ -849,6 +849,46 @@ export async function registerRoutes(
     }
   });
 
+  // ── Nudge a friend ──────────────────────────────────────
+  const nudgeCooldowns = new Map<string, number>();
+
+  app.post("/api/friends/:friendId/nudge", requireAuth, rateLimit("nudge-friend", 10, 60000), async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const { friendId } = req.params;
+
+      if (!friendId) return res.status(400).json({ error: "Friend ID is required" });
+
+      const cooldownKey = `${sessionId}:${friendId}`;
+      const lastNudge = nudgeCooldowns.get(cooldownKey);
+      const oneDay = 24 * 60 * 60 * 1000;
+      if (lastNudge && Date.now() - lastNudge < oneDay) {
+        return res.status(429).json({ error: "You already nudged this friend today" });
+      }
+
+      const user = await storage.getUser(sessionId);
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
+
+      const friends = await storage.getFriends(sessionId);
+      const isFriend = friends.some((f: any) => f.id === friendId);
+      if (!isFriend) return res.status(403).json({ error: "Not your friend" });
+
+      nudgeCooldowns.set(cooldownKey, Date.now());
+
+      sendPushToUser(
+        friendId,
+        `${user.username} nudged you!`,
+        "Don't break your streak - play today's Daily Drop!",
+        { type: "nudge", fromUserId: sessionId }
+      );
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error nudging friend:", error);
+      res.status(500).json({ error: "Failed to nudge" });
+    }
+  });
+
   // ── Social: unread indicator ──────────────────────────────────────
   app.get("/api/social/unread", requireAuth, async (req: Request, res: Response) => {
     try {
@@ -1668,6 +1708,38 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error saving push subscription:", error);
       res.status(500).json({ error: "Failed to save subscription" });
+    }
+  });
+
+  // ── Schedule reminder for next daily drop ──────────────────────────
+  const reminderSet = new Set<string>();
+
+  app.post("/api/push/remind-next-drop", requireAuth, rateLimit("remind-drop", 5, 60000), async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      if (reminderSet.has(sessionId)) {
+        return res.json({ success: true, alreadySet: true });
+      }
+      reminderSet.add(sessionId);
+
+      const now = new Date();
+      const nextMidnight = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 5, 0));
+      const delayMs = nextMidnight.getTime() - now.getTime();
+
+      setTimeout(() => {
+        sendPushToUser(
+          sessionId,
+          "New Daily Drop is live!",
+          "A fresh set of financial scenarios is waiting for you.",
+          { type: "daily_drop_reminder" }
+        );
+        reminderSet.delete(sessionId);
+      }, Math.min(delayMs, 24 * 60 * 60 * 1000));
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error setting reminder:", error);
+      res.status(500).json({ error: "Failed to set reminder" });
     }
   });
 

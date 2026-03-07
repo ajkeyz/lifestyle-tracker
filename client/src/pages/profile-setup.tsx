@@ -105,10 +105,11 @@ export default function ProfileSetup() {
     }
   }, [user, isEditMode]);
 
+  const isPostGame = typeof window !== 'undefined' && window.location.search.includes("postgame=true");
+
   useEffect(() => {
-    // Only redirect if profile is complete AND we're not in edit mode
     if (user?.profileSetupComplete && !isEditMode) {
-      navigate("/setup");
+      navigate("/");
     }
   }, [user?.profileSetupComplete, isEditMode, navigate]);
 
@@ -125,8 +126,14 @@ export default function ProfileSetup() {
           description: "Your changes have been saved.",
         });
         navigate("/profile", { replace: true });
+      } else if (isPostGame) {
+        toast({
+          title: "Profile set up!",
+          description: "You're all set. Welcome to Lifestyle Creep!",
+        });
+        navigate("/", { replace: true });
       } else {
-        navigate("/notifications-setup");
+        navigate("/", { replace: true });
       }
     },
     onError: (error: Error) => {

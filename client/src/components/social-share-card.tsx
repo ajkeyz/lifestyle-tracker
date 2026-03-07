@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -20,11 +20,13 @@ import {
   Flame,
   Heart,
   Trophy,
-  Sparkles
+  Sparkles,
+  Loader2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { User } from "@shared/schema";
 import { trackShareClicked } from "@/lib/analytics";
+import { toPng } from "html-to-image";
 
 interface SocialShareCardProps {
   user: User;
@@ -36,6 +38,8 @@ interface SocialShareCardProps {
 export function SocialShareCard({ user, score, dropNumber, trigger }: SocialShareCardProps) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   const shareUrl = `https://lifestyle-tracker.app?ref=${user.username}`;
@@ -79,12 +83,35 @@ export function SocialShareCard({ user, score, dropNumber, trigger }: SocialShar
     window.open(url, '_blank', 'width=550,height=420');
   };
 
-  const downloadCard = () => {
-    toast({
-      title: "Coming soon!",
-      description: "Image download feature in development."
-    });
-  };
+  const downloadCard = useCallback(async () => {
+    if (!cardRef.current) return;
+    setDownloading(true);
+    try {
+      const dataUrl = await toPng(cardRef.current, {
+        cacheBust: true,
+        pixelRatio: 3,
+        backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--background')?.trim()
+          ? undefined
+          : '#0a0a0a',
+      });
+      const link = document.createElement("a");
+      link.download = `lifestyle-creep-${score ? `score-${score}` : `streak-${user.streak}`}.png`;
+      link.href = dataUrl;
+      link.click();
+      trackShareClicked(
+        score ? "results" : "streak",
+        "download",
+        "image",
+        { score_value: score, streak_value: user.streak }
+      );
+      toast({ title: "Card downloaded!", description: "Ready to share anywhere." });
+    } catch (err) {
+      console.error("Download card failed:", err);
+      toast({ title: "Download failed", description: "Please try again.", variant: "destructive" });
+    } finally {
+      setDownloading(false);
+    }
+  }, [score, user.streak, toast]);
 
   return (
     <>
@@ -111,7 +138,7 @@ export function SocialShareCard({ user, score, dropNumber, trigger }: SocialShar
 
           <div className="space-y-4">
             {/* Preview Card */}
-            <Card className="p-4 bg-gradient-to-br from-primary/10 via-accent/5 to-background border-primary/20 overflow-hidden relative">
+            <Card ref={cardRef} className="p-4 bg-gradient-to-br from-primary/10 via-accent/5 to-background border-primary/20 overflow-hidden relative">
               {/* Decorative sparkles */}
               <div className="absolute top-2 right-2">
                 <Sparkles className="w-4 h-4 text-yellow-500 opacity-50" />
@@ -220,11 +247,15 @@ export function SocialShareCard({ user, score, dropNumber, trigger }: SocialShar
                 variant="outline"
                 className="w-full justify-start gap-2"
                 onClick={downloadCard}
-                disabled
+                disabled={downloading}
+                data-testid="button-download-card"
               >
-                <Download className="w-4 h-4" />
-                Download Card
-                <Badge variant="secondary" className="ml-auto">Soon</Badge>
+                {downloading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4" />
+                )}
+                {downloading ? "Generating..." : "Download Card"}
               </Button>
             </div>
 

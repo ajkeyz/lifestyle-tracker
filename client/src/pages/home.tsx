@@ -37,12 +37,18 @@ import {
   Gamepad2,
   Settings,
   RefreshCw,
+  Zap,
+  Shield,
+  Flame,
+  UserCircle,
+  X,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
-import type { User as UserType, DailyDrop, LeaderboardEntry } from "@shared/schema";
+import type { User as UserType, DailyDrop, LeaderboardEntry, League } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 
 const THEME_CONFIG: Record<string, { label: string; icon: typeof Plane; color: string }> = {
   travel: { label: "Travel", icon: Plane, color: "text-blue-500" },
@@ -124,6 +130,7 @@ export default function Home() {
   const [countdown, setCountdown] = useState(getTimeUntilMidnightUTC());
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showDebugScreen, setShowDebugScreen] = useState(false);
+  const [profileNudgeDismissed, setProfileNudgeDismissed] = useState(false);
   const { handleTap } = useDebugGesture(() => setShowDebugScreen(true));
 
   const { toast } = useToast();
@@ -185,6 +192,10 @@ export default function Home() {
   }>({
     queryKey: ["/api/friends/activity"],
     refetchInterval: 60000,
+  });
+
+  const { data: userLeagues } = useQuery<League[]>({
+    queryKey: ["/api/leagues"],
   });
 
   const hasPlayedToday = user?.todayResult != null;
@@ -261,6 +272,31 @@ export default function Home() {
             </Button>
           )}
         </header>
+
+        {user && !userLoading && (
+          <div
+            className="sticky top-14 z-40 bg-card/90 backdrop-blur-xl border-b border-border/40"
+            data-testid="sticky-status-bar"
+          >
+            <div className="container max-w-2xl mx-auto flex items-center justify-between px-4 py-1.5 gap-3">
+              <div className="flex items-center gap-1.5" data-testid="status-xp">
+                <Zap className="w-3.5 h-3.5 text-yellow-400" />
+                <span className="text-xs font-bold tabular-nums text-yellow-400">{user.totalScore}</span>
+                <span className="text-[10px] text-muted-foreground">XP</span>
+              </div>
+              <div className="flex items-center gap-1.5" data-testid="status-shields">
+                <Shield className="w-3.5 h-3.5 text-blue-400" />
+                <span className="text-xs font-bold tabular-nums text-blue-400">{user.freezeTokens}</span>
+                <span className="text-[10px] text-muted-foreground">Shields</span>
+              </div>
+              <div className="flex items-center gap-1.5" data-testid="status-streak">
+                <Flame className={cn("w-3.5 h-3.5", user.streak >= 3 ? "text-orange-400" : "text-muted-foreground")} />
+                <span className={cn("text-xs font-bold tabular-nums", user.streak >= 3 ? "text-orange-400" : "text-foreground")}>{user.streak}</span>
+                <span className="text-[10px] text-muted-foreground">Streak</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         <main className="container max-w-2xl mx-auto p-4 space-y-4">
           {userLoading ? (
@@ -515,6 +551,49 @@ export default function Home() {
                 </motion.div>
               )}
 
+              {!user.profileSetupComplete && !profileNudgeDismissed && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.15 }}
+                >
+                  <Card
+                    className="p-4 border-primary/20 bg-primary/5 cursor-pointer hover-elevate"
+                    onClick={() => navigate("/profile-setup")}
+                    data-testid="card-profile-nudge"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center flex-shrink-0">
+                        <UserCircle className="w-5 h-5 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-sm" data-testid="text-profile-nudge-title">
+                          Set up your profile
+                        </h3>
+                        <p className="text-xs text-muted-foreground" data-testid="text-profile-nudge-desc">
+                          Choose a username and avatar to appear on leaderboards
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setProfileNudgeDismissed(true);
+                          }}
+                          data-testid="button-dismiss-profile-nudge"
+                          aria-label="Dismiss profile setup nudge"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                </motion.div>
+              )}
+
               {/* ═══ SECTION 2: Daily Progress (collapsible missions) ═══ */}
               {activeMissions.length > 0 && (
                 <DailyProgressCard
@@ -542,6 +621,83 @@ export default function Home() {
                 rank={displayRank}
                 streakContext={streakContext}
               />
+
+              {/* ═══ SECTION 5.5: League Rank Widget ═══ */}
+              {userLeagues && userLeagues.length > 0 && user && (() => {
+                const topLeague = userLeagues.reduce((best, league) => {
+                  const myMember = league.members.find(m => m.userId === user.id);
+                  const bestMember = best ? best.members.find(m => m.userId === user.id) : null;
+                  if (!myMember) return best;
+                  if (!best || !bestMember) return league;
+                  return myMember.weeklyRank < bestMember.weeklyRank ? league : best;
+                }, null as League | null);
+
+                if (!topLeague) return null;
+
+                const myMember = topLeague.members.find(m => m.userId === user.id);
+                if (!myMember) return null;
+
+                const sortedMembers = [...topLeague.members].sort((a, b) => b.weeklyScore - a.weeklyScore);
+                const myRank = sortedMembers.findIndex(m => m.userId === user.id) + 1;
+                const leader = sortedMembers[0];
+                const pointsFromTop = leader && leader.userId !== user.id
+                  ? leader.weeklyScore - myMember.weeklyScore
+                  : 0;
+
+                const rankSuffix = (n: number) => {
+                  if (n % 100 >= 11 && n % 100 <= 13) return "th";
+                  switch (n % 10) {
+                    case 1: return "st";
+                    case 2: return "nd";
+                    case 3: return "rd";
+                    default: return "th";
+                  }
+                };
+
+                return (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: 0.15 }}
+                  >
+                    <Card
+                      className="p-4 hover-elevate cursor-pointer"
+                      onClick={() => navigate("/leagues")}
+                      data-testid="card-league-rank"
+                    >
+                      <div className="flex items-center justify-between gap-3 flex-wrap">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                            <Trophy className="w-5 h-5 text-primary" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-sm font-bold" data-testid="text-league-rank">
+                                {myRank}{rankSuffix(myRank)}
+                              </span>
+                              <span className="text-sm text-muted-foreground">in</span>
+                              <span className="text-sm font-semibold truncate" data-testid="text-league-name">
+                                {topLeague.name}
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground" data-testid="text-league-distance">
+                              {myRank === 1
+                                ? "You're leading the pack!"
+                                : `${pointsFromTop} pts from #1`}
+                            </p>
+                          </div>
+                        </div>
+                        {userLeagues.length > 1 && (
+                          <Badge variant="secondary" className="text-xs flex-shrink-0" data-testid="badge-league-count">
+                            +{userLeagues.length - 1} more
+                          </Badge>
+                        )}
+                        <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                      </div>
+                    </Card>
+                  </motion.div>
+                );
+              })()}
 
               {/* Next Unlock Card */}
               {nextUnlock && (

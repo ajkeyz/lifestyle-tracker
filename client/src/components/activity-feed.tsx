@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { AnimatedAvatar } from "@/components/animated-avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { QuickReactions } from "@/components/emoji-reactions";
+import type { Reaction } from "@/components/emoji-reactions";
 import {
   Trophy,
   Flame,
@@ -77,8 +79,34 @@ function getRelativeTime(timestamp: string): string {
 
 const PAGE_SIZE = 8;
 
+const DEFAULT_REACTIONS: Reaction[] = [
+  { id: "fire", count: 0, userReacted: false, label: "Fire" },
+  { id: "insightful", count: 0, userReacted: false, label: "Insightful" },
+  { id: "yikes", count: 0, userReacted: false, label: "Yikes" },
+  { id: "on_point", count: 0, userReacted: false, label: "On point" },
+];
+
 export function ActivityFeed({ activities, isLoading, className }: ActivityFeedProps) {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [reactionsMap, setReactionsMap] = useState<Record<string, Reaction[]>>({});
+
+  const handleReact = useCallback((activityId: string, reactionId: string) => {
+    setReactionsMap((prev) => {
+      const current = prev[activityId] || DEFAULT_REACTIONS.map((r) => ({ ...r }));
+      return {
+        ...prev,
+        [activityId]: current.map((r) =>
+          r.id === reactionId
+            ? {
+                ...r,
+                count: r.userReacted ? Math.max(0, r.count - 1) : r.count + 1,
+                userReacted: !r.userReacted,
+              }
+            : r
+        ),
+      };
+    });
+  }, []);
 
   if (isLoading) {
     return (
@@ -127,7 +155,7 @@ export function ActivityFeed({ activities, isLoading, className }: ActivityFeedP
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ delay: i * 0.03, duration: 0.2 }}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/30 transition-colors"
+              className="group flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/30 transition-colors"
               data-testid={`activity-item-${item.id}`}
             >
               {/* Avatar */}
@@ -153,9 +181,16 @@ export function ActivityFeed({ activities, isLoading, className }: ActivityFeedP
                   <span className="font-semibold">{item.username}</span>{" "}
                   <span className="text-muted-foreground">{config.getText(item)}</span>
                 </p>
-                <p className="text-[10px] text-muted-foreground/60 mt-0.5">
-                  {getRelativeTime(item.timestamp)}
-                </p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <p className="text-[10px] text-muted-foreground/60">
+                    {getRelativeTime(item.timestamp)}
+                  </p>
+                  <QuickReactions
+                    reactions={reactionsMap[item.id] || DEFAULT_REACTIONS}
+                    onReact={(reactionId) => handleReact(item.id, reactionId)}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                  />
+                </div>
               </div>
             </motion.div>
           );
