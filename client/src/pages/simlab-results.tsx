@@ -367,8 +367,15 @@ export default function SimLabResults() {
     );
   }
 
-  // result is guaranteed non-null past the runData guard above
   const sim = result!;
+  if (!sim || !Array.isArray(sim.summary) || !Array.isArray(sim.risks) || !Array.isArray(sim.events)) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+        <p className="text-muted-foreground">Results data is corrupted or incomplete.</p>
+        <Button onClick={() => navigate("/simlab")}>Back to Sim Lab</Button>
+      </div>
+    );
+  }
   const currentMonth = timelineMonth ?? sim.durationMonths;
 
   const handlePremiumAction = (feature: string) => {

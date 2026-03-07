@@ -200,7 +200,7 @@ export async function registerRoutes(
       res.json({ count });
     } catch (error) {
       console.error("Error getting active players:", error);
-      res.json({ count: 0 });
+      res.status(500).json({ error: "Failed to get active players" });
     }
   });
 
@@ -344,12 +344,13 @@ export async function registerRoutes(
   app.post("/api/apply-referral", requireAuth, rateLimit("referral", 5, 60000), async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
-      const { referralCode } = req.body;
+      const { referralCode: rawReferralCode } = req.body;
       
-      if (!referralCode || typeof referralCode !== "string") {
+      if (!rawReferralCode || typeof rawReferralCode !== "string") {
         return res.status(400).json({ error: "Invalid referral code" });
       }
       
+      const referralCode = rawReferralCode.trim();
       const referrer = await storage.getUserByReferralCode(referralCode);
       if (!referrer) {
         return res.status(404).json({ error: "Referral code not found" });
@@ -2453,8 +2454,7 @@ export async function registerRoutes(
         
         if (message.type === 'join_session') {
           const { sessionId } = message;
-          // P0-5: Use server-verified userId, ignore client-sent userId
-          const userId = authenticatedUserId || message.userId;
+          const userId = authenticatedUserId || `guest-${crypto.randomUUID().slice(0, 8)}`;
           currentSessionId = sessionId;
           currentUserId = userId;
 
@@ -2499,7 +2499,7 @@ export async function registerRoutes(
             return;
           }
 
-          const verifiedUserId = authenticatedUserId || message.userId;
+          const verifiedUserId = authenticatedUserId || currentUserId;
           if (!verifiedUserId) return;
 
           // Register WS connection for this match

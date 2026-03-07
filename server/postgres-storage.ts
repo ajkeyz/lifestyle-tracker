@@ -585,14 +585,18 @@ export class PostgresStorage implements IStorage {
       // Get a random "mystery" scenario from a different day
       const mysteryDayIndex = Math.floor(Math.random() * 30);
       const mysteryScenarios = getDailyScenarios(mysteryDayIndex + 1);
-      const mysteryScenario = mysteryScenarios[Math.floor(Math.random() * mysteryScenarios.length)];
+      if (!mysteryScenarios || mysteryScenarios.length === 0) {
+        console.warn("No mystery scenarios available for Friday bonus");
+      }
+      const mysteryScenario = mysteryScenarios?.[Math.floor(Math.random() * mysteryScenarios.length)];
 
-      const enhancedMystery = {
-        ...mysteryScenario,
-        id: crypto.randomUUID(),
-      };
-
-      shuffledScenarios.push(shuffleScenarioChoices(enhancedMystery, today));
+      if (mysteryScenario) {
+        const enhancedMystery = {
+          ...mysteryScenario,
+          id: crypto.randomUUID(),
+        };
+        shuffledScenarios.push(shuffleScenarioChoices(enhancedMystery, today));
+      }
     }
 
     const newDrop: DailyDrop = {

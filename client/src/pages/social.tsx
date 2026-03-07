@@ -32,7 +32,9 @@ export default function Social() {
     // Update the unread state client-side immediately
     qc.setQueryData(["/api/social/unread"], { hasUnread: false });
     // Also POST to the server to mark as read
-    fetch("/api/social/mark-read", { method: "POST" }).catch(() => {});
+    fetch("/api/social/mark-read", { method: "POST" }).catch((err) => {
+      console.warn("Failed to mark social as read:", err);
+    });
   }, [qc]);
 
   const { data: user } = useQuery<UserType>({ queryKey: ["/api/user"] });

@@ -78,6 +78,10 @@ export const lifestyleUsers = pgTable("lifestyle_users", {
   whyImHere: varchar("why_im_here", { length: 250 }).default(""),
   friendVisibility: varchar("friend_visibility", { length: 20 }).default("trend"),
 
+  // Missions & Bonus
+  claimedMissions: jsonb("claimed_missions").$type<string[]>().notNull().default([]),
+  bonusArcadePlays: integer("bonus_arcade_plays").notNull().default(0),
+
   // Survival Mode
   survivalWins: integer("survival_wins").notNull().default(0),
   survivalPlayed: integer("survival_played").notNull().default(0),

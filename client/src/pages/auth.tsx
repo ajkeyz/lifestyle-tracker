@@ -18,7 +18,9 @@ export default function AuthPage() {
           setPlayersToday(data.totalPlayers);
         }
       })
-      .catch(() => {});
+      .catch((err) => {
+        console.warn("Failed to fetch daily stats:", err);
+      });
   }, []);
 
   return (
