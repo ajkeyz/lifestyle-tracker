@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280, initial-scale=1">
+<title>Lifestyle Creep — Ad Cards</title>
+<script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #0a0a0a;
+    padding: 48px;
+    display: flex;
+    flex-direction: column;
+    gap: 48px;
+  }
+
+  .section-title {
+    color: rgba(255,255,255,0.3);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-bottom: -24px;
+  }
+
+  .cards-row {
+    display: flex;
+    gap: 32px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  /* Card base — 1080x1080 Instagram ratio scaled to ~380px */
+  .ad-card {
+    width: 380px;
+    height: 380px;
+    border-radius: 24px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  /* ===== CARD 1: "You lost $14,800" — Bold red/black fear card ===== */
+  .card-1 {
+    background: linear-gradient(160deg, #1a0505 0%, #0d0101 60%, #1a0808 100%);
+    border: 1px solid rgba(239,68,68,0.2);
+  }
+  .card-1::before {
+    content: '';
+    position: absolute;
+    top: -80px; right: -80px;
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, rgba(239,68,68,0.12) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .card-1 .card-body {
+    padding: 36px 32px;
+    z-index: 1;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .card-1 .hook-amount {
+    font-size: 56px;
+    font-weight: 900;
+    color: #ef4444;
+    line-height: 1;
+    margin-bottom: 12px;
+  }
+  .card-1 .hook-text {
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.35;
+    margin-bottom: 8px;
+  }
+  .card-1 .hook-sub {
+    font-size: 14px;
+    color: rgba(255,255,255,0.45);
+    line-height: 1.5;
+  }
+  .card-1 .card-footer {
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px solid rgba(239,68,68,0.12);
+    z-index: 1;
+  }
+  .card-1 .cta-btn {
+    background: #ef4444;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 10px 20px;
+    border-radius: 100px;
+    border: none;
+  }
+
+  /* ===== CARD 2: "This free app exposed..." — Dark emerald confessional ===== */
+  .card-2 {
+    background: linear-gradient(160deg, #0d1f17 0%, #060e0a 60%, #0a1a12 100%);
+    border: 1px solid rgba(52,168,116,0.2);
+  }
+  .card-2::before {
+    content: '';
+    position: absolute;
+    bottom: -60px; left: -60px;
+    width: 280px; height: 280px;
+    background: radial-gradient(circle, rgba(52,168,116,0.1) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .card-2 .card-body {
+    padding: 36px 32px;
+    z-index: 1;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .card-2 .hook-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(52,168,116,0.12);
+    border: 1px solid rgba(52,168,116,0.25);
+    border-radius: 100px;
+    padding: 6px 14px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #34a874;
+    margin-bottom: 20px;
+    width: fit-content;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .card-2 .hook-text {
+    font-size: 26px;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1.35;
+    margin-bottom: 16px;
+  }
+  .card-2 .hook-text em {
+    color: #34a874;
+    font-style: normal;
+  }
+  .card-2 .hook-details {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 0;
+  }
+  .card-2 .detail-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.45);
+    font-weight: 600;
+  }
+  .card-2 .detail-chip .icon {
+    font-size: 16px;
+  }
+  .card-2 .card-footer {
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px solid rgba(52,168,116,0.1);
+    z-index: 1;
+  }
+  .card-2 .cta-btn {
+    background: linear-gradient(135deg, #34a874, #2a8a60);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 10px 20px;
+    border-radius: 100px;
+    border: none;
+  }
+
+  /* ===== CARD 3: "Duolingo streak but no money habits" — Split identity ===== */
+  .card-3 {
+    background: linear-gradient(160deg, #0f1a0d 0%, #0a0a0a 50%, #1a120a 100%);
+    border: 1px solid rgba(212,175,55,0.2);
+  }
+  .card-3::before {
+    content: '';
+    position: absolute;
+    top: -60px; left: 50%;
+    transform: translateX(-50%);
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, rgba(212,175,55,0.08) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .card-3 .card-body {
+    padding: 36px 32px;
+    z-index: 1;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    align-items: center;
+  }
+  .card-3 .versus-row {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+  .card-3 .versus-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-3 .versus-icon {
+    font-size: 48px;
+  }
+  .card-3 .versus-label {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .card-3 .versus-label.green { color: #58cc02; }
+  .card-3 .versus-label.gold { color: #d4af37; }
+  .card-3 .versus-vs {
+    font-size: 20px;
+    font-weight: 900;
+    color: rgba(255,255,255,0.2);
+  }
+  .card-3 .hook-text {
+    font-size: 22px;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1.4;
+    max-width: 320px;
+  }
+  .card-3 .hook-text em {
+    color: #d4af37;
+    font-style: normal;
+  }
+  .card-3 .card-footer {
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px solid rgba(212,175,55,0.12);
+    z-index: 1;
+  }
+  .card-3 .cta-btn {
+    background: linear-gradient(135deg, #d4af37, #b8962e);
+    color: #0a0a0a;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 10px 20px;
+    border-radius: 100px;
+    border: none;
+  }
+
+  /* ===== CARD 4: "30 days, spending dropped $400" — Results/proof card ===== */
+  .card-4 {
+    background: linear-gradient(160deg, #0a0f1a 0%, #060a12 60%, #0a0a1a 100%);
+    border: 1px solid rgba(59,130,246,0.2);
+  }
+  .card-4::before {
+    content: '';
+    position: absolute;
+    top: 50%; right: -80px;
+    transform: translateY(-50%);
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, rgba(59,130,246,0.1) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .card-4 .card-body {
+    padding: 36px 32px;
+    z-index: 1;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .card-4 .timeline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+  .card-4 .timeline-dot {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+  .card-4 .timeline-dot.d1 { background: rgba(59,130,246,0.15); color: #3b82f6; border: 1px solid rgba(59,130,246,0.3); }
+  .card-4 .timeline-dot.d2 { background: rgba(52,168,116,0.15); color: #34a874; border: 1px solid rgba(52,168,116,0.3); }
+  .card-4 .timeline-dot.d3 { background: rgba(212,175,55,0.15); color: #d4af37; border: 1px solid rgba(212,175,55,0.3); }
+  .card-4 .timeline-line {
+    height: 2px;
+    flex: 1;
+    background: linear-gradient(90deg, rgba(59,130,246,0.3), rgba(52,168,116,0.3), rgba(212,175,55,0.3));
+    border-radius: 1px;
+  }
+  .card-4 .hook-text {
+    font-size: 24px;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1.35;
+    margin-bottom: 16px;
+  }
+  .card-4 .hook-text em {
+    color: #3b82f6;
+    font-style: normal;
+  }
+  .card-4 .result-stat {
+    display: flex;
+    gap: 24px;
+  }
+  .card-4 .result-item {
+    display: flex;
+    flex-direction: column;
+  }
+  .card-4 .result-item .ri-value {
+    font-size: 28px;
+    font-weight: 900;
+    color: #34a874;
+  }
+  .card-4 .result-item .ri-label {
+    font-size: 11px;
+    color: rgba(255,255,255,0.35);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .card-4 .card-footer {
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px solid rgba(59,130,246,0.1);
+    z-index: 1;
+  }
+  .card-4 .cta-btn {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 10px 20px;
+    border-radius: 100px;
+    border: none;
+  }
+
+  /* ===== CARD 5: "Salary went up 40%, wealth 0%" — Stark contrast ===== */
+  .card-5 {
+    background: linear-gradient(160deg, #1a0a1a 0%, #0a0a0a 60%, #0d0a1a 100%);
+    border: 1px solid rgba(168,85,247,0.2);
+  }
+  .card-5::before {
+    content: '';
+    position: absolute;
+    bottom: -80px; right: -40px;
+    width: 280px; height: 280px;
+    background: radial-gradient(circle, rgba(168,85,247,0.1) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .card-5 .card-body {
+    padding: 36px 32px;
+    z-index: 1;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .card-5 .contrast-block {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .card-5 .contrast-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .card-5 .contrast-label {
+    width: 80px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: rgba(255,255,255,0.35);
+    text-align: right;
+  }
+  .card-5 .contrast-bar {
+    flex: 1;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    font-weight: 800;
+    font-size: 18px;
+  }
+  .card-5 .contrast-bar.up {
+    background: linear-gradient(90deg, rgba(52,168,116,0.15), rgba(52,168,116,0.05));
+    border: 1px solid rgba(52,168,116,0.25);
+    color: #34a874;
+    width: 85%;
+  }
+  .card-5 .contrast-bar.flat {
+    background: rgba(239,68,68,0.08);
+    border: 1px solid rgba(239,68,68,0.2);
+    color: #ef4444;
+    width: 20%;
+  }
+  .card-5 .hook-text {
+    font-size: 22px;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1.4;
+  }
+  .card-5 .hook-text em {
+    color: #a855f7;
+    font-style: normal;
+  }
+  .card-5 .card-footer {
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px solid rgba(168,85,247,0.1);
+    z-index: 1;
+  }
+  .card-5 .cta-btn {
+    background: linear-gradient(135deg, #a855f7, #7c3aed);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 10px 20px;
+    border-radius: 100px;
+    border: none;
+  }
+
+  /* Shared */
+  .brand-mark {
+    font-size: 12px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.3);
+    letter-spacing: 2px;
+  }
+  .platform-tag {
+    font-size: 10px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.25);
+    background: rgba(255,255,255,0.05);
+    padding: 4px 10px;
+    border-radius: 100px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* Label row */
+  .label-row {
+    display: flex;
+    justify-content: center;
+    color: #fff;
+    font-size: 32px;
+    font-weight: 900;
+    padding: 20px 0 0;
+    letter-spacing: -1px;
+  }
+  .label-row span {
+    background: linear-gradient(135deg, #34a874, #d4af37);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+</style>
+</head>
+<body>
+
+<div class="label-row"><span>Social Media Ad Cards — Top 5 Hooks</span></div>
+
+<!-- Row of cards -->
+<div class="cards-row">
+
+  <!-- CARD 1: H8 — Fear/Loss -->
+  <div class="ad-card card-1">
+    <div class="card-body">
+      <div class="hook-amount">$14,800</div>
+      <div class="hook-text">You lost this much this year and didn't even notice.</div>
+      <div class="hook-sub">Lifestyle creep is the silent killer of wealth. Train your money instincts with 5 daily scenarios.</div>
+    </div>
+    <div class="card-footer">
+      <div class="brand-mark">LIFESTYLE CREEP</div>
+      <div class="cta-btn">Test Your Money IQ</div>
+    </div>
+  </div>
+
+  <!-- CARD 2: H1 — Curiosity -->
+  <div class="ad-card card-2">
+    <div class="card-body">
+      <div class="hook-badge">Real story</div>
+      <div class="hook-text">"This free app <em>exposed</em> how bad my money habits actually are..."</div>
+      <div class="hook-details">
+        <div class="detail-chip"><span class="icon">🎯</span> 5 daily scenarios</div>
+        <div class="detail-chip"><span class="icon">⏱</span> 20 sec each</div>
+        <div class="detail-chip"><span class="icon">🧠</span> Money IQ score</div>
+      </div>
+    </div>
+    <div class="card-footer">
+      <div class="brand-mark">LIFESTYLE CREEP</div>
+      <div class="cta-btn">Download Free</div>
+    </div>
+  </div>
+
+  <!-- CARD 3: H19 — Identity -->
+  <div class="ad-card card-3">
+    <div class="card-body">
+      <div class="versus-row">
+        <div class="versus-item">
+          <div class="versus-icon">🦉</div>
+          <div class="versus-label green">365-day streak</div>
+        </div>
+        <div class="versus-vs">but</div>
+        <div class="versus-item">
+          <div class="versus-icon">💸</div>
+          <div class="versus-label gold">$0 saved</div>
+        </div>
+      </div>
+      <div class="hook-text">If you have a Duolingo streak but no money habits, <em>this is for you.</em></div>
+    </div>
+    <div class="card-footer">
+      <div class="brand-mark">LIFESTYLE CREEP</div>
+      <div class="cta-btn">Start Your Money Streak</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="cards-row">
+
+  <!-- CARD 4: H3 — Curiosity/Results -->
+  <div class="ad-card card-4">
+    <div class="card-body">
+      <div class="timeline">
+        <div class="timeline-dot d1">D1</div>
+        <div class="timeline-line"></div>
+        <div class="timeline-dot d2">D15</div>
+        <div class="timeline-line"></div>
+        <div class="timeline-dot d3">D30</div>
+      </div>
+      <div class="hook-text">I played this game for <em>30 days</em>. My spending dropped by <em>$400</em>.</div>
+      <div class="result-stat">
+        <div class="result-item">
+          <div class="ri-value">-$400</div>
+          <div class="ri-label">Monthly spending</div>
+        </div>
+        <div class="result-item">
+          <div class="ri-value">+37pts</div>
+          <div class="ri-label">Money IQ gained</div>
+        </div>
+        <div class="result-item">
+          <div class="ri-value">30 🔥</div>
+          <div class="ri-label">Day streak</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-footer">
+      <div class="brand-mark">LIFESTYLE CREEP</div>
+      <div class="cta-btn">Start Day 1</div>
+    </div>
+  </div>
+
+  <!-- CARD 5: H9 — Fear/Loss Contrast -->
+  <div class="ad-card card-5">
+    <div class="card-body">
+      <div class="contrast-block">
+        <div class="contrast-row">
+          <div class="contrast-label">Salary</div>
+          <div class="contrast-bar up">+40% ↑</div>
+        </div>
+        <div class="contrast-row">
+          <div class="contrast-label">Wealth</div>
+          <div class="contrast-bar flat">0%</div>
+        </div>
+      </div>
+      <div class="hook-text">Your salary went up. Your wealth didn't. <em>That's lifestyle creep.</em></div>
+    </div>
+    <div class="card-footer">
+      <div class="brand-mark">LIFESTYLE CREEP</div>
+      <div class="cta-btn">Train Your Money Brain</div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
