@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ScenarioCard } from "@/components/scenario-card-improved";
 import { ProgressPill } from "@/components/progress-pill";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { TeachingCard } from "@/components/teaching-card";
 import { SpeedBonusBadge } from "@/components/speed-bonus-badge";
 import { LifelineButton } from "@/components/lifeline-button";
@@ -533,7 +532,6 @@ export default function Arcade() {
                 </Button>
                 <AppLogo size="sm" />
               </div>
-              <ThemeToggle />
             </div>
           </div>
         </header>
@@ -675,18 +673,11 @@ export default function Arcade() {
                     <p className="text-muted-foreground font-medium" data-testid="text-limit-reached">
                       You've used all your arcade plays for today
                     </p>
-                    {arcadeStatus.membershipTier === "free" && (
-                      <Button variant="outline" onClick={() => navigate("/membership")} data-testid="button-upgrade">
-                        Upgrade for more plays
-                      </Button>
-                    )}
                   </div>
                 )}
 
                 <p className="text-xs text-muted-foreground">
-                  {arcadeStatus.membershipTier === "free" && "Free tier: 1 game/day"}
-                  {arcadeStatus.membershipTier === "plus" && "Plus tier: 3 games/day"}
-                  {arcadeStatus.membershipTier === "pro" && "Pro tier: Unlimited games"}
+                  Come back tomorrow for more plays
                 </p>
               </div>
             ) : null}
@@ -759,7 +750,6 @@ export default function Arcade() {
                   total={totalScenarios}
                 />
               )}
-              <ThemeToggle />
             </div>
           </div>
         </div>

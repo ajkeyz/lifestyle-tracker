@@ -49,7 +49,8 @@ const Insights = lazy(() => import("@/pages/insights"));
 const Help = lazy(() => import("@/pages/help"));
 const NotificationsPrefs = lazy(() => import("@/pages/notifications-prefs"));
 const StreakInsurance = lazy(() => import("@/pages/streak-insurance"));
-const Membership = lazy(() => import("@/pages/membership"));
+// Membership page disabled — app is free for all
+// const Membership = lazy(() => import("@/pages/membership"));
 const Community = lazy(() => import("@/pages/community"));
 const CommunityDetail = lazy(() => import("@/pages/community-detail"));
 const CommunitySubmit = lazy(() => import("@/pages/community-submit"));
@@ -63,13 +64,14 @@ const CoopGame = lazy(() => import("@/pages/coop-game"));
 const CoopResults = lazy(() => import("@/pages/coop-results"));
 const ArcadePage = lazy(() => import("@/pages/arcade"));
 const ArcadeResults = lazy(() => import("@/pages/arcade-results"));
-const SurvivalEntry = lazy(() => import("@/pages/survival-entry"));
-const SurvivalLobby = lazy(() => import("@/pages/survival-lobby"));
-const SurvivalMatch = lazy(() => import("@/pages/survival-match"));
-const SurvivalResults = lazy(() => import("@/pages/survival-results"));
-const SimLabEntry = lazy(() => import("@/pages/simlab-entry"));
-const SimLabSetup = lazy(() => import("@/pages/simlab-setup"));
-const SimLabResults = lazy(() => import("@/pages/simlab-results"));
+// Survival and Sim Lab modes disabled — code preserved in repo
+// const SurvivalEntry = lazy(() => import("@/pages/survival-entry"));
+// const SurvivalLobby = lazy(() => import("@/pages/survival-lobby"));
+// const SurvivalMatch = lazy(() => import("@/pages/survival-match"));
+// const SurvivalResults = lazy(() => import("@/pages/survival-results"));
+// const SimLabEntry = lazy(() => import("@/pages/simlab-entry"));
+// const SimLabSetup = lazy(() => import("@/pages/simlab-setup"));
+// const SimLabResults = lazy(() => import("@/pages/simlab-results"));
 const Social = lazy(() => import("@/pages/social"));
 const Terms = lazy(() => import("@/pages/terms"));
 const Privacy = lazy(() => import("@/pages/privacy"));
@@ -161,7 +163,7 @@ function AuthenticatedRouter() {
   // Hide bottom nav on immersive pages and setup flows
   const hideBottomNav =
     location === "/play" ||
-    ["/results", "/coop-game", "/arcade", "/survival", "/simlab", "/setup", "/profile-setup", "/notifications-setup", "/friends-setup"].some((path) =>
+    ["/results", "/coop-game", "/arcade", "/setup", "/profile-setup", "/notifications-setup", "/friends-setup"].some((path) =>
       location.startsWith(path)
     );
 
@@ -191,7 +193,7 @@ function AuthenticatedRouter() {
             <Route path="/help" component={Help} />
             <Route path="/notifications-prefs" component={NotificationsPrefs} />
             <Route path="/streak-insurance" component={StreakInsurance} />
-            <Route path="/membership" component={Membership} />
+            {/* Membership route disabled — app is free */}
             <Route path="/community" component={Community} />
             <Route path="/community/submit" component={CommunitySubmit} />
             <Route path="/community/:id" component={CommunityDetail} />
@@ -212,17 +214,7 @@ function AuthenticatedRouter() {
               {() => <GuardedRoute mode="arcade" component={ArcadePage} />}
             </Route>
             <Route path="/arcade-results" component={ArcadeResults} />
-            <Route path="/survival">
-              {() => <GuardedRoute mode="survival" component={SurvivalEntry} />}
-            </Route>
-            <Route path="/survival/lobby/:matchId" component={SurvivalLobby} />
-            <Route path="/survival/match/:matchId" component={SurvivalMatch} />
-            <Route path="/survival/results/:matchId" component={SurvivalResults} />
-            <Route path="/simlab">
-              {() => <GuardedRoute mode="simLab" component={SimLabEntry} />}
-            </Route>
-            <Route path="/simlab/setup/:templateId" component={SimLabSetup} />
-            <Route path="/simlab/results/:runId" component={SimLabResults} />
+            {/* Survival and Sim Lab routes disabled */}
             <Route path="/terms" component={Terms} />
             <Route path="/privacy" component={Privacy} />
             <Route component={NotFound} />

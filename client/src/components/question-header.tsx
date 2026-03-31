@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { ScenarioCategory } from "@shared/schema";
-import { getContextBuffer, classifyDifficulty } from "@/lib/game-insights";
+import { classifyDifficulty } from "@/lib/game-insights";
 import {
   Laptop, Plane, ShoppingBag, ShieldAlert, TrendingUp, CreditCard,
   Briefcase, Heart, Home, Shield, Receipt, Wallet, AlertTriangle,
@@ -128,9 +128,6 @@ export function QuestionHeader({ category, context, question, choices }: Questio
               {diffConfig.label}
             </Badge>
           )}
-          <span className="text-xs text-muted-foreground/60 italic" data-testid="text-context-buffer">
-            {getContextBuffer(category)}
-          </span>
         </div>
 
         {context && (
