@@ -257,26 +257,10 @@ export function ChoiceCard({
                   )}>
                     +{earnedPoints} pts
                   </span>
-                  {isCorrect && points >= 100 && (
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-primary/70 ml-1">
-                      Best
-                    </span>
-                  )}
-                  {isCorrect && points < 100 && points >= 50 && (
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-500/70 dark:text-amber-400/70 ml-1">
-                      Good
-                    </span>
-                  )}
                   {/* #7: Points burst particles on correct answer */}
                   {isCorrect && <PointsBurst />}
                 </motion.div>
               )}
-              {feedback && (
-                <p className="text-sm text-muted-foreground leading-snug">
-                  {feedback}
-                </p>
-              )}
-              {/* #9: Community answer distribution bar — removed for cleaner UX */}
             </motion.div>
           )}
         </AnimatePresence>

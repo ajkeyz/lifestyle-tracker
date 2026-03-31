@@ -47,7 +47,6 @@ import {
   Settings2,
   Volume2,
   VolumeX,
-  Crown,
   Sparkles,
   Trash2,
   AlertTriangle,
@@ -292,16 +291,6 @@ export default function Settings() {
                   <h2 className="font-display font-bold text-xl truncate">
                     {user.username}
                   </h2>
-                  {user.membershipTier === "pro" && (
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gradient-to-r from-yellow-500 to-orange-500 text-white flex-shrink-0">
-                      PRO
-                    </span>
-                  )}
-                  {user.membershipTier === "plus" && (
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 text-white flex-shrink-0">
-                      PLUS
-                    </span>
-                  )}
                 </div>
                 <p className="text-sm text-muted-foreground">@{user.username}</p>
                 <p className="text-xs text-muted-foreground mt-1">Tap to view profile</p>
@@ -476,33 +465,6 @@ export default function Settings() {
               label="Streak Insurance"
               description="Protect and restore your streaks"
               onClick={() => navigate("/streak-insurance")}
-            />
-            <Separator />
-            <SettingsRow
-              icon={Crown}
-              iconClassName="bg-gradient-to-br from-yellow-500/20 to-orange-500/20 text-yellow-600"
-              label="Membership"
-              description={
-                user.membershipTier === "free"
-                  ? "Unlock premium features"
-                  : `Manage your ${user.membershipTier === "pro" ? "Pro" : "Plus"} plan`
-              }
-              onClick={() => navigate("/membership")}
-              trailing={
-                <div className="flex items-center gap-2">
-                  {user.membershipTier === "pro" && (
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gradient-to-r from-yellow-500 to-orange-500 text-white">
-                      PRO
-                    </span>
-                  )}
-                  {user.membershipTier === "plus" && (
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 text-white">
-                      PLUS
-                    </span>
-                  )}
-                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                </div>
-              }
             />
             <Separator />
             <SettingsRow

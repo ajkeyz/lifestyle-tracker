@@ -428,21 +428,6 @@ export default function Profile() {
                     <Flame className="w-4 h-4" />
                   </motion.div>
                 )}
-                {user.membershipTier !== "free" && (
-                  <motion.div
-                    className={`absolute -bottom-1 -left-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold text-white shadow-lg ${
-                      user.membershipTier === "pro"
-                        ? "bg-gradient-to-r from-yellow-500 to-amber-600"
-                        : "bg-gradient-to-r from-blue-500 to-indigo-600"
-                    }`}
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 0.5, type: "spring" }}
-                    data-testid="badge-membership"
-                  >
-                    {user.membershipTier === "pro" ? "PRO" : "PLUS"}
-                  </motion.div>
-                )}
               </div>
             </Floating3DAvatar>
 

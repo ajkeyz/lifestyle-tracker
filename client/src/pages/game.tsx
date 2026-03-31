@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ScenarioCard } from "@/components/scenario-card-improved";
 import { ProgressPill } from "@/components/progress-pill";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { TeachingCard } from "@/components/teaching-card";
 import { AnswerStreakIndicator } from "@/components/answer-streak-indicator";
 import { SpeedBonusBadge } from "@/components/speed-bonus-badge";
@@ -428,7 +427,6 @@ export default function Game() {
                   total={totalScenarios}
                 />
               )}
-              <ThemeToggle />
             </div>
           </div>
         </div>

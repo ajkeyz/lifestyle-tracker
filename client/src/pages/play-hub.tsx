@@ -10,8 +10,6 @@ import {
   Play,
   Gamepad2,
   Users,
-  Shield,
-  FlaskConical,
   Settings,
   ChevronRight,
   CheckCircle2,
@@ -64,23 +62,7 @@ export default function PlayHub() {
       gradient: "bg-gradient-to-br from-indigo-500 to-purple-500",
       path: "/coop-lobby",
     },
-    {
-      id: "survival" as GameModeId,
-      title: "Survival",
-      description: "Last one standing",
-      icon: <Shield className="w-5 h-5 text-white" />,
-      gradient: "bg-gradient-to-br from-red-500 to-orange-500",
-      path: "/survival",
-    },
-    {
-      id: "simLab" as GameModeId,
-      title: "Sim Lab",
-      description: "Deep simulations",
-      icon: <FlaskConical className="w-5 h-5 text-white" />,
-      gradient: "bg-gradient-to-br from-cyan-500 to-blue-600",
-      path: "/simlab",
-      badge: "PRO",
-    },
+    // Survival and Sim Lab modes disabled — code preserved in repo
   ];
 
   return (

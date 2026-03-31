@@ -5,7 +5,6 @@ import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScenarioCard } from "@/components/scenario-card-improved";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { TeachingCard } from "@/components/teaching-card";
 import { AnswerStreakIndicator } from "@/components/answer-streak-indicator";
 import { SpeedBonusBadge } from "@/components/speed-bonus-badge";
@@ -348,7 +347,6 @@ export default function CoopGame() {
             ) : (
               <WifiOff className="h-4 w-4 text-destructive" />
             )}
-            <ThemeToggle />
           </div>
         </div>
       </header>
