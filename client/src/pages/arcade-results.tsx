@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { AppLogo } from "@/components/app-logo";
 import { Gamepad2, Home, RotateCcw, Trophy, Target, Zap, Share2, Star, ArrowUp } from "lucide-react";
 import { useLocation } from "wouter";
@@ -241,7 +240,6 @@ export default function ArcadeResults() {
                 </span>
               </div>
             </div>
-            <ThemeToggle />
           </div>
         </div>
       </header>
@@ -309,15 +307,6 @@ export default function ArcadeResults() {
             >
               {grade}
             </motion.h1>
-
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
-              className="text-muted-foreground"
-            >
-              Arcade game complete
-            </motion.p>
           </div>
 
           {/* Score Ring + Stats */}
@@ -427,14 +416,6 @@ export default function ArcadeResults() {
             </Button>
           </motion.div>
 
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1 }}
-            className="text-center text-xs text-muted-foreground"
-          >
-            Arcade scores don't affect your daily streak or Money Health
-          </motion.p>
         </motion.div>
       </main>
     </div>

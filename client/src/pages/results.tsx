@@ -3,22 +3,19 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ShareCard } from "@/components/share-card";
-import { SocialShareCard } from "@/components/social-share-card";
 import { FriendLeague } from "@/components/leaderboard-card";
 import { useConfetti } from "@/components/confetti";
 import { useSound } from "@/hooks/use-sound";
 import { QuickWinsPopup } from "@/components/quick-wins-popup";
-import { ArrowLeft, Home, Calendar, Share2, BookOpen, Brain, RefreshCw, Users, UserCircle, ChevronRight, BellRing, Check } from "lucide-react";
+import { ArrowLeft, Home, Calendar, Share2, BookOpen, Users, UserCircle, ChevronRight, BellRing, Check } from "lucide-react";
 import { AppLogo } from "@/components/app-logo";
 import { Mascot, getMascotMoodForScore, getMascotScoreMessage, getMascotContextDialogue, CelebrationBurst, BODY_COLORS, type MascotContext } from "@/components/mascot";
-import { CleoCongratsPeek } from "@/components/cleo-edge-presence";
 import { useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
 import type { User, DailyDrop, LeaderboardEntry } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { trackStreakUpdated, trackShareClicked } from "@/lib/analytics";
-import { analyzeAnswerPatterns, toneColors } from "@/lib/game-insights";
 import { CleoAnalysis } from "@/components/cleo-analysis";
 import { cn } from "@/lib/utils";
 
@@ -258,11 +255,6 @@ export default function Results() {
     });
   }, [result, scenarios]);
 
-  const patternSummary = useMemo(() => {
-    if (!result || scenarios.length === 0) return null;
-    return analyzeAnswerPatterns(scenarios, result.answers);
-  }, [result, scenarios]);
-
   // Dynamic mascot mood that shifts during score reveal animation
   const dynamicMascotMood = useMemo(() => {
     if (!result) return "thinking" as const;
@@ -423,26 +415,6 @@ export default function Results() {
               </motion.div>
             )}
 
-            {/* Social Share Button */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.3, ease: "easeOut" }}
-              className="flex justify-center"
-            >
-              <SocialShareCard
-                user={user!}
-                score={result.score}
-                dropNumber={dailyDrop?.dropNumber}
-                trigger={
-                  <Button size="lg" className="gap-2 btn-gold border-0 font-bold relative overflow-hidden">
-                    <Share2 className="w-5 h-5" />
-                    Share on Social Media
-                  </Button>
-                }
-              />
-            </motion.div>
-
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -480,48 +452,9 @@ export default function Results() {
                 data-testid="button-customize-share"
               >
                 <Share2 className="w-4 h-4 mr-2" />
-                Customize Share
+                Share
               </Button>
             </motion.div>
-
-            {/* Pattern Recognition */}
-            {patternSummary && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.45, ease: "easeOut" }}
-              >
-                <Card className="p-5" data-testid="card-pattern-recognition">
-                  <div className="flex items-center gap-2 mb-3 flex-wrap">
-                    <Brain className="w-5 h-5 text-muted-foreground" />
-                    <h3 className="font-semibold" data-testid="text-pattern-headline">Your Pattern Today</h3>
-                  </div>
-                  <p className="font-medium mb-1" data-testid="text-pattern-summary">
-                    {patternSummary.headline}
-                  </p>
-                  <p className="text-sm text-muted-foreground mb-4" data-testid="text-pattern-detail">
-                    {patternSummary.detail}
-                  </p>
-                  <div className="flex items-center gap-3 flex-wrap" data-testid="tone-breakdown">
-                    {(Object.entries(patternSummary.toneBreakdown) as [string, number][])
-                      .filter(([, count]) => count > 0)
-                      .sort((a, b) => b[1] - a[1])
-                      .map(([tone, count]) => (
-                        <div key={tone} className="flex items-center gap-1.5">
-                          <span className={cn(
-                            "w-2.5 h-2.5 rounded-full",
-                            toneColors[tone as keyof typeof toneColors]
-                          )} />
-                          <span className="text-xs text-muted-foreground capitalize">
-                            {tone} ({count})
-                          </span>
-                        </div>
-                      ))
-                    }
-                  </div>
-                </Card>
-              </motion.div>
-            )}
 
             {/* Cleo AI Analysis */}
             <motion.div
@@ -536,13 +469,14 @@ export default function Results() {
               />
             </motion.div>
 
-            {leaderboard && leaderboard.length > 0 && (
+            {/* Show FriendLeague only if user actually has friends */}
+            {leaderboard && leaderboard.length > 0 && user && (user.friendIds?.length ?? 0) > 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.55, ease: "easeOut" }}
               >
-                <FriendLeague entries={leaderboard} currentUserId={user?.id ?? ""} />
+                <FriendLeague entries={leaderboard} currentUserId={user.id} />
               </motion.div>
             )}
 
@@ -578,25 +512,6 @@ export default function Results() {
             )}
 
             <Button
-              className="w-full gap-2 btn-premium border-0"
-              onClick={async () => {
-                try {
-                  const res = await fetch("/api/daily-drop/replay", { method: "POST" });
-                  if (res.ok) {
-                    queryClient.setQueryData(["/api/user"], (old: any) =>
-                      old ? { ...old, todayResult: null } : old
-                    );
-                    navigate("/play");
-                  }
-                } catch (e) { console.error("Replay failed", e); }
-              }}
-              data-testid="button-replay"
-            >
-              <RefreshCw className="w-4 h-4" />
-              Replay Today's Drop
-            </Button>
-
-            <Button
               variant="outline"
               className="w-full"
               onClick={() => navigate("/")}
@@ -609,11 +524,6 @@ export default function Results() {
         )}
       </main>
     </div>
-    {/* Cleo slides in from top-right for streak milestones */}
-    <CleoCongratsPeek
-      trigger={!!user?.streak && user.streak >= 7 && [7, 14, 30, 60, 100].includes(user.streak)}
-      message={`${user?.streak}-day streak! You're on a roll!`}
-    />
     </>
   );
 }
