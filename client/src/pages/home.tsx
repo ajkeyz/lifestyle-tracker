@@ -26,12 +26,24 @@ import {
   MessageCircle,
   ArrowUp,
   Users,
+  Lightbulb,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import type { User as UserType, DailyDrop, CommunityScenario } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
+
+// Rotating daily tips — a subset shown on home, full library at /tips
+const HOME_TIPS = [
+  { title: "Pay yourself first", content: "Automate your savings — what you don't see, you won't spend." },
+  { title: "The 24-hour rule", content: "Sleep on big purchases. Most impulse wants fade overnight." },
+  { title: "Cost-per-use thinking", content: "A $200 jacket worn 100 times costs less than a $50 one worn twice." },
+  { title: "Start early, stay consistent", content: "Starting with $50/month at 25 beats $500/month at 45." },
+  { title: "High-interest debt first", content: "Pay off credit cards before anything else. The math is brutal." },
+  { title: "Subscription audit", content: "The average person wastes $200+/month on unused services." },
+  { title: "Housing costs rule", content: "Keep housing under 30% of gross income. Under 25% gives real flexibility." },
+];
 
 const COMEBACK_MESSAGES = [
   { title: "Welcome back!", message: "Every expert was once a beginner. Pick up where you left off." },
@@ -454,6 +466,48 @@ export default function Home() {
                   </div>
                 </motion.div>
               )}
+
+              {/* ═══ Daily Tip ═══ */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.2 }}
+              >
+                {(() => {
+                  const dayOfYear = Math.floor(
+                    (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24)
+                  );
+                  const tip = HOME_TIPS[dayOfYear % HOME_TIPS.length];
+                  return (
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between px-1">
+                        <div className="flex items-center gap-2">
+                          <Lightbulb className="w-4 h-4 text-amber-500" />
+                          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Tip of the day</span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs text-primary h-7 px-2"
+                          onClick={() => navigate("/tips")}
+                          data-testid="button-tips-see-all"
+                        >
+                          All tips
+                          <ChevronRight className="w-3 h-3 ml-0.5" />
+                        </Button>
+                      </div>
+                      <Card
+                        className="p-3 cursor-pointer transition-all hover:border-amber-500/20 hover:-translate-y-0.5"
+                        onClick={() => navigate("/tips")}
+                        data-testid="card-daily-tip"
+                      >
+                        <p className="text-sm font-medium mb-1">{tip.title}</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed">{tip.content}</p>
+                      </Card>
+                    </div>
+                  );
+                })()}
+              </motion.div>
             </>
           ) : (
             <Card className="p-6 text-center" data-testid="card-welcome">
