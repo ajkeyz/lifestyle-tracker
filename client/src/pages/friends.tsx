@@ -245,12 +245,9 @@ export default function Friends() {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.05 }}
                   >
-                    <Link
-                      href={`/profile/${friend.id}`}
-                      data-testid={`link-friend-profile-${friend.id}`}
-                    >
+                    <div data-testid={`link-friend-profile-${friend.id}`}>
                       <div
-                        className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
+                        className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 transition-colors"
                         data-testid={`friend-row-${friend.id}`}
                       >
                         <span className="text-sm font-bold text-muted-foreground w-6">#{index + 1}</span>
@@ -279,9 +276,8 @@ export default function Friends() {
                             )}
                           </div>
                         </div>
-                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
                       </div>
-                    </Link>
+                    </div>
                   </motion.div>
                 ))}
               </div>

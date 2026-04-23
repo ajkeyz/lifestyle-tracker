@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ActivityFeed, type ActivityItem } from "@/components/activity-feed";
 import { AnimatedAvatar } from "@/components/animated-avatar";
@@ -16,6 +17,11 @@ import {
   UserPlus,
   Bell,
   Loader2,
+  Copy,
+  Check,
+  Share2,
+  Settings,
+  EyeOff,
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, Link } from "wouter";
@@ -28,6 +34,31 @@ export default function Social() {
   const qc = useQueryClient();
   const { toast } = useToast();
   const [nudgedFriends, setNudgedFriends] = useState<Set<string>>(new Set());
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyUsername = async (username: string) => {
+    try {
+      await navigator.clipboard.writeText(username);
+      setCopied(true);
+      toast({ title: "Username copied!", description: "Share it with friends so they can find you." });
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast({ title: "Couldn't copy", description: "Please copy the username manually.", variant: "destructive" });
+    }
+  };
+
+  const handleShareUsername = async (username: string) => {
+    const shareText = `Add me on Lifestyle Creep! My username is: ${username}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "Add me on Lifestyle Creep", text: shareText });
+      } catch (err) {
+        if ((err as Error).name !== "AbortError") handleCopyUsername(username);
+      }
+    } else {
+      handleCopyUsername(username);
+    }
+  };
 
   const nudgeMutation = useMutation({
     mutationFn: async (friendId: string) => {
@@ -99,6 +130,79 @@ export default function Social() {
       </header>
 
       <main className="container max-w-2xl mx-auto p-4 space-y-4">
+        {/* ═══ You: identity + share + privacy ═══ */}
+        {user && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Card className="p-4 rounded-2xl space-y-3" data-testid="card-you">
+              <div className="flex items-center gap-3">
+                <AnimatedAvatar
+                  avatarId={user.avatar || "cosmic-cat"}
+                  size="xs"
+                  isAnimated={false}
+                  className="w-11 h-11 [&>div]:w-11 [&>div]:h-11"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-sm font-semibold truncate">@{user.username}</h2>
+                    {user.isProfilePrivate && (
+                      <Badge variant="outline" className="gap-1 h-5 text-[10px]" data-testid="badge-private">
+                        <EyeOff className="w-2.5 h-2.5" />
+                        Private
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">You control what others see</p>
+                </div>
+                <Link href="/profile-setup?edit=true">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 shrink-0"
+                    data-testid="button-edit-profile"
+                    aria-label="Edit profile"
+                  >
+                    <Settings className="w-4 h-4" />
+                  </Button>
+                </Link>
+              </div>
+
+              {/* Share username row */}
+              <div className="flex gap-2">
+                <Input
+                  value={user.username}
+                  readOnly
+                  className="font-mono text-sm h-9"
+                  data-testid="input-username-share"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 shrink-0"
+                  onClick={() => handleCopyUsername(user.username)}
+                  data-testid="button-copy-username"
+                  aria-label="Copy username"
+                >
+                  {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 shrink-0"
+                  onClick={() => handleShareUsername(user.username)}
+                  data-testid="button-share-username"
+                  aria-label="Share username"
+                >
+                  <Share2 className="w-4 h-4" />
+                </Button>
+              </div>
+            </Card>
+          </motion.div>
+        )}
+
         {/* ═══ SECTION 1: Activity Feed (Primary) ═══ */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
@@ -166,16 +270,15 @@ export default function Social() {
             ) : topFriends.length > 0 ? (
               <div className="space-y-1">
                 {topFriends.map((friend, index) => (
-                  <Link
+                  <div
                     key={friend.id}
-                    href={`/profile/${friend.id}`}
                     data-testid={`social-friend-${friend.id}`}
                   >
                     <motion.div
                       initial={{ opacity: 0, x: -8 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: index * 0.04 }}
-                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/30 transition-colors cursor-pointer"
+                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/30 transition-colors"
                     >
                       {/* Rank + Avatar */}
                       <div className="relative">
@@ -242,7 +345,7 @@ export default function Social() {
                         </Badge>
                       )}
                     </motion.div>
-                  </Link>
+                  </div>
                 ))}
               </div>
             ) : (

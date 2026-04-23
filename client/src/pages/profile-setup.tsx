@@ -125,7 +125,7 @@ export default function ProfileSetup() {
           title: "Profile updated",
           description: "Your changes have been saved.",
         });
-        navigate("/profile", { replace: true });
+        navigate("/social", { replace: true });
       } else if (isPostGame) {
         toast({
           title: "Profile set up!",

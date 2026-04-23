@@ -275,7 +275,7 @@ export default function Settings() {
         {/* ─── Profile Banner ───────────────────────────────── */}
         <Card
           className="relative cursor-pointer overflow-hidden border-0 bg-gradient-to-br from-card via-card to-primary/5 dark:to-primary/10 rounded-2xl"
-          onClick={() => navigate("/profile")}
+          onClick={() => navigate("/profile-setup?edit=true")}
           data-testid="card-profile-banner"
         >
           <CardContent className="p-5">
@@ -509,12 +509,11 @@ export default function Settings() {
                 {friends && friends.length > 0 ? (
                   <div className="space-y-1">
                     {friends.slice(0, 5).map((friend, index) => (
-                      <Link
+                      <div
                         key={friend.id}
-                        href={`/profile/${friend.id}`}
                         data-testid={`friend-rank-${friend.id}`}
                       >
-                        <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
+                        <div className="flex items-center gap-3 p-2 rounded-lg transition-colors">
                           <span className="text-xs font-bold text-muted-foreground w-5 text-center tabular-nums">
                             #{index + 1}
                           </span>
@@ -542,7 +541,7 @@ export default function Settings() {
                             )}
                           </div>
                         </div>
-                      </Link>
+                      </div>
                     ))}
                   </div>
                 ) : (
