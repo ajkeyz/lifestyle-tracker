@@ -15,26 +15,28 @@ import {
   Sparkles,
   Flame,
   UserPlus,
-  Bell,
   Loader2,
   Copy,
   Check,
   Share2,
   Settings,
   EyeOff,
+  Users,
+  Lock,
 } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation, Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { useProgression } from "@/hooks/use-progression";
 import type { User as UserType } from "@shared/schema";
 
 export default function Social() {
   const [, navigate] = useLocation();
   const qc = useQueryClient();
   const { toast } = useToast();
-  const [nudgedFriends, setNudgedFriends] = useState<Set<string>>(new Set());
   const [copied, setCopied] = useState(false);
+  const { unlocks } = useProgression();
+  const coopUnlocked = unlocks.coop.unlocked;
 
   const handleCopyUsername = async (username: string) => {
     try {
@@ -59,20 +61,6 @@ export default function Social() {
       handleCopyUsername(username);
     }
   };
-
-  const nudgeMutation = useMutation({
-    mutationFn: async (friendId: string) => {
-      const res = await apiRequest("POST", `/api/friends/${friendId}/nudge`);
-      return res.json();
-    },
-    onSuccess: (_, friendId) => {
-      setNudgedFriends((prev) => new Set(prev).add(friendId));
-      toast({ title: "Nudge sent!", description: "Your friend will get a reminder to play." });
-    },
-    onError: (err: Error) => {
-      toast({ title: "Can't nudge", description: err.message || "Try again later.", variant: "destructive" });
-    },
-  });
 
   // Mark social activity as read when this screen mounts
   useEffect(() => {
@@ -317,32 +305,34 @@ export default function Social() {
                         </div>
                       </div>
 
-                      {/* Nudge button */}
-                      {friend.streak === 0 && !nudgedFriends.has(friend.id) && (
+                      {/* Play Coop button — disabled if coop locked */}
+                      {coopUnlocked ? (
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
-                          className="h-7 px-2 text-xs gap-1 text-muted-foreground hover:text-primary flex-shrink-0"
+                          className="h-7 px-2.5 text-xs gap-1 text-primary border-primary/30 hover:bg-primary/10 flex-shrink-0"
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            nudgeMutation.mutate(friend.id);
+                            navigate(`/coop-lobby?invite=${friend.id}`);
                           }}
-                          disabled={nudgeMutation.isPending}
-                          data-testid={`button-nudge-${friend.id}`}
+                          data-testid={`button-play-coop-${friend.id}`}
                         >
-                          {nudgeMutation.isPending ? (
-                            <Loader2 className="w-3 h-3 animate-spin" />
-                          ) : (
-                            <Bell className="w-3 h-3" />
-                          )}
-                          Nudge
+                          <Users className="w-3 h-3" />
+                          Play Co-op
                         </Button>
-                      )}
-                      {nudgedFriends.has(friend.id) && (
-                        <Badge variant="outline" className="text-[10px] h-5 flex-shrink-0 text-green-500 border-green-500/30">
-                          Nudged
-                        </Badge>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2.5 text-xs gap-1 text-muted-foreground/40 border-border/40 cursor-not-allowed flex-shrink-0"
+                          disabled
+                          title={unlocks.coop.condition || "Co-op is locked"}
+                          data-testid={`button-play-coop-locked-${friend.id}`}
+                        >
+                          <Lock className="w-3 h-3" />
+                          Co-op
+                        </Button>
                       )}
                     </motion.div>
                   </div>

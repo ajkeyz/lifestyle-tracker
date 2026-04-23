@@ -54,12 +54,12 @@ export default function CoopLobby() {
   }, [searchQuery]);
 
   // Auto-join from URL params (e.g. from push notification ?join=CODE)
+  // Also handles ?invite={friendId} from Social page Play Co-op button
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const joinCode = params.get("join");
     if (joinCode) {
       joinSessionMutation.mutate(joinCode.toUpperCase());
-      // Clean URL without reload
       window.history.replaceState({}, "", window.location.pathname);
     }
   }, []);
@@ -77,6 +77,22 @@ export default function CoopLobby() {
   >({
     queryKey: ["/api/friends"],
   });
+
+  // Auto-select friend from ?invite={friendId} URL param (e.g. from Social page)
+  const [autoInviteHandled, setAutoInviteHandled] = useState(false);
+  useEffect(() => {
+    if (autoInviteHandled || !friends) return;
+    const params = new URLSearchParams(window.location.search);
+    const inviteId = params.get("invite");
+    if (!inviteId) return;
+    const friend = friends.find((f) => f.id === inviteId);
+    if (friend) {
+      setSelectedFriend({ id: friend.id, username: friend.username, avatar: friend.avatar });
+      setPickerTab("friends");
+      setAutoInviteHandled(true);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, [friends, autoInviteHandled]);
 
   const { data: pendingInvites } = useQuery<CoopSession[]>({
     queryKey: ["/api/coop/pending-invites"],
@@ -184,6 +200,35 @@ export default function CoopLobby() {
   };
 
   const canStart = session && session.players.length >= 2 && isHost;
+
+  // ── Invite expiration countdown ──────────────────────────────
+  // Invite expires 2 minutes after creation if friend hasn't joined.
+  const INVITE_DURATION_S = 120;
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!session || session.players.length >= 2 || session.status !== "waiting") return;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [session?.id, session?.players.length, session?.status]);
+
+  const inviteSecondsLeft = session && session.players.length < 2
+    ? Math.max(0, INVITE_DURATION_S - Math.floor((now - new Date(session.createdAt).getTime()) / 1000))
+    : INVITE_DURATION_S;
+  const inviteExpired = inviteSecondsLeft <= 0 && session && session.players.length < 2;
+
+  // Auto-reset when invite expires
+  useEffect(() => {
+    if (!inviteExpired) return;
+    toast({
+      title: "Invite expired",
+      description: invitedFriendName ? `${invitedFriendName} didn't join in time.` : "Try sending a new invite.",
+      variant: "destructive",
+    });
+    setSessionId(null);
+    setIsHost(false);
+    setInvitedFriendName(null);
+    setSelectedFriend(null);
+  }, [inviteExpired]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
@@ -676,6 +721,42 @@ export default function CoopLobby() {
                   <p className="text-sm text-muted-foreground text-center">
                     Players ({session?.players.length || 0}/2)
                   </p>
+
+                  {/* Invite expiration countdown */}
+                  {session && session.players.length < 2 && session.status === "waiting" && (
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">Invite expires in</span>
+                        <span
+                          className={
+                            inviteSecondsLeft <= 30
+                              ? "font-mono font-bold text-destructive tabular-nums"
+                              : inviteSecondsLeft <= 60
+                                ? "font-mono font-bold text-amber-500 tabular-nums"
+                                : "font-mono font-bold text-foreground tabular-nums"
+                          }
+                          data-testid="text-invite-countdown"
+                        >
+                          {Math.floor(inviteSecondsLeft / 60)}:{String(inviteSecondsLeft % 60).padStart(2, "0")}
+                        </span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
+                        <motion.div
+                          className={
+                            inviteSecondsLeft <= 30
+                              ? "h-full rounded-full bg-destructive"
+                              : inviteSecondsLeft <= 60
+                                ? "h-full rounded-full bg-amber-500"
+                                : "h-full rounded-full bg-primary"
+                          }
+                          initial={false}
+                          animate={{ width: `${(inviteSecondsLeft / INVITE_DURATION_S) * 100}%` }}
+                          transition={{ duration: 0.5, ease: "linear" }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   <div className="space-y-2">
                     {session?.players.map((player, i) => (
                       <motion.div
