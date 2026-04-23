@@ -40,9 +40,9 @@ export function DailyProgressCard({
 
   if (missions.length === 0) return null;
 
-  // Progress calculations
-  const totalSlots = Math.min(missions.length + completedIds.length, 3);
-  const completedSlots = Math.min(completedIds.length, totalSlots);
+  // Progress calculations — only count completions among displayed missions
+  const completedSlots = missions.filter((m) => completedIds.includes(m.id)).length;
+  const totalSlots = missions.length;
 
   return (
     <motion.div
