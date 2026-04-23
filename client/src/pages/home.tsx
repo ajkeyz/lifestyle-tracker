@@ -11,7 +11,6 @@ import { AppLogo } from "@/components/app-logo";
 import { GradientText } from "@/components/gradient-text";
 import { Mascot, getMascotMoodForStreak, type MascotContext } from "@/components/mascot";
 import { DailyProgressCard } from "@/components/daily-progress-card";
-import { IdentityStatsCard } from "@/components/identity-stats-card";
 import { useProgression } from "@/hooks/use-progression";
 import { useToast } from "@/hooks/use-toast";
 
@@ -31,7 +30,7 @@ import {
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
-import type { User as UserType, DailyDrop, LeaderboardEntry, CommunityScenario } from "@shared/schema";
+import type { User as UserType, DailyDrop, CommunityScenario } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const COMEBACK_MESSAGES = [
@@ -53,15 +52,6 @@ const FIRST_WEEK_NARRATIVE: Record<number, { phase: string; message: string }> =
   7: { phase: "Identity shift", message: "One week in \u2014 your relationship with money is changing" },
 };
 
-function getStreakContextMessage(streak: number, hasPlayedToday: boolean): string | null {
-  if (hasPlayedToday) return null;
-  if (streak === 0) return null;
-  if (streak === 1) return "You're 1 decision away from Day 2";
-  if (streak < 7) return `Tomorrow locks Day ${streak + 1} of your streak`;
-  if (streak < 14) return `${14 - streak} days until your next milestone`;
-  if (streak < 30) return `${30 - streak} days until Master status`;
-  return "Your consistency is building real financial intuition";
-}
 
 function getComebackMessage(highestStreak: number) {
   return COMEBACK_MESSAGES[highestStreak % COMEBACK_MESSAGES.length];
@@ -111,9 +101,6 @@ export default function Home() {
 
   const { data: dailyDrop } = useQuery<DailyDrop>({ queryKey: ["/api/daily-drop"] });
 
-  const { data: leaderboard } = useQuery<LeaderboardEntry[]>({
-    queryKey: ["/api/leaderboard"],
-  });
 
   const { data: hotPosts } = useQuery<CommunityScenario[]>({
     queryKey: ["/api/community/scenarios", { sortBy: "hot", limit: 3 }],
@@ -129,7 +116,6 @@ export default function Home() {
   const firstWeekDay = user ? Math.min(user.gamesPlayed + 1, 7) : 1;
   const firstWeekNarrative = FIRST_WEEK_NARRATIVE[firstWeekDay];
 
-  const streakContext = user ? getStreakContextMessage(user.streak, hasPlayedToday) : null;
 
   const [cleoGreeting, setCleoGreeting] = useState<string | undefined>(() => {
     const name = user?.username || authUser?.firstName || "there";
@@ -153,8 +139,6 @@ export default function Home() {
     return () => clearTimeout(t);
   }, [cleoGreeting]);
 
-  const userRank = leaderboard?.findIndex((e) => e.id === user?.id);
-  const displayRank = userRank !== undefined && userRank !== -1 ? userRank + 1 : null;
 
   const handleShare = () => {
     const shareText = user?.todayResult
@@ -418,13 +402,6 @@ export default function Home() {
                   </Card>
                 </motion.div>
               )}
-
-              {/* ═══ Identity Stats (Financial Fitness, Streak, Rank) ═══ */}
-              <IdentityStatsCard
-                user={user}
-                rank={displayRank}
-                streakContext={streakContext}
-              />
 
               {/* ═══ Community Preview ═══ */}
               {hotPosts && hotPosts.length > 0 && (

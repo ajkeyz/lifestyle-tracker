@@ -141,7 +141,8 @@ function PlayHubGuard() {
     membershipTier: user.membershipTier,
   });
 
-  if (!unlocks.playHub.unlocked) {
+  // Unlock Play Hub if user has played at least 1 game OR has a todayResult
+  if (!unlocks.playHub.unlocked && !user.todayResult) {
     setTimeout(() => {
       toast({
         title: "Complete your first Drop",
