@@ -292,14 +292,10 @@ export default function Home() {
                         }}
                       >
                         <Mascot
-                          mood={
-                            cleoGreeting
-                              ? "waving"
-                              : getMascotMoodForStreak(user.streak, hasPlayedToday)
-                          }
+                          mood={getMascotMoodForStreak(user.streak, hasPlayedToday)}
                           size="lg"
-                          message={cleoGreeting}
-                          showBubble={!!cleoGreeting || !hasPlayedToday}
+                          showBubble={false}
+                          disableTapBubble={true}
                           streakCount={user.streak}
                           showStreakFlame={user.streak >= 3}
                           context={
@@ -314,6 +310,20 @@ export default function Home() {
                       </motion.div>
                     </div>
                   </div>
+
+                  {/* Cleo's greeting — inline text instead of floating bubble */}
+                  {cleoGreeting && (
+                    <motion.p
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.3, delay: 0.4 }}
+                      className="text-xs text-muted-foreground/70 italic text-center mt-2"
+                      data-testid="text-cleo-greeting"
+                    >
+                      Cleo says: "{cleoGreeting}"
+                    </motion.p>
+                  )}
                 </Card>
               </motion.div>
 
