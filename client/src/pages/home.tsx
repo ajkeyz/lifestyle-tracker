@@ -242,12 +242,9 @@ export default function Home() {
                   />
                   <div className="flex items-start justify-between gap-4 flex-wrap">
                     <div className="flex-1 min-w-0">
-                      <h2 className="text-lg font-display font-bold tracking-tight mb-1">
+                      <h2 className="text-lg font-display font-bold tracking-tight mb-3">
                         <GradientText variant="primary">Today's Drop</GradientText>
                       </h2>
-                      <p className="text-muted-foreground text-sm mb-3" data-testid="text-tagline">
-                        5 real-life money decisions in 2-4 minutes
-                      </p>
                       <Button
                         size="lg"
                         className={cn(

@@ -1152,23 +1152,41 @@ export async function registerRoutes(
     if (!isDevMode) return res.status(403).json({ error: "Debug endpoints disabled" });
     try {
       const sessionId = getSessionId(req);
+      // Full reset to brand-new-user state — clears game data AND onboarding/profile
+      // so the onboarding flow, profile setup, and tutorials can be tested again.
       const updated = await storage.updateUser(sessionId, {
+        // Game state
         gamesPlayed: 0,
         streak: 0,
         highestStreak: 0,
         totalScore: 0,
         moneyHealth: 50,
-        freezeTokens: 0,
+        freezeTokens: 1,
         bonusArcadePlays: 0,
         claimedMissions: [],
         todayResult: null,
+        lastPlayedDate: null,
         perfectGames: 0,
+        scamStreak: 0,
+        hadPreviousStreak: false,
         arcadePlaysToday: 0,
+        arcadeLastPlayedDate: null,
         gameHistory: [],
         categoryStats: [],
         friendIds: [],
         badges: [],
         referralCount: 0,
+        frozenDates: [],
+        streakCalendar: [],
+        // Onboarding & profile state — reset to fresh state
+        onboardingComplete: false,
+        profileSetupComplete: false,
+        mode: null,
+        bio: "",
+        moneyPhilosophy: "",
+        whyImHere: "",
+        // Backdate creation so account looks fresh (mission tier 1)
+        createdAt: new Date().toISOString() as any,
       });
       res.json({ success: true, user: updated });
     } catch (error) {
