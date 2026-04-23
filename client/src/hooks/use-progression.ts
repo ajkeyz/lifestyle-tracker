@@ -1,5 +1,6 @@
 import { useMemo, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import type { User } from "@shared/schema";
 import {
   computeUnlocks,
@@ -52,6 +53,10 @@ export function useProgression() {
     [user?.createdAt]
   );
 
+  // Current route — used as a dependency to re-evaluate session flags
+  // when the user navigates back from community/tips pages
+  const [location] = useLocation();
+
   // Build mission context from user data (shared logic with server)
   // Enhance with client-side session tracking for daily activity missions
   const missionContext: MissionContext = useMemo(() => {
@@ -62,7 +67,7 @@ export function useProgression() {
       base.visitedCommunity = sessionStorage.getItem(`visitedCommunity:${today}`) === "1";
     }
     return base;
-  }, [user]);
+  }, [user, location]);
 
   // Use server-authoritative claimed missions
   const completedMissionIds = useMemo(
