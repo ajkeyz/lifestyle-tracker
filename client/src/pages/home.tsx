@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Onboarding } from "@/components/onboarding";
-import { AnimatedCounter } from "@/components/animated-counter";
 import { DebugScreen, useDebugGesture } from "@/components/debug-screen";
 import { AmbientBackground } from "@/components/ambient-background";
 import { AppLogo } from "@/components/app-logo";
@@ -12,13 +11,11 @@ import { GradientText } from "@/components/gradient-text";
 import { Mascot, getMascotMoodForStreak, type MascotContext } from "@/components/mascot";
 import { DailyProgressCard } from "@/components/daily-progress-card";
 import { useProgression } from "@/hooks/use-progression";
-import { useToast } from "@/hooks/use-toast";
 
 import {
   Play,
   Trophy,
   Sparkles,
-  Share2,
   ChevronRight,
   Settings,
   UserCircle,
@@ -79,7 +76,6 @@ export default function Home() {
   const [profileNudgeDismissed, setProfileNudgeDismissed] = useState(false);
   const { handleTap } = useDebugGesture(() => setShowDebugScreen(true));
 
-  const { toast } = useToast();
   const {
     missionContext,
     activeMissions,
@@ -151,18 +147,6 @@ export default function Home() {
     return () => clearTimeout(t);
   }, [cleoGreeting]);
 
-
-  const handleShare = () => {
-    const shareText = user?.todayResult
-      ? `Lifestyle Creep Day ${dailyDrop?.dropNumber || "?"}\nScore: ${user.todayResult.score}/500\nMoney IQ: ${user.todayResult.iq}\n\nPlay now!`
-      : `I'm on a ${user?.streak || 0} day streak in Lifestyle Creep! Can you beat my Financial Fitness of ${user?.moneyHealth || 50}?`;
-    if (navigator.share) {
-      navigator.share({ text: shareText }).catch(() => {});
-    } else {
-      navigator.clipboard.writeText(shareText);
-      toast({ title: "Copied!", description: "Share link copied to clipboard" });
-    }
-  };
 
   // missionContext is now provided by useProgression (shared with server-side validation)
 
@@ -291,43 +275,6 @@ export default function Home() {
                         <ChevronRight className="w-4 h-4" />
                       </Button>
 
-                      {hasPlayedToday && user.todayResult && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.3 }}
-                          className="flex items-center gap-2.5 mt-3 p-2 rounded-lg bg-muted/30 border border-border/30"
-                          data-testid="card-today-score-summary"
-                        >
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold leading-tight">
-                              <AnimatedCounter value={user.todayResult.score} duration={1.2} />
-                              <span className="text-muted-foreground font-normal text-xs">
-                                /500
-                              </span>
-                            </p>
-                            <p className="text-[11px] text-muted-foreground">
-                              IQ:{" "}
-                              <span className="font-medium text-primary">
-                                {user.todayResult.iq}
-                              </span>
-                            </p>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="gap-1 flex-shrink-0 h-7 px-2"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleShare();
-                            }}
-                            data-testid="button-share-inline"
-                          >
-                            <Share2 className="w-3 h-3" />
-                            Share
-                          </Button>
-                        </motion.div>
-                      )}
                     </div>
                     <div className="flex flex-col items-center flex-shrink-0 relative">
                       <motion.div
