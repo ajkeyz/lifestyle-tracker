@@ -54,6 +54,8 @@ interface MascotProps {
   /** Delay in ms before the speech bubble first appears (default 1200) */
   speechDelay?: number;
   disableTapBubble?: boolean;
+  /** Force the speech bubble to a specific side (bypasses auto-detection) */
+  forceBubbleSide?: "right" | "left" | "top" | "bottom";
   className?: string;
   onClick?: () => void;
   animate?: boolean;
@@ -2188,6 +2190,7 @@ export function Mascot({
   showBubble = true,
   speechDelay = 1200,
   disableTapBubble = false,
+  forceBubbleSide,
   className,
   onClick,
   animate: shouldAnimateProp = true,
@@ -2244,10 +2247,11 @@ export function Mascot({
 
   // ── Smart bubble side detection ─────────────────────────────
   const [bubbleSide, setBubbleSide] = useState<BubbleSide>(
-    size === "xs" || size === "sm" ? "top" : "right"
+    forceBubbleSide ?? (size === "xs" || size === "sm" ? "top" : "right")
   );
 
   const detectBubbleSide = useCallback(() => {
+    if (forceBubbleSide) { setBubbleSide(forceBubbleSide); return; }
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const vw = window.innerWidth;

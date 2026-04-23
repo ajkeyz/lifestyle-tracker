@@ -217,7 +217,7 @@ export default function Home() {
                 transition={{ duration: 0.4, ease: "easeOut" }}
               >
                 <Card
-                  className="p-6 overflow-visible relative shadow-lg shadow-primary/5 hero-spotlight rounded-xl border-primary/25 transition-all duration-300 hover:shadow-xl hover:shadow-primary/10 hover:border-primary/35"
+                  className="p-4 pb-3 overflow-visible relative shadow-lg shadow-primary/5 hero-spotlight rounded-xl border-primary/25 transition-all duration-300 hover:shadow-xl hover:shadow-primary/10 hover:border-primary/35"
                   style={{
                     background:
                       "linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--card)) 60%, hsl(var(--primary) / 0.06) 100%)",
@@ -276,7 +276,7 @@ export default function Home() {
                       </Button>
 
                     </div>
-                    <div className="flex flex-col items-center flex-shrink-0 relative">
+                    <div className="flex flex-col items-center flex-shrink-0 relative -mt-2 -mr-1">
                       <motion.div
                         data-testid="mascot-home"
                         onClick={handleTap}
@@ -292,10 +292,15 @@ export default function Home() {
                         }}
                       >
                         <Mascot
-                          mood={getMascotMoodForStreak(user.streak, hasPlayedToday)}
+                          mood={
+                            cleoGreeting
+                              ? "waving"
+                              : getMascotMoodForStreak(user.streak, hasPlayedToday)
+                          }
                           size="lg"
-                          showBubble={false}
-                          disableTapBubble={true}
+                          message={cleoGreeting}
+                          showBubble={!!cleoGreeting || !hasPlayedToday}
+                          forceBubbleSide="bottom"
                           streakCount={user.streak}
                           showStreakFlame={user.streak >= 3}
                           context={
@@ -310,20 +315,6 @@ export default function Home() {
                       </motion.div>
                     </div>
                   </div>
-
-                  {/* Cleo's greeting — inline text instead of floating bubble */}
-                  {cleoGreeting && (
-                    <motion.p
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.3, delay: 0.4 }}
-                      className="text-xs text-muted-foreground/70 italic text-center mt-2"
-                      data-testid="text-cleo-greeting"
-                    >
-                      Cleo says: "{cleoGreeting}"
-                    </motion.p>
-                  )}
                 </Card>
               </motion.div>
 
