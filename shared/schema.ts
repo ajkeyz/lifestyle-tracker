@@ -375,7 +375,7 @@ export interface UserBadge {
 }
 
 // Community Mode types
-export type ScenarioType = "real" | "hypothetical";
+export type ScenarioType = "real" | "hypothetical" | "demo";
 
 export interface CommunityScenario {
   id: string;

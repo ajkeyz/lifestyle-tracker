@@ -8,15 +8,11 @@ import { ActivityFeed, type ActivityItem } from "@/components/activity-feed";
 import { AnimatedAvatar } from "@/components/animated-avatar";
 import { Badge } from "@/components/ui/badge";
 import { AmbientBackground } from "@/components/ambient-background";
-import { GradientStripe } from "@/components/gradient-stripe";
 import {
   Users2,
   ChevronRight,
-  Trophy,
-  MessageSquare,
   Sparkles,
   Flame,
-  TrendingUp,
   UserPlus,
   Bell,
   Loader2,
@@ -25,7 +21,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import type { User as UserType, CommunityScenario } from "@shared/schema";
+import type { User as UserType } from "@shared/schema";
 
 export default function Social() {
   const [, navigate] = useLocation();
@@ -76,15 +72,6 @@ export default function Social() {
     queryKey: ["/api/friends"],
   });
 
-  // Community hot posts
-  const { data: hotPosts, isLoading: postsLoading } = useQuery<CommunityScenario[]>({
-    queryKey: ["/api/community/scenarios", { sortBy: "hot", limit: 5 }],
-    queryFn: async () => {
-      const res = await fetch("/api/community/scenarios?sortBy=hot");
-      return res.json();
-    },
-  });
-
   const topFriends = friends?.slice(0, 5) ?? [];
 
   return (
@@ -118,21 +105,16 @@ export default function Social() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
         >
-          <Card className="relative overflow-hidden rounded-2xl" data-testid="card-activity-feed">
-            <GradientStripe variant="primary" />
+          <Card className="rounded-2xl" data-testid="card-activity-feed">
             <div className="flex items-center gap-2 p-4 pb-2">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/20">
-                <Sparkles className="w-4.5 h-4.5 text-white" />
-              </div>
-              <div className="flex-1">
-                <h2 className="text-sm font-semibold">Activity</h2>
-                {friendsActivity && friendsActivity.friendsPlayedToday > 0 && (
-                  <p className="text-[11px] text-muted-foreground">
-                    {friendsActivity.friendsPlayedToday} friend
-                    {friendsActivity.friendsPlayedToday !== 1 ? "s" : ""} played today
-                  </p>
-                )}
-              </div>
+              <Sparkles className="w-4 h-4 text-primary" />
+              <h2 className="text-sm font-semibold flex-1">Activity</h2>
+              {friendsActivity && friendsActivity.friendsPlayedToday > 0 && (
+                <span className="text-[11px] text-muted-foreground">
+                  {friendsActivity.friendsPlayedToday} friend
+                  {friendsActivity.friendsPlayedToday !== 1 ? "s" : ""} played today
+                </span>
+              )}
             </div>
             <ActivityFeed
               activities={friendsActivity?.recentActivity ?? []}
@@ -148,19 +130,14 @@ export default function Social() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.05 }}
         >
-          <Card className="p-4 relative overflow-hidden rounded-2xl" data-testid="card-social-friends">
-            <GradientStripe variant="primary" />
+          <Card className="p-4 rounded-2xl" data-testid="card-social-friends">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/20">
-                  <Trophy className="w-4.5 h-4.5 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold">Friends</h3>
-                  <p className="text-[11px] text-muted-foreground">
-                    {friends?.length ?? 0} friend{(friends?.length ?? 0) !== 1 ? "s" : ""}
-                  </p>
-                </div>
+                <Users2 className="w-4 h-4 text-primary" />
+                <h3 className="text-sm font-semibold">Friends</h3>
+                <span className="text-[11px] text-muted-foreground">
+                  {friends?.length ?? 0}
+                </span>
               </div>
               <Button
                 variant="ghost"
@@ -288,118 +265,7 @@ export default function Social() {
           </Card>
         </motion.div>
 
-        {/* ═══ SECTION 3: Community (Tertiary) ═══ */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.1 }}
-        >
-          <Card className="p-4 relative overflow-hidden rounded-2xl" data-testid="card-social-community">
-            <GradientStripe variant="primary" />
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/20">
-                  <MessageSquare className="w-4.5 h-4.5 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold">Community</h3>
-                  <p className="text-xs text-muted-foreground">Real scenarios, real advice</p>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="gap-1"
-                onClick={() => navigate("/community")}
-                data-testid="button-view-community-social"
-              >
-                View All
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
-
-            {postsLoading ? (
-              <div className="space-y-2">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="p-3 rounded-lg bg-muted/20">
-                    <Skeleton className="h-4 w-3/4 mb-2" />
-                    <Skeleton className="h-3 w-1/2" />
-                  </div>
-                ))}
-              </div>
-            ) : hotPosts && hotPosts.length > 0 ? (
-              <div className="space-y-2">
-                {hotPosts.slice(0, 3).map((post, i) => (
-                  <motion.div
-                    key={post.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    whileTap={{ scale: 0.98 }}
-                    transition={{ delay: i * 0.06 }}
-                    className="p-3 rounded-lg bg-muted/30 cursor-pointer hover:bg-muted/50 border border-transparent hover:border-border/50 transition-all"
-                    onClick={() => navigate(`/community/${post.id}`)}
-                    data-testid={`social-community-post-${post.id}`}
-                  >
-                    <div className="flex items-start gap-2">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium line-clamp-1">{post.title}</p>
-                        <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
-                          {post.context}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-1.5 flex-shrink-0">
-                        {post.upvotes + post.downvotes + post.commentCount >= 10 && (
-                          <Badge
-                            variant="outline"
-                            className="text-[10px] h-5 border-orange-500/30 text-orange-500 px-1.5"
-                          >
-                            <Flame className="w-2.5 h-2.5 mr-0.5" />
-                            Hot
-                          </Badge>
-                        )}
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <TrendingUp className="w-3 h-3 text-primary" />
-                          <span>{post.upvotes}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                      <AnimatedAvatar
-                        avatarId={post.authorAvatar || "cosmic-cat"}
-                        size="xs"
-                      />
-                      <span>{post.authorUsername}</span>
-                      <span>·</span>
-                      <span>{post.commentCount} comments</span>
-                    </div>
-                  </motion.div>
-                ))}
-
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full gap-1 text-xs mt-1"
-                  onClick={() => navigate("/community/submit")}
-                  data-testid="button-submit-scenario-social"
-                >
-                  Share a real scenario
-                </Button>
-              </div>
-            ) : (
-              <div className="text-center py-4 text-sm text-muted-foreground">
-                <p className="mb-1">Your question might save someone money tonight.</p>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="mt-1"
-                  onClick={() => navigate("/community/submit")}
-                >
-                  Share a real scenario
-                </Button>
-              </div>
-            )}
-          </Card>
-        </motion.div>
+        {/* Community section removed — accessible via home page preview + bottom nav */}
       </main>
     </div>
   );

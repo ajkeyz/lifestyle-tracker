@@ -361,6 +361,11 @@ export default function CommunityDetail() {
               {scenario.type === "hypothetical" && (
                 <Badge variant="secondary">Hypothetical</Badge>
               )}
+              {scenario.type === "demo" && (
+                <Badge className="text-[10px] bg-violet-500/15 text-violet-600 dark:text-violet-400 border border-violet-500/25 hover:bg-violet-500/20">
+                  DEMO
+                </Badge>
+              )}
             </div>
 
             <h2 className="text-xl font-bold" data-testid="text-scenario-title">{scenario.title}</h2>

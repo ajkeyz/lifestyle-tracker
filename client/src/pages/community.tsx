@@ -148,6 +148,11 @@ function ScenarioCard({
               {scenario.type === "hypothetical" && (
                 <Badge variant="secondary" className="text-xs">Hypothetical</Badge>
               )}
+              {scenario.type === "demo" && (
+                <Badge className="text-[10px] bg-violet-500/15 text-violet-600 dark:text-violet-400 border border-violet-500/25 hover:bg-violet-500/20">
+                  DEMO
+                </Badge>
+              )}
             </div>
             
             <h3 className="font-semibold line-clamp-2 mb-2" data-testid={`text-scenario-title-${scenario.id}`}>

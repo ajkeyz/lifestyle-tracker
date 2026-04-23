@@ -4,21 +4,13 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Onboarding } from "@/components/onboarding";
-import { StreakUrgencyBanner } from "@/components/streak-urgency-banner";
-import { SocialProofCounter } from "@/components/social-proof-counter";
-import { LiveActivityTicker } from "@/components/live-activity-ticker";
-import { TipCardCarousel } from "@/components/stories-tips";
-import { AnimatedCounter, RollingNumber } from "@/components/animated-counter";
+import { AnimatedCounter } from "@/components/animated-counter";
 import { DebugScreen, useDebugGesture } from "@/components/debug-screen";
 import { AmbientBackground } from "@/components/ambient-background";
 import { AppLogo } from "@/components/app-logo";
 import { GradientText } from "@/components/gradient-text";
 import { Mascot, getMascotMoodForStreak, type MascotContext } from "@/components/mascot";
-import { CleoPlayNudge } from "@/components/cleo-edge-presence";
 import { DailyProgressCard } from "@/components/daily-progress-card";
-import { NextUnlockCard } from "@/components/next-unlock-card";
-import { LevelProgress } from "@/components/level-progress";
-import { ResourceBar } from "@/components/resource-bar";
 import { IdentityStatsCard } from "@/components/identity-stats-card";
 import { useProgression } from "@/hooks/use-progression";
 import { useToast } from "@/hooks/use-toast";
@@ -27,47 +19,20 @@ import {
   Play,
   Trophy,
   Sparkles,
-  Clock,
   Share2,
-  Plane,
-  AlertTriangle,
-  Home as HomeIcon,
-  Wallet,
   ChevronRight,
-  Gamepad2,
   Settings,
-  RefreshCw,
-  Zap,
-  Shield,
-  Flame,
   UserCircle,
   X,
+  MessageCircle,
+  ArrowUp,
+  Users,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
-import type { User as UserType, DailyDrop, LeaderboardEntry, League } from "@shared/schema";
+import type { User as UserType, DailyDrop, LeaderboardEntry, CommunityScenario } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
-
-const THEME_CONFIG: Record<string, { label: string; icon: typeof Plane; color: string }> = {
-  travel: { label: "Travel", icon: Plane, color: "text-blue-500" },
-  scam: { label: "Fraud Alert", icon: AlertTriangle, color: "text-red-500" },
-  lifestyle: { label: "Lifestyle", icon: HomeIcon, color: "text-green-500" },
-  tech: { label: "Tech Spending", icon: Sparkles, color: "text-purple-500" },
-  investing: { label: "Investing", icon: Sparkles, color: "text-emerald-500" },
-  debt: { label: "Debt & Credit", icon: Wallet, color: "text-orange-500" },
-};
-
-const DAILY_TIPS = [
-  "Automate your savings \u2014 what you don't see, you won't spend.",
-  "A 24-hour rule on big purchases prevents impulse regret.",
-  "Track subscriptions monthly; small leaks sink big ships.",
-  "Pay yourself first, then budget what's left.",
-  "Lifestyle creep happens slowly \u2014 review expenses quarterly.",
-  "An emergency fund is peace of mind, not wasted money.",
-  "Compare cost-per-use, not just price tags.",
-];
 
 const COMEBACK_MESSAGES = [
   { title: "Welcome back!", message: "Every expert was once a beginner. Pick up where you left off." },
@@ -77,14 +42,6 @@ const COMEBACK_MESSAGES = [
   { title: "Back in action!", message: "Today is a new opportunity to make smart money moves." },
 ];
 
-const WHY_THIS_MATTERS: Record<string, string[]> = {
-  tech: ["Today's choices mirror how people overspend on tech upgrades."],
-  travel: ["Travel decisions reveal how we justify emotional spending."],
-  scam: ["Fraud costs people billions yearly \u2014 pattern recognition is your shield."],
-  lifestyle: ["Today's choices reflect the quiet trade-offs we make without thinking."],
-  investing: ["Investment decisions test patience more than knowledge."],
-  debt: ["Debt decisions shape your financial freedom for years to come."],
-};
 
 const FIRST_WEEK_NARRATIVE: Record<number, { phase: string; message: string }> = {
   1: { phase: "Awareness", message: "You're learning to notice your spending patterns" },
@@ -110,24 +67,11 @@ function getComebackMessage(highestStreak: number) {
   return COMEBACK_MESSAGES[highestStreak % COMEBACK_MESSAGES.length];
 }
 
-function getTimeUntilMidnightUTC(): { hours: number; minutes: number; seconds: number } {
-  const now = new Date();
-  const midnightUTC = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0, 0)
-  );
-  const diff = midnightUTC.getTime() - now.getTime();
-  return {
-    hours: Math.floor(diff / (1000 * 60 * 60)),
-    minutes: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)),
-    seconds: Math.floor((diff % (1000 * 60)) / 1000),
-  };
-}
 
 export default function Home() {
   const [, navigate] = useLocation();
   const { user: authUser } = useAuth();
   const qc = useQueryClient();
-  const [countdown, setCountdown] = useState(getTimeUntilMidnightUTC());
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showDebugScreen, setShowDebugScreen] = useState(false);
   const [profileNudgeDismissed, setProfileNudgeDismissed] = useState(false);
@@ -135,19 +79,11 @@ export default function Home() {
 
   const { toast } = useToast();
   const {
-    unlocks,
-    nextUnlock,
-    levelInfo,
     missionContext,
     activeMissions,
     completedMissionIds,
     completeMission,
   } = useProgression();
-
-  useEffect(() => {
-    const timer = setInterval(() => setCountdown(getTimeUntilMidnightUTC()), 1000);
-    return () => clearInterval(timer);
-  }, []);
 
   // P1-5: Invalidate daily drop and user data at midnight UTC
   useEffect(() => {
@@ -179,23 +115,13 @@ export default function Home() {
     queryKey: ["/api/leaderboard"],
   });
 
-  const { data: friendsActivity } = useQuery<{
-    friendsPlayedToday: number;
-    totalFriends: number;
-    recentActivity: Array<{
-      id: string;
-      type: string;
-      username: string;
-      value?: number;
-      timestamp: string;
-    }>;
-  }>({
-    queryKey: ["/api/friends/activity"],
-    refetchInterval: 60000,
-  });
-
-  const { data: userLeagues } = useQuery<League[]>({
-    queryKey: ["/api/leagues"],
+  const { data: hotPosts } = useQuery<CommunityScenario[]>({
+    queryKey: ["/api/community/scenarios", { sortBy: "hot", limit: 3 }],
+    queryFn: async () => {
+      const res = await fetch("/api/community/scenarios?sortBy=hot&limit=3");
+      if (!res.ok) return [];
+      return res.json();
+    },
   });
 
   const hasPlayedToday = user?.todayResult != null;
@@ -203,22 +129,22 @@ export default function Home() {
   const firstWeekDay = user ? Math.min(user.gamesPlayed + 1, 7) : 1;
   const firstWeekNarrative = FIRST_WEEK_NARRATIVE[firstWeekDay];
 
-  const todaysTheme = dailyDrop?.scenarios?.[0]?.category || "lifestyle";
-  const themeConfig = THEME_CONFIG[todaysTheme] || THEME_CONFIG.lifestyle;
-  const ThemeIcon = themeConfig.icon;
-
-  const whyMattersLines = WHY_THIS_MATTERS[todaysTheme] || WHY_THIS_MATTERS.lifestyle;
-  const dayOfYear = Math.floor(
-    (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24)
-  );
-  const whyThisMatters = whyMattersLines[dayOfYear % whyMattersLines.length];
   const streakContext = user ? getStreakContextMessage(user.streak, hasPlayedToday) : null;
-  const isLastHour = countdown.hours === 0;
 
   const [cleoGreeting, setCleoGreeting] = useState<string | undefined>(() => {
+    const name = user?.username || authUser?.firstName || "there";
+    // First-week users get a phase-specific greeting from Cleo
+    if (isInFirstWeek && firstWeekNarrative && !hasPlayedToday) {
+      return `Day ${firstWeekDay}: ${firstWeekNarrative.message}`;
+    }
+    // Comeback encouragement for returning users who lost their streak
+    if (user && user.streak === 0 && user.highestStreak > 0 && !hasPlayedToday) {
+      const comeback = getComebackMessage(user.highestStreak);
+      return `${comeback.title} ${comeback.message}`;
+    }
     const hour = new Date().getHours();
     const timeOfDay = hour < 12 ? "Morning" : hour < 17 ? "Afternoon" : "Evening";
-    return `${timeOfDay}, ${user?.username || authUser?.firstName || "there"}!`;
+    return `${timeOfDay}, ${name}!`;
   });
 
   useEffect(() => {
@@ -273,30 +199,7 @@ export default function Home() {
           )}
         </header>
 
-        {user && !userLoading && (
-          <div
-            className="sticky top-14 z-40 bg-card/90 backdrop-blur-xl border-b border-border/40"
-            data-testid="sticky-status-bar"
-          >
-            <div className="container max-w-2xl mx-auto flex items-center justify-between px-4 py-1.5 gap-3">
-              <div className="flex items-center gap-1.5" data-testid="status-xp">
-                <Zap className="w-3.5 h-3.5 text-yellow-400" />
-                <span className="text-xs font-bold tabular-nums text-yellow-400">{user.totalScore}</span>
-                <span className="text-[10px] text-muted-foreground">XP</span>
-              </div>
-              <div className="flex items-center gap-1.5" data-testid="status-shields">
-                <Shield className="w-3.5 h-3.5 text-blue-400" />
-                <span className="text-xs font-bold tabular-nums text-blue-400">{user.freezeTokens}</span>
-                <span className="text-[10px] text-muted-foreground">Shields</span>
-              </div>
-              <div className="flex items-center gap-1.5" data-testid="status-streak">
-                <Flame className={cn("w-3.5 h-3.5", user.streak >= 3 ? "text-orange-400" : "text-muted-foreground")} />
-                <span className={cn("text-xs font-bold tabular-nums", user.streak >= 3 ? "text-orange-400" : "text-foreground")}>{user.streak}</span>
-                <span className="text-[10px] text-muted-foreground">Streak</span>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Sticky status bar removed — stats shown in Identity Stats section */}
 
         <main className="container max-w-2xl mx-auto p-4 space-y-4">
           {userLoading ? (
@@ -313,32 +216,20 @@ export default function Home() {
             </div>
           ) : user ? (
             <>
-              {/* ═══ SECTION 1: PRIMARY CTA — Daily Drop ═══ */}
-              <StreakUrgencyBanner hasPlayedToday={hasPlayedToday} streak={user.streak} />
-
-              {/* First-Week Narrative */}
-              {isInFirstWeek && firstWeekNarrative && !hasPlayedToday && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <div
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/5 border border-primary/10"
-                    data-testid="card-first-week"
-                  >
-                    <Sparkles className="w-4 h-4 text-primary flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <span className="text-xs font-medium text-primary">
-                        Day {firstWeekDay} — {firstWeekNarrative.phase}
-                      </span>
-                      <p className="text-xs text-muted-foreground">
-                        {firstWeekNarrative.message}
-                      </p>
-                    </div>
-                  </div>
-                </motion.div>
+              {/* ═══ Daily Progress (collapsible missions) ═══ */}
+              {activeMissions.length > 0 && (
+                <DailyProgressCard
+                  missions={activeMissions}
+                  context={missionContext}
+                  completedIds={completedMissionIds}
+                  onComplete={completeMission}
+                  isInFirstWeek={isInFirstWeek}
+                />
               )}
+
+              {/* ═══ PRIMARY CTA — Daily Drop ═══ */}
+
+              {/* First-week narrative now delivered via Cleo's speech bubble */}
 
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -371,25 +262,11 @@ export default function Home() {
                   />
                   <div className="flex items-start justify-between gap-4 flex-wrap">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2 flex-wrap">
-                        <div
-                          className={`flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-muted/50 ${themeConfig.color}`}
-                        >
-                          <ThemeIcon className="w-3.5 h-3.5" />
-                          <span className="text-xs font-medium">{themeConfig.label}</span>
-                        </div>
-                      </div>
                       <h2 className="text-lg font-display font-bold tracking-tight mb-1">
                         <GradientText variant="primary">Today's Drop</GradientText>
                       </h2>
-                      <p className="text-muted-foreground text-sm mb-1" data-testid="text-tagline">
+                      <p className="text-muted-foreground text-sm mb-3" data-testid="text-tagline">
                         5 real-life money decisions in 2-4 minutes
-                      </p>
-                      <p
-                        className="text-xs text-muted-foreground/80 italic mb-3"
-                        data-testid="text-why-matters"
-                      >
-                        {whyThisMatters}
                       </p>
                       <Button
                         size="lg"
@@ -417,29 +294,6 @@ export default function Home() {
                         )}
                         <ChevronRight className="w-4 h-4" />
                       </Button>
-
-                      {unlocks.playHub.unlocked && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="gap-2 mt-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5 transition-all"
-                          onClick={() => navigate("/play-hub")}
-                          data-testid="button-explore-modes"
-                        >
-                          <Gamepad2 className="w-4 h-4" />
-                          Explore Game Modes
-                          <ChevronRight className="w-3 h-3" />
-                        </Button>
-                      )}
-
-                      <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                        <SocialProofCounter />
-                        <span className="text-border">·</span>
-                        <LiveActivityTicker
-                          activities={friendsActivity?.recentActivity as any}
-                          className="text-xs"
-                        />
-                      </div>
 
                       {hasPlayedToday && user.todayResult && (
                         <motion.div
@@ -520,36 +374,7 @@ export default function Home() {
                 </Card>
               </motion.div>
 
-              {/* Comeback Encouragement */}
-              {user.streak === 0 && user.highestStreak > 0 && !hasPlayedToday && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.1 }}
-                >
-                  <Card className="p-4 border-accent/30 bg-accent/5" data-testid="card-comeback">
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0">
-                        <RefreshCw className="w-5 h-5 text-accent" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold">
-                          {getComebackMessage(user.highestStreak).title}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                          {getComebackMessage(user.highestStreak).message}
-                        </p>
-                        {user.highestStreak >= 7 && (
-                          <p className="text-xs text-accent mt-2">
-                            Your best streak was {user.highestStreak} days — you can get there
-                            again!
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </Card>
-                </motion.div>
-              )}
+              {/* Comeback encouragement now delivered via Cleo's speech bubble */}
 
               {!user.profileSetupComplete && !profileNudgeDismissed && (
                 <motion.div
@@ -594,202 +419,63 @@ export default function Home() {
                 </motion.div>
               )}
 
-              {/* ═══ SECTION 2: Daily Progress (collapsible missions) ═══ */}
-              {activeMissions.length > 0 && (
-                <DailyProgressCard
-                  missions={activeMissions}
-                  context={missionContext}
-                  completedIds={completedMissionIds}
-                  onComplete={completeMission}
-                  isInFirstWeek={isInFirstWeek}
-                />
-              )}
-
-              {/* ═══ SECTION 3: Money IQ Level ═══ */}
-              <LevelProgress totalXP={user.totalScore} />
-
-              {/* ═══ SECTION 4: Resource Bar ═══ */}
-              <ResourceBar
-                totalScore={user.totalScore}
-                freezeTokens={user.freezeTokens}
-                bonusArcadePlays={user.bonusArcadePlays ?? 0}
-              />
-
-              {/* ═══ SECTION 5: Identity Stats (Financial Fitness, Streak, Rank) ═══ */}
+              {/* ═══ Identity Stats (Financial Fitness, Streak, Rank) ═══ */}
               <IdentityStatsCard
                 user={user}
                 rank={displayRank}
                 streakContext={streakContext}
               />
 
-              {/* ═══ SECTION 5.5: League Rank Widget ═══ */}
-              {userLeagues && userLeagues.length > 0 && user && (() => {
-                const topLeague = userLeagues.reduce((best, league) => {
-                  const myMember = league.members.find(m => m.userId === user.id);
-                  const bestMember = best ? best.members.find(m => m.userId === user.id) : null;
-                  if (!myMember) return best;
-                  if (!best || !bestMember) return league;
-                  return myMember.weeklyRank < bestMember.weeklyRank ? league : best;
-                }, null as League | null);
-
-                if (!topLeague) return null;
-
-                const myMember = topLeague.members.find(m => m.userId === user.id);
-                if (!myMember) return null;
-
-                const sortedMembers = [...topLeague.members].sort((a, b) => b.weeklyScore - a.weeklyScore);
-                const myRank = sortedMembers.findIndex(m => m.userId === user.id) + 1;
-                const leader = sortedMembers[0];
-                const pointsFromTop = leader && leader.userId !== user.id
-                  ? leader.weeklyScore - myMember.weeklyScore
-                  : 0;
-
-                const rankSuffix = (n: number) => {
-                  if (n % 100 >= 11 && n % 100 <= 13) return "th";
-                  switch (n % 10) {
-                    case 1: return "st";
-                    case 2: return "nd";
-                    case 3: return "rd";
-                    default: return "th";
-                  }
-                };
-
-                return (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4, delay: 0.15 }}
-                  >
-                    <Card
-                      className="p-4 hover-elevate cursor-pointer"
-                      onClick={() => navigate("/leagues")}
-                      data-testid="card-league-rank"
-                    >
-                      <div className="flex items-center justify-between gap-3 flex-wrap">
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                            <Trophy className="w-5 h-5 text-primary" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-sm font-bold" data-testid="text-league-rank">
-                                {myRank}{rankSuffix(myRank)}
-                              </span>
-                              <span className="text-sm text-muted-foreground">in</span>
-                              <span className="text-sm font-semibold truncate" data-testid="text-league-name">
-                                {topLeague.name}
-                              </span>
-                            </div>
-                            <p className="text-xs text-muted-foreground" data-testid="text-league-distance">
-                              {myRank === 1
-                                ? "You're leading the pack!"
-                                : `${pointsFromTop} pts from #1`}
-                            </p>
-                          </div>
-                        </div>
-                        {userLeagues.length > 1 && (
-                          <Badge variant="secondary" className="text-xs flex-shrink-0" data-testid="badge-league-count">
-                            +{userLeagues.length - 1} more
-                          </Badge>
-                        )}
-                        <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                      </div>
-                    </Card>
-                  </motion.div>
-                );
-              })()}
-
-              {/* Next Unlock Card */}
-              {nextUnlock && (
+              {/* ═══ Community Preview ═══ */}
+              {hotPosts && hotPosts.length > 0 && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.2 }}
+                  transition={{ duration: 0.4, delay: 0.15 }}
                 >
-                  <NextUnlockCard
-                    mode={nextUnlock.mode}
-                    label={nextUnlock.label}
-                    info={nextUnlock.info}
-                    level={levelInfo.level}
-                  />
-                </motion.div>
-              )}
-
-              {/* Countdown */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.3 }}
-              >
-                <Card
-                  className={cn(
-                    "p-3 transition-colors duration-500",
-                    isLastHour ? "border-primary/35 bg-primary/5" : "border-border/60"
-                  )}
-                  data-testid="card-countdown"
-                >
-                  <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <div className="flex items-center gap-2">
-                      <motion.div
-                        animate={isLastHour ? { scale: [1, 1.2, 1] } : { scale: 1 }}
-                        transition={isLastHour ? { duration: 1.2, repeat: Infinity } : {}}
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between px-1">
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Community</span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs text-primary h-7 px-2"
+                        onClick={() => navigate("/community")}
+                        data-testid="button-community-see-all"
                       >
-                        <Clock
-                          className={cn(
-                            "w-4 h-4",
-                            isLastHour ? "text-primary" : "text-muted-foreground"
-                          )}
-                        />
-                      </motion.div>
-                      <span className="text-sm text-muted-foreground">
-                        {hasPlayedToday
-                          ? "Next decision test unlocks in..."
-                          : "Today's drop expires in..."}
-                      </span>
+                        See all
+                        <ChevronRight className="w-3 h-3 ml-0.5" />
+                      </Button>
                     </div>
-                    <div
-                      className={cn(
-                        "text-lg font-bold font-mono tabular-nums transition-colors duration-500 flex items-center",
-                        isLastHour ? "text-primary" : "text-foreground"
-                      )}
-                      data-testid="text-countdown"
-                    >
-                      <RollingNumber value={String(countdown.hours).padStart(2, "0")} />
-                      <span className="mx-0.5">:</span>
-                      <RollingNumber value={String(countdown.minutes).padStart(2, "0")} />
-                      <span className="mx-0.5">:</span>
-                      <RollingNumber value={String(countdown.seconds).padStart(2, "0")} />
+                    <div className="space-y-2">
+                      {hotPosts.slice(0, 3).map((post) => (
+                        <Card
+                          key={post.id}
+                          className="p-3 cursor-pointer transition-all hover:border-primary/20 hover:-translate-y-0.5"
+                          onClick={() => navigate(`/community/${post.id}`)}
+                          data-testid={`card-community-preview-${post.id}`}
+                        >
+                          <p className="text-sm font-medium line-clamp-1 mb-1.5">{post.title}</p>
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <ArrowUp className="w-3 h-3" />
+                              {post.upvotes - post.downvotes}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <MessageCircle className="w-3 h-3" />
+                              {post.commentCount}
+                            </span>
+                            <span className="text-muted-foreground/50">·</span>
+                            <span>{post.authorUsername}</span>
+                          </div>
+                        </Card>
+                      ))}
                     </div>
                   </div>
-                </Card>
-              </motion.div>
-
-              {/* Quick Tips */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: 0.4 }}
-              >
-                <TipCardCarousel
-                  tips={DAILY_TIPS.map((content, index) => ({
-                    id: String(index),
-                    content,
-                  }))}
-                  data-testid="card-daily-tip"
-                />
-              </motion.div>
-
-              {hasPlayedToday && (
-                <Button
-                  variant="outline"
-                  className="w-full gap-2"
-                  onClick={handleShare}
-                  data-testid="button-share-results"
-                >
-                  <Share2 className="w-4 h-4" />
-                  Share Today's Results
-                </Button>
+                </motion.div>
               )}
             </>
           ) : (
@@ -811,16 +497,6 @@ export default function Home() {
         </main>
       </div>
       <DebugScreen open={showDebugScreen} onOpenChange={setShowDebugScreen} />
-      {user && (
-        <CleoPlayNudge
-          hasPlayedToday={hasPlayedToday}
-          streak={user.streak}
-          onPlay={() => {
-            if (!user.mode) navigate("/setup");
-            else navigate("/play");
-          }}
-        />
-      )}
     </>
   );
 }
