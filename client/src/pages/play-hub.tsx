@@ -195,15 +195,27 @@ export default function PlayHub() {
         {/* ── Cleo ── */}
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.15, duration: 0.3 }}
+          animate={{
+            opacity: 1,
+            scale: 1,
+            y: [0, -6, 0],
+            rotate: [0, 1.5, 0, -1.5, 0],
+          }}
+          transition={{
+            opacity: { duration: 0.3, delay: 0.15 },
+            scale: { duration: 0.3, delay: 0.15 },
+            y: { duration: 3, repeat: 2, ease: "easeInOut" },
+            rotate: { duration: 5, repeat: 2, ease: "easeInOut" },
+          }}
           className="flex justify-center py-2"
         >
           <Mascot
             mood="hyped"
-            size="sm"
+            size="lg"
             showBubble={true}
             speechDelay={1400}
+            streakCount={user?.streak ?? 0}
+            showStreakFlame={(user?.streak ?? 0) >= 3}
             context={{ screen: "play-hub", username: user?.username, streak: user?.streak ?? 0 } as MascotContext}
           />
         </motion.div>
@@ -224,7 +236,7 @@ export default function PlayHub() {
                 gradient={mode.gradient}
                 unlock={unlocks[mode.id]}
                 onClick={() => handleModeClick(mode.id, mode.path)}
-                badge={mode.badge}
+                badge={(mode as any).badge}
               />
             </motion.div>
           ))}

@@ -357,13 +357,26 @@ export default function Results() {
               <CelebrationBurst trigger={result.score >= 380} intensity={result.score >= 480 ? "epic" : "normal"} />
 
               <div className="flex flex-col items-center mb-4 relative z-10" data-testid="mascot-results">
-                <Mascot
-                  mood={dynamicMascotMood}
-                  size="xl"
-                  showBubble={false}
-                  disableTapBubble={true}
-                  context={mascotContext}
-                />
+                <motion.div
+                  animate={{
+                    y: [0, -6, 0],
+                    rotate: [0, 1.5, 0, -1.5, 0],
+                  }}
+                  transition={{
+                    y: { duration: 3, repeat: 2, ease: "easeInOut" },
+                    rotate: { duration: 5, repeat: 2, ease: "easeInOut" },
+                  }}
+                >
+                  <Mascot
+                    mood={dynamicMascotMood}
+                    size="lg"
+                    showBubble={false}
+                    disableTapBubble={true}
+                    streakCount={user?.streak ?? 0}
+                    showStreakFlame={(user?.streak ?? 0) >= 3}
+                    context={mascotContext}
+                  />
+                </motion.div>
                 <ResultsBubble mood={dynamicMascotMood} context={mascotContext} />
               </div>
             </motion.div>
