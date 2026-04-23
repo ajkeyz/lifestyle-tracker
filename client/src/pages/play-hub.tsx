@@ -104,7 +104,7 @@ export default function PlayHub() {
             {[
               { icon: Zap, label: "XP", value: user.totalScore, color: "text-yellow-400" },
               { icon: Flame, label: "Streak", value: `${user.streak}d`, color: user.streak >= 3 ? "text-orange-400" : "text-muted-foreground" },
-              { icon: Target, label: "Games", value: user.gamesPlayed, color: "text-blue-400" },
+              { icon: Target, label: "Games", value: Math.max(user.gamesPlayed, user.todayResult ? 1 : 0), color: "text-blue-400" },
             ].map((stat) => (
               <div key={stat.label} className="flex items-center gap-2 p-2.5 rounded-xl bg-card/50 border border-border/50">
                 <stat.icon className={cn("w-3.5 h-3.5", stat.color)} />
