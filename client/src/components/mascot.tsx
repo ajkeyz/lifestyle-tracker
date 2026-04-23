@@ -2085,7 +2085,7 @@ function SpeechBubble({ message, position = "right", mood }: {
   return (
     <div
       ref={positionRef}
-      className="absolute z-20"
+      className="absolute z-30"
       style={{
         ...positionStyle,
         maxWidth: `min(280px, calc(100vw - ${EDGE_PAD * 2}px))`,
@@ -2106,7 +2106,7 @@ function SpeechBubble({ message, position = "right", mood }: {
             className="absolute"
             style={{
               ...tailBase[position],
-              background: "hsl(var(--card) / 0.96)",
+              background: "hsl(var(--card))",
               border: `1px solid ${accentColor}25`,
               zIndex: -1,
             }}
@@ -2114,7 +2114,7 @@ function SpeechBubble({ message, position = "right", mood }: {
           <motion.div
             className="rounded-2xl px-4 py-3 max-w-[280px] min-w-[100px] backdrop-blur-md"
             style={{
-              background: "hsl(var(--card) / 0.96)",
+              background: "hsl(var(--card))",
               border: `1.5px solid ${accentColor}25`,
               boxShadow: `0 8px 32px ${accentColor}15, 0 2px 8px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.08)`,
             }}
