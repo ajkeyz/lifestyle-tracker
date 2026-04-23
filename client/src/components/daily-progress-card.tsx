@@ -40,8 +40,10 @@ export function DailyProgressCard({
 
   if (missions.length === 0) return null;
 
-  // Progress calculations — only count completions among displayed missions
-  const completedSlots = missions.filter((m) => completedIds.includes(m.id)).length;
+  // Progress calculations — count missions that are done (claimed or check passes)
+  const completedSlots = missions.filter(
+    (m) => completedIds.includes(m.id) || m.check(context)
+  ).length;
   const totalSlots = missions.length;
 
   return (

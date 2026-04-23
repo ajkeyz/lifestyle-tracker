@@ -42,9 +42,11 @@ export function MissionBoard({
     setTimeout(() => setJustCompleted(null), 2000);
   };
 
-  // Progress dots: show total slots (completed + active), capped at 3
-  const totalSlots = Math.min(missions.length + completedIds.length, 3);
-  const completedSlots = Math.min(completedIds.length, totalSlots);
+  // Progress dots: count missions that are done (claimed or check passes)
+  const totalSlots = missions.length;
+  const completedSlots = missions.filter(
+    (m) => completedIds.includes(m.id) || m.check(context)
+  ).length;
 
   const missionItems = (
       <div className="space-y-2">
