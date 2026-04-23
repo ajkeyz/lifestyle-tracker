@@ -3,7 +3,6 @@ import { motion } from "framer-motion";
 import { AppLogo } from "@/components/app-logo";
 import { AmbientBackground } from "@/components/ambient-background";
 import { ModeCard } from "@/components/mode-card";
-import { Mascot, getMascotContextDialogue, type MascotContext } from "@/components/mascot";
 import { useProgression } from "@/hooks/use-progression";
 import { toast } from "@/hooks/use-toast";
 import {
@@ -190,34 +189,6 @@ export default function PlayHub() {
             Game Modes
           </p>
           <div className="flex-1 h-px bg-border/40" />
-        </motion.div>
-
-        {/* ── Cleo ── */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{
-            opacity: 1,
-            scale: 1,
-            y: [0, -6, 0],
-            rotate: [0, 1.5, 0, -1.5, 0],
-          }}
-          transition={{
-            opacity: { duration: 0.3, delay: 0.15 },
-            scale: { duration: 0.3, delay: 0.15 },
-            y: { duration: 3, repeat: 2, ease: "easeInOut" },
-            rotate: { duration: 5, repeat: 2, ease: "easeInOut" },
-          }}
-          className="flex justify-center py-2"
-        >
-          <Mascot
-            mood="hyped"
-            size="lg"
-            showBubble={true}
-            speechDelay={1400}
-            streakCount={user?.streak ?? 0}
-            showStreakFlame={(user?.streak ?? 0) >= 3}
-            context={{ screen: "play-hub", username: user?.username, streak: user?.streak ?? 0 } as MascotContext}
-          />
         </motion.div>
 
         {/* ── Mode List ── */}
