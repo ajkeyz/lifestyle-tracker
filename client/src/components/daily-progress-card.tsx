@@ -65,7 +65,7 @@ export function DailyProgressCard({
           </div>
 
           <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-semibold leading-tight">Daily Progress</h3>
+            <h3 className="text-sm font-semibold leading-tight">Today's Goals</h3>
             <p className="text-[11px] text-muted-foreground">
               {completedSlots} of {totalSlots} missions complete
             </p>

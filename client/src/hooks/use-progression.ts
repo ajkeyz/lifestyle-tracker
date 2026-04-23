@@ -53,10 +53,16 @@ export function useProgression() {
   );
 
   // Build mission context from user data (shared logic with server)
-  const missionContext: MissionContext = useMemo(
-    () => (user ? buildMissionContext(user) : buildMissionContext({})),
-    [user]
-  );
+  // Enhance with client-side session tracking for daily activity missions
+  const missionContext: MissionContext = useMemo(() => {
+    const base = user ? buildMissionContext(user) : buildMissionContext({});
+    if (typeof window !== "undefined") {
+      const today = new Date().toISOString().slice(0, 10);
+      base.visitedTips = sessionStorage.getItem(`visitedTips:${today}`) === "1";
+      base.visitedCommunity = sessionStorage.getItem(`visitedCommunity:${today}`) === "1";
+    }
+    return base;
+  }, [user]);
 
   // Use server-authoritative claimed missions
   const completedMissionIds = useMemo(

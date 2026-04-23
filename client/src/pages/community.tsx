@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -208,6 +208,12 @@ export default function Community() {
   const [sortBy, setSortBy] = useState<"latest" | "hot" | "realest">("hot");
   const [category, setCategory] = useState<string>("all");
   const [votingId, setVotingId] = useState<string | null>(null);
+
+  // Track visit for daily mission
+  useEffect(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    sessionStorage.setItem(`visitedCommunity:${today}`, "1");
+  }, []);
 
   const { data: scenarios, isLoading } = useQuery<CommunityScenario[]>({
     queryKey: ["/api/community/scenarios", { category, sortBy }],

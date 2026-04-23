@@ -99,6 +99,8 @@ export interface MissionContext {
   coopPlayed: boolean;
   survivalPlayed: boolean;
   referralCount: number;
+  visitedTips: boolean;
+  visitedCommunity: boolean;
 }
 
 export interface ProgressionInput {
@@ -200,78 +202,43 @@ export function getNextUnlock(
 // ─── Mission Definitions ─────────────────────────────────────────────────────
 
 export const MISSION_POOL: MissionDef[] = [
-  // ── Tier 1: Day 0+ (beginner missions) ──
+  // ── Daily-achievable missions ──
   {
     id: "complete_daily",
-    title: "Complete today's Drop",
-    description: "Play today's 5 money decisions",
+    title: "Play today's Drop",
+    description: "5 real-life money decisions",
     xp: 50,
     reward: { type: "xp", amount: 50 },
     tier: 1,
     check: (ctx) => ctx.hasPlayedToday,
   },
   {
-    id: "play_5_drops",
-    title: "Complete 5 Drops total",
-    description: "Build your money instincts",
-    xp: 80,
-    reward: { type: "xp", amount: 80 },
+    id: "read_tip",
+    title: "Read a financial tip",
+    description: "Browse the tips library",
+    xp: 20,
+    reward: { type: "xp", amount: 20 },
     tier: 1,
-    cumulative: true,
-    check: (ctx) => ctx.gamesPlayed >= 5,
+    check: (ctx) => ctx.visitedTips,
   },
   {
-    id: "reach_streak_3",
-    title: "Reach a 3-day streak",
-    description: "Play 3 days in a row",
-    xp: 100,
-    reward: { type: "streak_shield", amount: 1 },
+    id: "visit_community",
+    title: "Visit the community",
+    description: "See what others are asking",
+    xp: 20,
+    reward: { type: "xp", amount: 20 },
     tier: 1,
-    cumulative: true,
-    check: (ctx) => ctx.streak >= 3,
+    check: (ctx) => ctx.visitedCommunity,
   },
-  // ── Tier 2: Day 3+ (intermediate missions) ──
   {
     id: "play_arcade",
-    title: "Play 1 Arcade round",
+    title: "Play an Arcade round",
     description: "Test your skills with extra rounds",
     xp: 30,
     reward: { type: "arcade_token", amount: 1 },
     tier: 2,
     requiresUnlock: "arcade",
     check: (ctx) => ctx.arcadePlaysToday >= 1,
-  },
-  {
-    id: "invite_friend",
-    title: "Invite 1 friend",
-    description: "Share the game with someone",
-    xp: 75,
-    reward: { type: "xp", amount: 75 },
-    tier: 2,
-    cumulative: true,
-    requiresUnlock: "coop",
-    check: (ctx) => ctx.referralCount >= 1,
-  },
-  {
-    id: "play_coop",
-    title: "Play 1 co-op match",
-    description: "Team up with a friend",
-    xp: 60,
-    reward: { type: "xp", amount: 60 },
-    tier: 2,
-    requiresUnlock: "coop",
-    check: (ctx) => ctx.coopPlayed,
-  },
-  // ── Tier 3: Day 7+ (advanced missions) ──
-  {
-    id: "play_survival",
-    title: "Enter a Survival match",
-    description: "Test your nerves in battle royale",
-    xp: 60,
-    reward: { type: "xp", amount: 60 },
-    tier: 3,
-    requiresUnlock: "survival",
-    check: (ctx) => ctx.survivalPlayed,
   },
 ];
 
@@ -298,6 +265,8 @@ export function buildMissionContext(user: {
     coopPlayed: false,
     survivalPlayed: false,
     referralCount: user.referralCount ?? 0,
+    visitedTips: false,      // Set client-side via sessionStorage
+    visitedCommunity: false,  // Set client-side via sessionStorage
   };
 }
 
