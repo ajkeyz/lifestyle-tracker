@@ -2907,6 +2907,8 @@ export class PostgresStorage implements IStorage {
     const membershipTier = user.membershipTier || "free";
     const maxPlays = ARCADE_LIMITS[membershipTier] || 1;
 
+    // arcadeDropId format: `arcade-${date}-${theme}-${gameIndex}`
+    // (legacy format `arcade-${date}-${gameIndex}` falls back to last segment as gameIndex)
     const parts = submission.arcadeDropId.split("-");
     const arcadeGameIndex = parseInt(parts[parts.length - 1]) || 0;
 
@@ -2928,7 +2930,17 @@ export class PostgresStorage implements IStorage {
     }
 
     const dayNumber = getDayNumber();
-    const rawScenarios = getArcadeScenarios(dayNumber, arcadeGameIndex);
+    // Re-derive the SAME scenarios the user played using the user's weekly theme.
+    // Must match the seed/categories used in getArcadeDrop() exactly so that the
+    // scenario IDs the client submitted line up with what we score against.
+    const { THEME_BY_ID, DEFAULT_THEME, isValidThemeId } = await import("@shared/lib/themes");
+    const resolvedTheme = user.weeklyTheme && isValidThemeId(user.weeklyTheme)
+      ? user.weeklyTheme
+      : DEFAULT_THEME;
+    const themeDef = THEME_BY_ID[resolvedTheme];
+    const { getScenariosForTheme } = await import("./static-scenarios");
+    const seed = `${today}-arcade-${resolvedTheme}-${arcadeGameIndex}`;
+    const rawScenarios = getScenariosForTheme(themeDef.categories, 5, seed);
     const scenarios = rawScenarios.map(scenario =>
       shuffleScenarioChoices(scenario, today + "-arcade-" + arcadeGameIndex)
     );
