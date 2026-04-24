@@ -240,8 +240,10 @@ export default function Home() {
               )}
 
               {/* ═══ This week's theme ═══ */}
-              {themeState.currentDef && (() => {
-                const ThemeIcon = THEME_ICON_MAP[themeState.currentDef.icon] ?? ThemeShoppingBag;
+              {(() => {
+                const def = themeState.currentDef;
+                const ThemeIcon = def ? (THEME_ICON_MAP[def.icon] ?? ThemeShoppingBag) : Sparkles;
+                const gradient = def?.gradient ?? "bg-gradient-to-br from-primary to-accent";
                 return (
                   <motion.button
                     type="button"
@@ -252,18 +254,22 @@ export default function Home() {
                     className="w-full flex items-center gap-3 px-3 py-2 rounded-xl border border-border/40 bg-card/50 hover:bg-card/80 hover:border-primary/30 transition-all text-left"
                     data-testid="card-weekly-theme"
                   >
-                    <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0", themeState.currentDef.gradient)}>
+                    <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0", gradient)}>
                       <ThemeIcon className="w-4 h-4 text-white" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 leading-none">This week</p>
-                      <p className="text-sm font-semibold leading-tight truncate">{themeState.currentDef.label}</p>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 leading-none">
+                        {def ? "This week" : "Weekly theme"}
+                      </p>
+                      <p className="text-sm font-semibold leading-tight truncate">
+                        {def ? def.label : "Pick a theme to get started"}
+                      </p>
                     </div>
                     <span className={cn(
                       "text-xs font-medium shrink-0",
-                      themeState.canChange ? "text-primary" : "text-muted-foreground/60",
+                      !def || themeState.canChange ? "text-primary" : "text-muted-foreground/60",
                     )}>
-                      {themeState.canChange ? "Change" : `Resets in ${formatCountdown(themeState.nextChangeAt)}`}
+                      {!def ? "Pick" : themeState.canChange ? "Change" : `Resets in ${formatCountdown(themeState.nextChangeAt)}`}
                     </span>
                   </motion.button>
                 );
