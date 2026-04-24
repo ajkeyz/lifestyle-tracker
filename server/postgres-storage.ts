@@ -220,6 +220,8 @@ export class PostgresStorage implements IStorage {
       referralCount: 0,
       friendIds: [],
       membershipTier: "free" as const,
+      weeklyTheme: null,
+      themeWeekStart: null,
       arcadePlaysToday: 0,
       arcadeLastPlayedDate: null,
       moneyPhilosophy: "",
@@ -579,6 +581,8 @@ export class PostgresStorage implements IStorage {
       referralCount: dbUser.referralCount,
       friendIds: dbUser.friendIds || [],
       membershipTier,
+      weeklyTheme: dbUser.weeklyTheme ?? null,
+      themeWeekStart: dbUser.themeWeekStart ?? null,
       arcadePlaysToday: dbUser.arcadePlaysToday || 0,
       arcadeLastPlayedDate: dbUser.arcadeLastPlayedDate || null,
       moneyPhilosophy: dbUser.moneyPhilosophy || "",
@@ -599,52 +603,41 @@ export class PostgresStorage implements IStorage {
   // GAME OPERATIONS
   // ============================================
 
-  async getDailyDrop(): Promise<DailyDrop> {
+  async getDailyDrop(theme?: string): Promise<DailyDrop> {
     const today = getTodayDateString();
     const dropNumber = getDayNumber();
+    // Resolve theme — fall back to default if caller didn't provide one
+    const { THEME_BY_ID, DEFAULT_THEME, isValidThemeId } = await import("@shared/lib/themes");
+    const resolvedTheme = theme && isValidThemeId(theme) ? theme : DEFAULT_THEME;
+    const themeDef = THEME_BY_ID[resolvedTheme];
 
-    // Check if drop exists in database for today
+    // Check if drop exists in database for (today, theme)
     const existingDrop = await db
       .select()
       .from(appSchema.dailyDrops)
-      .where(eq(appSchema.dailyDrops.date, today))
+      .where(and(
+        eq(appSchema.dailyDrops.date, today),
+        eq(appSchema.dailyDrops.theme, resolvedTheme),
+      ))
       .limit(1);
 
     if (existingDrop.length > 0) {
       return existingDrop[0] as DailyDrop;
     }
 
-    // Generate new drop for today
-    const todayScenarios = getDailyScenarios(dropNumber);
-    let shuffledScenarios = todayScenarios.map(scenario =>
+    // Generate new drop for (today, theme) — pull 5 scenarios from the theme's category pool
+    const { getScenariosForTheme } = await import("./static-scenarios");
+    const seed = `${today}-${resolvedTheme}`;
+    const themedScenarios = getScenariosForTheme(themeDef.categories, 5, seed);
+    let shuffledScenarios = themedScenarios.map(scenario =>
       shuffleScenarioChoices(scenario, today)
     );
-
-    // Mystery Scenario Friday: Add 6th bonus question on Fridays (UTC timezone)
-    const dayOfWeek = new Date(today + 'T00:00:00Z').getUTCDay();
-    const isFriday = dayOfWeek === 5;
-    if (isFriday) {
-      // Get a random "mystery" scenario from a different day
-      const mysteryDayIndex = Math.floor(Math.random() * 30);
-      const mysteryScenarios = getDailyScenarios(mysteryDayIndex + 1);
-      if (!mysteryScenarios || mysteryScenarios.length === 0) {
-        console.warn("No mystery scenarios available for Friday bonus");
-      }
-      const mysteryScenario = mysteryScenarios?.[Math.floor(Math.random() * mysteryScenarios.length)];
-
-      if (mysteryScenario) {
-        const enhancedMystery = {
-          ...mysteryScenario,
-          id: crypto.randomUUID(),
-        };
-        shuffledScenarios.push(shuffleScenarioChoices(enhancedMystery, today));
-      }
-    }
 
     const newDrop: DailyDrop = {
       id: crypto.randomUUID(),
       dropNumber,
       date: today,
+      theme: resolvedTheme,
       scenarios: shuffledScenarios,
     };
 
@@ -653,14 +646,11 @@ export class PostgresStorage implements IStorage {
       id: newDrop.id,
       dropNumber,
       date: today,
+      theme: resolvedTheme,
       scenarios: shuffledScenarios as any,
     });
 
-    console.log(`Created new daily drop for day ${dropNumber} (${today})`);
-
-    // NOTE: todayResult is validated in submitGame() by checking user.lastPlayedDate !== today
-    // We don't reset all users here to avoid race conditions at midnight
-    // Instead, results naturally become stale when date changes
+    console.log(`Created new daily drop for day ${dropNumber} (${today}) theme=${resolvedTheme}`);
 
     return newDrop;
   }
@@ -2880,15 +2870,27 @@ export class PostgresStorage implements IStorage {
     }
 
     const arcadeGameIndex = gameIndex !== undefined ? gameIndex : arcadePlaysToday;
-    const scenarios = getArcadeScenarios(dayNumber, arcadeGameIndex);
+
+    // Resolve user's weekly theme — fall back to default if not set
+    const { THEME_BY_ID, DEFAULT_THEME, isValidThemeId } = await import("@shared/lib/themes");
+    const resolvedTheme = user.weeklyTheme && isValidThemeId(user.weeklyTheme)
+      ? user.weeklyTheme
+      : DEFAULT_THEME;
+    const themeDef = THEME_BY_ID[resolvedTheme];
+
+    // Different seed per gameIndex → different question shuffle, same theme pool
+    const { getScenariosForTheme } = await import("./static-scenarios");
+    const seed = `${today}-arcade-${resolvedTheme}-${arcadeGameIndex}`;
+    const scenarios = getScenariosForTheme(themeDef.categories, 5, seed);
     const shuffledScenarios = scenarios.map(scenario =>
       shuffleScenarioChoices(scenario, today + "-arcade-" + arcadeGameIndex)
     );
 
     return {
-      id: `arcade-${today}-${arcadeGameIndex}`,
+      id: `arcade-${today}-${resolvedTheme}-${arcadeGameIndex}`,
       dropNumber: dayNumber,
       date: today,
+      theme: resolvedTheme,
       scenarios: shuffledScenarios,
     };
   }

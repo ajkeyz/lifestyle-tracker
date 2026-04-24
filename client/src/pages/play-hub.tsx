@@ -4,6 +4,7 @@ import { AppLogo } from "@/components/app-logo";
 import { AmbientBackground } from "@/components/ambient-background";
 import { ModeCard } from "@/components/mode-card";
 import { useProgression } from "@/hooks/use-progression";
+import { useTheme } from "@/hooks/use-theme";
 import { toast } from "@/hooks/use-toast";
 import {
   Play,
@@ -25,6 +26,7 @@ export default function PlayHub() {
   const [, navigate] = useLocation();
   const { user: authUser } = useAuth();
   const { unlocks, user } = useProgression();
+  const { currentDef: themeDef } = useTheme();
 
   const handleModeClick = (mode: GameModeId, path: string) => {
     if (!unlocks[mode].unlocked) {
@@ -40,15 +42,16 @@ export default function PlayHub() {
   const hasPlayedToday = user?.todayResult != null;
   const dailyDropPath = hasPlayedToday
     ? "/results"
-    : user?.mode
+    : user?.weeklyTheme
       ? "/play"
       : "/setup";
 
+  const themeLabel = themeDef?.label ?? "this week's theme";
   const gridModes = [
     {
       id: "arcade" as GameModeId,
       title: "Arcade",
-      description: "Speed rounds & bonuses",
+      description: `Speed rounds · ${themeLabel}`,
       icon: <Gamepad2 className="w-5 h-5 text-white" />,
       gradient: "bg-gradient-to-br from-purple-500 to-pink-500",
       path: "/arcade",
@@ -125,7 +128,7 @@ export default function PlayHub() {
           >
             <ModeCard
               title="Daily Drop"
-              description={hasPlayedToday ? "View your results" : "5 money decisions · 2-4 min"}
+              description={hasPlayedToday ? "View your results" : `5 decisions · ${themeLabel}`}
               icon={<Play className="w-5 h-5 text-white ml-0.5" />}
               gradient="bg-gradient-to-br from-primary to-emerald-600"
               unlock={{ unlocked: true, progress: 1 }}

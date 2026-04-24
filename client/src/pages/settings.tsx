@@ -69,6 +69,8 @@ import {
 import { useSound } from "@/hooks/use-sound";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/components/theme-provider";
+import { useTheme as useWeeklyTheme } from "@/hooks/use-theme";
+import { ThemePickerModal } from "@/components/theme-picker-modal";
 import { ReferralCard } from "@/components/referral-card";
 import { AnimatedAvatar } from "@/components/animated-avatar";
 import type { User } from "@shared/schema";
@@ -140,6 +142,8 @@ export default function Settings() {
   const { theme, setTheme } = useTheme();
 
   const [lowPressureOpen, setLowPressureOpen] = useState(false);
+  const [themePickerOpen, setThemePickerOpen] = useState(false);
+  const weeklyTheme = useWeeklyTheme();
   const [hapticEnabled, setHapticEnabled] = useState(
     () => localStorage.getItem("hapticEnabled") !== "false"
   );
@@ -451,6 +455,18 @@ export default function Settings() {
         <div>
           <SectionHeader>Features</SectionHeader>
           <Card className="overflow-hidden rounded-2xl" data-testid="card-features">
+            <SettingsRow
+              icon={Sparkles}
+              iconClassName="bg-gradient-to-br from-emerald-500/20 to-teal-500/20 text-emerald-500"
+              label="Weekly Theme"
+              description={
+                weeklyTheme.currentDef
+                  ? `${weeklyTheme.currentDef.label} · ${weeklyTheme.canChange ? "Tap to change" : "Locked until Monday"}`
+                  : "Pick a topic for this week's drops"
+              }
+              onClick={() => setThemePickerOpen(true)}
+            />
+            <Separator />
             <SettingsRow
               icon={BookOpen}
               iconClassName="bg-gradient-to-br from-yellow-500/20 to-amber-500/20 text-yellow-600"
@@ -791,6 +807,7 @@ export default function Settings() {
         </footer>
 
       </main>
+      <ThemePickerModal open={themePickerOpen} onOpenChange={setThemePickerOpen} />
     </div>
   );
 }

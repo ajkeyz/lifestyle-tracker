@@ -1217,6 +1217,49 @@ export function getAllScenarios(): Scenario[] {
   return staticScenarioSets.flat();
 }
 
+/**
+ * Deterministic seeded shuffle (Fisher-Yates with a string-seeded LCG).
+ * Same seed → same order, so cached drops stay stable.
+ */
+function seededShuffle<T>(items: T[], seed: string): T[] {
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i++) {
+    h = Math.imul(h ^ seed.charCodeAt(i), 16777619);
+  }
+  const arr = items.slice();
+  for (let i = arr.length - 1; i > 0; i--) {
+    h = Math.imul(h ^ (h >>> 13), 16777619);
+    const j = Math.abs(h) % (i + 1);
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/**
+ * Pick `count` scenarios from the pool matching the given categories.
+ * Deterministic on (seed, categories). Allows repeats if pool < count.
+ */
+export function getScenariosForTheme(
+  categories: string[],
+  count: number,
+  seed: string,
+): Scenario[] {
+  const all = getAllScenarios();
+  const pool = all.filter((s) => categories.includes(s.category));
+  if (pool.length === 0) {
+    // Fallback to all scenarios if no match (shouldn't happen with valid themes)
+    return seededShuffle(all, seed).slice(0, count);
+  }
+  const shuffled = seededShuffle(pool, seed);
+  if (shuffled.length >= count) return shuffled.slice(0, count);
+  // Pool too small — repeat with offset to fill
+  const result: Scenario[] = [];
+  for (let i = 0; i < count; i++) {
+    result.push(shuffled[i % shuffled.length]);
+  }
+  return result;
+}
+
 /** Classify a scenario's difficulty based on point spread between best and second-best answer */
 export function classifyDifficulty(scenario: Scenario): SurvivalDifficulty {
   const points = scenario.choices.map(c => c.points);

@@ -10,7 +10,37 @@ import { AppLogo } from "@/components/app-logo";
 import { GradientText } from "@/components/gradient-text";
 import { Mascot, getMascotMoodForStreak, type MascotContext } from "@/components/mascot";
 import { DailyProgressCard } from "@/components/daily-progress-card";
+import { ThemePickerModal } from "@/components/theme-picker-modal";
 import { useProgression } from "@/hooks/use-progression";
+import { useTheme } from "@/hooks/use-theme";
+import {
+  TrendingUp as ThemeTrendingUp,
+  Home as ThemeHome,
+  ShoppingBag as ThemeShoppingBag,
+  CreditCard as ThemeCreditCard,
+  ShieldAlert as ThemeShieldAlert,
+  Users as ThemeUsers,
+  type LucideIcon,
+} from "lucide-react";
+
+const THEME_ICON_MAP: Record<string, LucideIcon> = {
+  TrendingUp: ThemeTrendingUp,
+  Home: ThemeHome,
+  ShoppingBag: ThemeShoppingBag,
+  CreditCard: ThemeCreditCard,
+  ShieldAlert: ThemeShieldAlert,
+  Users: ThemeUsers,
+};
+
+function formatCountdown(iso: string | null): string {
+  if (!iso) return "";
+  const ms = new Date(iso).getTime() - Date.now();
+  if (ms <= 0) return "now";
+  const days = Math.floor(ms / 86400000);
+  const hours = Math.floor((ms % 86400000) / 3600000);
+  if (days > 0) return `${days}d`;
+  return `${hours}h`;
+}
 
 import {
   Play,
@@ -74,6 +104,8 @@ export default function Home() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showDebugScreen, setShowDebugScreen] = useState(false);
   const [profileNudgeDismissed, setProfileNudgeDismissed] = useState(false);
+  const [themePickerOpen, setThemePickerOpen] = useState(false);
+  const themeState = useTheme();
   const { handleTap } = useDebugGesture(() => setShowDebugScreen(true));
 
   const {
@@ -207,6 +239,36 @@ export default function Home() {
                 />
               )}
 
+              {/* ═══ This week's theme ═══ */}
+              {themeState.currentDef && (() => {
+                const ThemeIcon = THEME_ICON_MAP[themeState.currentDef.icon] ?? ThemeShoppingBag;
+                return (
+                  <motion.button
+                    type="button"
+                    onClick={() => setThemePickerOpen(true)}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    whileTap={{ scale: 0.99 }}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-xl border border-border/40 bg-card/50 hover:bg-card/80 hover:border-primary/30 transition-all text-left"
+                    data-testid="card-weekly-theme"
+                  >
+                    <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0", themeState.currentDef.gradient)}>
+                      <ThemeIcon className="w-4 h-4 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 leading-none">This week</p>
+                      <p className="text-sm font-semibold leading-tight truncate">{themeState.currentDef.label}</p>
+                    </div>
+                    <span className={cn(
+                      "text-xs font-medium shrink-0",
+                      themeState.canChange ? "text-primary" : "text-muted-foreground/60",
+                    )}>
+                      {themeState.canChange ? "Change" : `Resets in ${formatCountdown(themeState.nextChangeAt)}`}
+                    </span>
+                  </motion.button>
+                );
+              })()}
+
               {/* ═══ PRIMARY CTA — Daily Drop ═══ */}
 
               {/* First-week narrative now delivered via Cleo's speech bubble */}
@@ -253,7 +315,7 @@ export default function Home() {
                         )}
                         onClick={() => {
                           if (hasPlayedToday) navigate("/results");
-                          else if (!user.mode) navigate("/setup");
+                          else if (!user.weeklyTheme) navigate("/setup");
                           else navigate("/play");
                         }}
                         data-testid="button-play-today"
@@ -473,6 +535,7 @@ export default function Home() {
         </main>
       </div>
       <DebugScreen open={showDebugScreen} onOpenChange={setShowDebugScreen} />
+      <ThemePickerModal open={themePickerOpen} onOpenChange={setThemePickerOpen} />
     </>
   );
 }

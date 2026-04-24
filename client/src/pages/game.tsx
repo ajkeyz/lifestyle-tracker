@@ -372,10 +372,10 @@ export default function Game() {
   useEffect(() => {
     if (user?.todayResult) {
       navigate("/results");
-    } else if (user && !user.mode) {
+    } else if (user && !user.weeklyTheme) {
       navigate("/setup");
     }
-  }, [user?.todayResult, user?.mode, navigate]);
+  }, [user?.todayResult, user?.weeklyTheme, navigate]);
 
   if (user?.todayResult) {
     return (
@@ -385,7 +385,7 @@ export default function Game() {
     );
   }
 
-  if (user && !user.mode) {
+  if (user && !user.weeklyTheme) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20 flex items-center justify-center">
         <p className="text-muted-foreground" data-testid="text-redirect-setup">Setting up your game...</p>

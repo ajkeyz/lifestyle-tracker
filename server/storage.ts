@@ -65,7 +65,7 @@ export interface IStorage {
   updateUser(sessionId: string, updates: Partial<User>): Promise<User | undefined>;
   checkUsernameAvailable(username: string, excludeUserId?: string): Promise<boolean>;
   searchUserByUsername(username: string, excludeUserId?: string): Promise<{ found: boolean; username: string | null; userId: string | null }>;
-  getDailyDrop(): Promise<DailyDrop>;
+  getDailyDrop(theme?: string): Promise<DailyDrop>;
   submitGame(sessionId: string, submission: SubmitGame, prefetchedDrop?: DailyDrop, prefetchedUser?: User): Promise<UserGameResult>;
   getLeaderboard(limit?: number): Promise<LeaderboardEntry[]>;
   // League methods
@@ -303,6 +303,7 @@ export class MemStorage implements IStorage {
       id: randomUUID(),
       dropNumber: dropNumber,
       date: today,
+      theme: null,
       scenarios: shuffledScenarios,
     };
     console.log(`Initialized with static scenarios for day ${dropNumber} (${today})`);
@@ -472,6 +473,8 @@ export class MemStorage implements IStorage {
         referralCount: 0,
         friendIds: [],
         membershipTier: "free" as const,
+        weeklyTheme: null,
+        themeWeekStart: null,
         arcadePlaysToday: 0,
         arcadeLastPlayedDate: null,
         moneyPhilosophy: "",
@@ -527,6 +530,8 @@ export class MemStorage implements IStorage {
         referralCount: 0,
         friendIds: [],
         membershipTier: "free" as const,
+        weeklyTheme: null,
+        themeWeekStart: null,
         arcadePlaysToday: 0,
         arcadeLastPlayedDate: null,
         moneyPhilosophy: "",
@@ -576,26 +581,30 @@ export class MemStorage implements IStorage {
     return updated;
   }
 
-  async getDailyDrop(): Promise<DailyDrop> {
+  async getDailyDrop(_theme?: string): Promise<DailyDrop> {
+    // MemStorage is a fallback that doesn't track themes. Theme parameter is
+    // accepted for interface compatibility but ignored — postgres-storage handles
+    // the real theme-aware logic.
     const today = getTodayDateString();
-    
+
     // Check if we need to load new scenarios for today
     if (this.dailyDrop.date !== today) {
       // Get the day number (cycles 1-30)
       const dropNumber = getDayNumber();
-      
+
       // Get static scenarios for this day (cycles through 30 days of content)
       const todayScenarios = getDailyScenarios(dropNumber);
-      
+
       // Shuffle the choices for each scenario to prevent memorization
-      const shuffledScenarios = todayScenarios.map(scenario => 
+      const shuffledScenarios = todayScenarios.map(scenario =>
         shuffleScenarioChoices(scenario, today)
       );
-      
+
       this.dailyDrop = {
         id: randomUUID(),
         dropNumber: dropNumber,
         date: today,
+        theme: null,
         scenarios: shuffledScenarios,
       };
       
@@ -1312,6 +1321,7 @@ export class MemStorage implements IStorage {
       id: `yesterday-${yesterdayStr}`,
       dropNumber: yesterdayDropNumber,
       date: yesterdayStr,
+      theme: null,
       scenarios: yesterdayScenarios,
     };
 
@@ -2042,6 +2052,7 @@ export class MemStorage implements IStorage {
       id: `arcade-${today}-${arcadeGameIndex}`,
       dropNumber: dayNumber,
       date: today,
+      theme: null,
       scenarios: shuffledScenarios,
     };
   }

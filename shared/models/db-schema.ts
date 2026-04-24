@@ -69,6 +69,10 @@ export const lifestyleUsers = pgTable("lifestyle_users", {
   // Membership
   membershipTier: varchar("membership_tier", { length: 20 }).notNull().default("free"), // free, plus, pro
 
+  // Weekly Theme — drives Daily Drop & Arcade content for the week
+  weeklyTheme: varchar("weekly_theme", { length: 50 }), // null until first picked
+  themeWeekStart: varchar("theme_week_start", { length: 10 }), // YYYY-MM-DD of Monday this theme was set
+
   // Arcade Mode
   arcadePlaysToday: integer("arcade_plays_today").notNull().default(0),
   arcadeLastPlayedDate: varchar("arcade_last_played_date", { length: 50 }),
@@ -104,13 +108,17 @@ export const lifestyleUsers = pgTable("lifestyle_users", {
 
 export const dailyDrops = pgTable("daily_drops", {
   id: uuid("id").primaryKey().defaultRandom(),
-  dropNumber: integer("drop_number").notNull().unique(),
-  date: varchar("date", { length: 50 }).notNull().unique(),
+  dropNumber: integer("drop_number").notNull(),
+  date: varchar("date", { length: 50 }).notNull(),
+  // Theme this drop was generated for. Nullable for legacy rows pre-theme system.
+  theme: varchar("theme", { length: 50 }),
   scenarios: jsonb("scenarios").notNull(), // Full scenario data
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => [
   index("idx_daily_drops_date").on(table.date),
   index("idx_daily_drops_drop_number").on(table.dropNumber),
+  // Composite unique: one drop per (date, theme) combination
+  uniqueIndex("idx_daily_drops_date_theme").on(table.date, table.theme),
 ]);
 
 // ============================================

@@ -263,7 +263,18 @@ export async function registerRoutes(
 
   app.get("/api/daily-drop", async (req: Request, res: Response) => {
     try {
-      const drop = await storage.getDailyDrop();
+      // Resolve the user's weekly theme (if logged in) so they get a themed drop
+      let theme: string | undefined;
+      try {
+        const sessionId = getSessionId(req);
+        if (sessionId) {
+          const user = await storage.getUser(sessionId);
+          if (user?.weeklyTheme) theme = user.weeklyTheme;
+        }
+      } catch {
+        // Not authed — fall back to default theme inside getDailyDrop
+      }
+      const drop = await storage.getDailyDrop(theme);
       res.json(drop);
     } catch (error) {
       console.error("Error getting daily drop:", error);
@@ -377,7 +388,7 @@ export async function registerRoutes(
     try {
       const sessionId = getSessionId(req);
       const parsed = setModeSchema.safeParse(req.body);
-      
+
       if (!parsed.success) {
         return res.status(400).json({ error: "Invalid mode" });
       }
@@ -390,6 +401,56 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error setting mode:", error);
       res.status(500).json({ error: "Failed to set mode" });
+    }
+  });
+
+  // ─── Weekly Theme ───────────────────────────────────────────────────────
+  app.get("/api/theme", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const user = await storage.getUser(sessionId);
+      const { isThemeChangeAllowed, getNextThemeChangeAt, isValidThemeId } = await import("@shared/lib/themes");
+      const current = user?.weeklyTheme && isValidThemeId(user.weeklyTheme) ? user.weeklyTheme : null;
+      res.json({
+        current,
+        weekStart: user?.themeWeekStart ?? null,
+        canChange: isThemeChangeAllowed(user?.themeWeekStart),
+        nextChangeAt: getNextThemeChangeAt(),
+      });
+    } catch (error) {
+      console.error("Error fetching theme:", error);
+      res.status(500).json({ error: "Failed to fetch theme" });
+    }
+  });
+
+  app.post("/api/theme", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const { isValidThemeId, isThemeChangeAllowed, getCurrentWeekStart } = await import("@shared/lib/themes");
+      const themeId = String(req.body?.theme || "");
+      if (!isValidThemeId(themeId)) {
+        return res.status(400).json({ error: "Invalid theme" });
+      }
+      const user = await storage.getUser(sessionId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      // Allow change only if it's a new week (or the user has never picked)
+      if (!isThemeChangeAllowed(user.themeWeekStart)) {
+        return res.status(403).json({
+          error: "Theme can only be changed once per week (Monday UTC).",
+          weekStart: user.themeWeekStart,
+        });
+      }
+      const weekStart = getCurrentWeekStart();
+      const updated = await storage.updateUser(sessionId, {
+        weeklyTheme: themeId as any,
+        themeWeekStart: weekStart as any,
+      });
+      res.json({ theme: themeId, weekStart, user: updated });
+    } catch (error) {
+      console.error("Error setting theme:", error);
+      res.status(500).json({ error: "Failed to set theme" });
     }
   });
 
