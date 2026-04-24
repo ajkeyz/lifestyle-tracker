@@ -26,7 +26,16 @@ export type MascotMood =
 
 // Rich context passed to mascot for context-aware dialogue
 export interface MascotContext {
-  screen?: "home" | "game" | "results" | "coop-lobby" | "survival-lobby" | "arcade" | "play-hub";
+  screen?:
+    | "home"
+    | "game"
+    | "results"
+    | "coop-lobby"
+    | "survival-lobby"
+    | "arcade"
+    | "play-hub"
+    | "setup"
+    | "profile-setup";
   // Game context
   wasCorrect?: boolean;
   wasTimeout?: boolean;
@@ -1806,6 +1815,21 @@ const CONTEXT_DIALOGUE: Record<string, string[]> = {
     "Your training grounds. Pick a mode and let's go.",
     "Every mode is a new way to outsmart lifestyle creep.",
   ],
+  setup_theme: [
+    "Pick a theme — it sets the tone for your whole week.",
+    "What's been on your mind, {name}? Pick a theme that fits.",
+    "Themes lock in for a week. Pick something that scratches an itch.",
+    "Each theme = different scenarios. Choose your battlefield.",
+    "Heads up: you can swap themes once a week, every Monday.",
+    "Your week, your theme. What's it gonna be?",
+  ],
+  profile_setup: [
+    "Let's get you set up — pick an avatar that feels like you.",
+    "Almost done, {name}. A few more details and we're rolling.",
+    "Your profile is how you'll show up on leaderboards. Make it yours.",
+    "Quick setup, big payoff. Stick with me.",
+    "Looking sharp already. Let's wrap this.",
+  ],
 };
 
 // ============================================================
@@ -1920,6 +1944,8 @@ function resolveContextKey(ctx: MascotContext): string | null {
   if (screen === "survival-lobby") return "survival_lobby";
   if (screen === "arcade") return "arcade_lobby";
   if (screen === "play-hub") return "play_hub";
+  if (screen === "setup") return "setup_theme";
+  if (screen === "profile-setup") return "profile_setup";
 
   return null;
 }

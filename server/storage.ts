@@ -66,6 +66,9 @@ export interface IStorage {
   checkUsernameAvailable(username: string, excludeUserId?: string): Promise<boolean>;
   searchUserByUsername(username: string, excludeUserId?: string): Promise<{ found: boolean; username: string | null; userId: string | null }>;
   getDailyDrop(theme?: string): Promise<DailyDrop>;
+  // Fetch a drop by exact ID. Used by submit-game so theme changes mid-game
+  // don't invalidate a valid in-flight submission.
+  getDailyDropById(dropId: string): Promise<DailyDrop | undefined>;
   submitGame(sessionId: string, submission: SubmitGame, prefetchedDrop?: DailyDrop, prefetchedUser?: User): Promise<UserGameResult>;
   getLeaderboard(limit?: number): Promise<LeaderboardEntry[]>;
   // League methods
@@ -616,6 +619,11 @@ export class MemStorage implements IStorage {
       });
     }
     return this.dailyDrop;
+  }
+
+  async getDailyDropById(dropId: string): Promise<DailyDrop | undefined> {
+    // MemStorage only tracks one drop at a time.
+    return this.dailyDrop?.id === dropId ? this.dailyDrop : undefined;
   }
 
   async submitGame(sessionId: string, submission: SubmitGame, prefetchedDrop?: DailyDrop, prefetchedUser?: User): Promise<UserGameResult> {

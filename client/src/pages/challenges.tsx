@@ -196,11 +196,12 @@ export default function Challenges() {
           </Button>
         )}
         {viewMode === "list" && (
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => navigate("/")}
-            data-testid="button-home"
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate("/play-hub")}
+            data-testid="button-back-play-hub"
+            aria-label="Back to Play"
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>

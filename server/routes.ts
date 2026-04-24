@@ -317,11 +317,23 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Invalid submission data" });
       }
 
-      // PERF: Fetch user first so we can pass their weeklyTheme to getDailyDrop.
-      // Without this, scoring runs against the DEFAULT_THEME drop's scenarios,
-      // which mismatches what a non-default-theme user actually played → 0 score.
+      // PERF: Fetch user first so we have their current state for submitGame.
       const user = await storage.getUser(sessionId);
-      const dailyDrop = await storage.getDailyDrop(user?.weeklyTheme ?? undefined);
+
+      // Score against the drop the client actually played (by dropId), not the
+      // drop tied to their CURRENT weeklyTheme. This prevents a mid-game theme
+      // switch from invalidating an otherwise-valid submission. Falls back to
+      // theme-based lookup if dropId isn't found (legacy / test clients).
+      let dailyDrop = await storage.getDailyDropById(parsed.data.dropId);
+      if (!dailyDrop) {
+        dailyDrop = await storage.getDailyDrop(user?.weeklyTheme ?? undefined);
+      } else {
+        // Guard against stale dropIds from prior days — the drop must be today's.
+        const today = new Date().toISOString().split("T")[0];
+        if (dailyDrop.date !== today) {
+          return res.status(400).json({ error: "Drop is not today's quiz" });
+        }
+      }
 
       // Fast-fail: skip entirely if already played (but allow replays where todayResult was cleared)
       const today = new Date().toISOString().split("T")[0];

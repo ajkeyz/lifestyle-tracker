@@ -1,5 +1,5 @@
 import { randomBytes } from "crypto";
-import { eq, and, or, desc, sql, like, ilike, inArray, aliasedTable } from "drizzle-orm";
+import { eq, and, or, desc, sql, like, ilike, inArray, aliasedTable, lt } from "drizzle-orm";
 import { db } from "./db";
 import { appSchema } from "./db";
 import type { IStorage } from "./storage";
@@ -653,6 +653,16 @@ export class PostgresStorage implements IStorage {
     console.log(`Created new daily drop for day ${dropNumber} (${today}) theme=${resolvedTheme}`);
 
     return newDrop;
+  }
+
+  async getDailyDropById(dropId: string): Promise<DailyDrop | undefined> {
+    if (!dropId) return undefined;
+    const result = await db
+      .select()
+      .from(appSchema.dailyDrops)
+      .where(eq(appSchema.dailyDrops.id, dropId))
+      .limit(1);
+    return result.length > 0 ? (result[0] as DailyDrop) : undefined;
   }
 
   async submitGame(sessionId: string, submission: SubmitGame, prefetchedDrop?: DailyDrop, prefetchedUser?: User): Promise<UserGameResult> {
@@ -1312,46 +1322,69 @@ export class PostgresStorage implements IStorage {
   // ============================================
 
   async useStreakFreeze(userId: string): Promise<{ success: boolean; message: string }> {
-    const user = await this.getUser(userId);
-    if (!user) return { success: false, message: "User not found" };
-
-    if (user.freezeTokens <= 0) {
-      return { success: false, message: "No freeze tokens available" };
-    }
-
+    // Atomic: a double-tap of "use freeze" must not consume two freezes for one
+    // day, and the token count must never go negative. We re-read the user
+    // INSIDE the transaction so concurrent callers see each other's writes.
     const today = getTodayDateString();
-    if (user.frozenDates.includes(today)) {
-      return { success: false, message: "Today is already frozen" };
-    }
+    return await db.transaction(async (tx) => {
+      const rows = await tx
+        .select()
+        .from(appSchema.lifestyleUsers)
+        .where(eq(appSchema.lifestyleUsers.id, userId))
+        .limit(1);
+      if (rows.length === 0) return { success: false, message: "User not found" };
+      const user = rows[0];
 
-    if (user.lastPlayedDate === today) {
-      return { success: false, message: "You've already played today" };
-    }
+      const freezeTokens = user.freezeTokens ?? 0;
+      const frozenDates = (user.frozenDates as string[]) ?? [];
+      const streakCalendar = (user.streakCalendar as StreakDay[]) ?? [];
 
-    const newStreakCalendar = [...user.streakCalendar];
-    const todayIndex = newStreakCalendar.findIndex(d => d.date === today);
-    if (todayIndex >= 0) {
-      newStreakCalendar[todayIndex] = { ...newStreakCalendar[todayIndex], frozen: true };
-    } else {
-      newStreakCalendar.push({ date: today, played: false, frozen: true });
-    }
+      if (freezeTokens <= 0) return { success: false, message: "No freeze tokens available" };
+      if (frozenDates.includes(today)) return { success: false, message: "Today is already frozen" };
+      if (user.lastPlayedDate === today) return { success: false, message: "You've already played today" };
 
-    await this.updateUser(userId, {
-      freezeTokens: user.freezeTokens - 1,
-      frozenDates: [...user.frozenDates, today],
-      streakCalendar: newStreakCalendar,
+      const newStreakCalendar = [...streakCalendar];
+      const todayIndex = newStreakCalendar.findIndex(d => d.date === today);
+      if (todayIndex >= 0) {
+        newStreakCalendar[todayIndex] = { ...newStreakCalendar[todayIndex], frozen: true };
+      } else {
+        newStreakCalendar.push({ date: today, played: false, frozen: true });
+      }
+
+      // Conditional UPDATE with `freezeTokens > 0` clause is the actual race
+      // guard — even if two transactions read the same value, only one can
+      // satisfy the WHERE clause once the other commits.
+      const updateResult = await tx
+        .update(appSchema.lifestyleUsers)
+        .set({
+          freezeTokens: sql`${appSchema.lifestyleUsers.freezeTokens} - 1`,
+          frozenDates: [...frozenDates, today],
+          streakCalendar: newStreakCalendar,
+          updatedAt: new Date(),
+        })
+        .where(and(
+          eq(appSchema.lifestyleUsers.id, userId),
+          sql`${appSchema.lifestyleUsers.freezeTokens} > 0`,
+          sql`NOT (${appSchema.lifestyleUsers.frozenDates} @> ${JSON.stringify([today])}::jsonb)`,
+        ))
+        .returning({ id: appSchema.lifestyleUsers.id });
+
+      if (updateResult.length === 0) {
+        return { success: false, message: "Freeze unavailable — already used or no tokens" };
+      }
+      return { success: true, message: "Streak frozen for today" };
     });
-
-    return { success: true, message: "Streak frozen for today" };
   }
 
   async addFreezeToken(userId: string, count: number = 1): Promise<User | undefined> {
-    const user = await this.getUser(userId);
-    if (!user) return undefined;
-
+    // Atomic increment — never read-then-write. Multiple concurrent grants
+    // (e.g. mission completion + admin grant) all stack correctly.
     await db
       .update(appSchema.lifestyleUsers)
-      .set({ freezeTokens: user.freezeTokens + count })
+      .set({
+        freezeTokens: sql`${appSchema.lifestyleUsers.freezeTokens} + ${count}`,
+        updatedAt: new Date(),
+      })
       .where(eq(appSchema.lifestyleUsers.id, userId));
 
     return this.getUser(userId);
@@ -2576,7 +2609,46 @@ export class PostgresStorage implements IStorage {
     }));
   }
 
+  // Remove stale coop sessions so the table doesn't grow forever.
+  // Safe to call opportunistically (e.g. on session create). No-op if nothing
+  // expired. Thresholds err on the generous side so mid-game blips don't nuke
+  // an active match.
+  private async cleanupExpiredCoopSessions(): Promise<void> {
+    try {
+      const now = Date.now();
+      const oneHourAgo = new Date(now - 60 * 60 * 1000);
+      const threeHoursAgo = new Date(now - 3 * 60 * 60 * 1000);
+      const oneDayAgo = new Date(now - 24 * 60 * 60 * 1000);
+
+      await db.delete(appSchema.coopSessions).where(
+        or(
+          // Waiting invites never accepted, older than 1h
+          and(
+            eq(appSchema.coopSessions.status, "waiting"),
+            lt(appSchema.coopSessions.createdAt, oneHourAgo)
+          ),
+          // In-progress sessions idle > 3h (abandoned)
+          and(
+            eq(appSchema.coopSessions.status, "playing"),
+            lt(appSchema.coopSessions.createdAt, threeHoursAgo)
+          ),
+          // Completed sessions older than 24h — results page is a one-time view
+          and(
+            eq(appSchema.coopSessions.status, "completed"),
+            lt(appSchema.coopSessions.createdAt, oneDayAgo)
+          )
+        )
+      );
+    } catch (err) {
+      // Cleanup failure must never break a live call — just log it.
+      console.error("[coop] cleanupExpiredCoopSessions failed:", err);
+    }
+  }
+
   async createCoopSession(hostId: string, mode: CoopMode = "daily", arcadeGameIndex: number | null = null, invitedUserId: string | null = null): Promise<CoopSession> {
+    // Opportunistic GC — low-frequency operation (only on new session creation)
+    await this.cleanupExpiredCoopSessions();
+
     const host = await this.getUser(hostId);
     if (!host) throw new Error("Host user not found");
 

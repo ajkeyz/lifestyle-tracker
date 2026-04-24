@@ -290,7 +290,23 @@ export default function Home() {
 
               {/* ═══ PRIMARY CTA — Daily Drop ═══ */}
 
-              {/* First-week narrative now delivered via Cleo's speech bubble */}
+              {/* First-week narrative — visible phase pill so the journey is legible.
+                  Cleo also surfaces this in her speech bubble for tone. */}
+              {isInFirstWeek && firstWeekNarrative && !hasPlayedToday && (
+                <motion.div
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="flex items-center justify-center"
+                >
+                  <div
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-xs font-medium text-primary"
+                    data-testid="pill-first-week-phase"
+                  >
+                    <span className="opacity-70">Day {firstWeekDay} · {firstWeekNarrative.phase}</span>
+                  </div>
+                </motion.div>
+              )}
 
               <motion.div
                 initial={{ opacity: 0, y: 20 }}

@@ -207,8 +207,7 @@ export default function ProfileSetup() {
                     size="sm"
                     showBubble={true}
                     speechDelay={1400}
-                    message="Let's set up your look!"
-                    context={{ screen: "home", username: "", streak: 0 } satisfies MascotContext}
+                    context={{ screen: "profile-setup" } satisfies MascotContext}
                   />
                 </motion.div>
 

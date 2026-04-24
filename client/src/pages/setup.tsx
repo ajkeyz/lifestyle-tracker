@@ -106,8 +106,7 @@ export default function Setup() {
             size="sm"
             showBubble={true}
             speechDelay={1400}
-            message="Pick what you want to learn!"
-            context={{ screen: "home", username: "", streak: 0 } satisfies MascotContext}
+            context={{ screen: "setup" } satisfies MascotContext}
           />
         </motion.div>
 
