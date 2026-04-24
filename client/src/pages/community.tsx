@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,7 +11,6 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { AnimatedAvatar } from "@/components/animated-avatar";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { CreatorLeaderboard } from "@/components/creator-leaderboard";
 import {
   ArrowLeft,
   Plus,
@@ -21,8 +20,6 @@ import {
   Flame,
   Clock,
   TrendingUp,
-  Trophy,
-  Heart,
   Users,
   Smartphone,
   Plane,
@@ -30,7 +27,6 @@ import {
   AlertTriangle,
   CreditCard,
   Briefcase,
-  Award,
 } from "lucide-react";
 import type { CommunityScenario, COMMUNITY_CATEGORIES } from "@shared/schema";
 
@@ -71,22 +67,19 @@ function formatTimeAgo(dateStr: string): string {
   return date.toLocaleDateString();
 }
 
-function ScenarioCard({ 
-  scenario, 
-  onVote, 
+function ScenarioCard({
+  scenario,
+  onVote,
   onClick,
   isVoting,
-  showBadge = false,
-}: { 
-  scenario: CommunityScenario; 
+}: {
+  scenario: CommunityScenario;
   onVote: (type: "up" | "down") => void;
   onClick: () => void;
   isVoting: boolean;
-  showBadge?: boolean;
 }) {
   const CategoryIcon = CATEGORY_ICONS[scenario.category] || Sparkles;
   const netVotes = scenario.upvotes - scenario.downvotes;
-  const unlockedBadges = scenario.authorBadges.filter(b => b.unlocked);
   const engagementScore = scenario.upvotes + scenario.downvotes + scenario.commentCount;
   const isHot = engagementScore >= 10;
 
@@ -135,54 +128,32 @@ function ScenarioCard({
           
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap mb-1">
-              {scenario.isRealistOfWeek && (
-                <Badge className="bg-gradient-to-r from-orange-500 to-red-500 text-white border-0">
-                  <Flame className="w-3 h-3 mr-1" />
-                  Realest
-                </Badge>
-              )}
               <Badge variant="outline" className="text-xs">
                 <CategoryIcon className="w-3 h-3 mr-1" />
                 {CATEGORY_LABELS[scenario.category]}
               </Badge>
-              {scenario.type === "hypothetical" && (
-                <Badge variant="secondary" className="text-xs">Hypothetical</Badge>
+              {scenario.type === "demo" && (
+                <Badge className="text-[10px] bg-violet-500/15 text-violet-600 dark:text-violet-400 border border-violet-500/25 hover:bg-violet-500/20">
+                  DEMO
+                </Badge>
               )}
             </div>
-            
+
             <h3 className="font-semibold line-clamp-2 mb-2" data-testid={`text-scenario-title-${scenario.id}`}>
               {scenario.title}
             </h3>
-            
-            <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+
+            <p className="text-sm text-muted-foreground line-clamp-1 mb-3">
               {scenario.context}
             </p>
-            
+
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div className="flex items-center gap-2">
                 <AnimatedAvatar avatarId={scenario.authorAvatar || "cosmic-cat"} size="xs" />
                 <span className="text-xs text-muted-foreground">{scenario.authorUsername}</span>
-                {showBadge && unlockedBadges.length > 0 && (
-                  <Badge variant="outline" className="text-xs h-5">
-                    <Award className="w-3 h-3 mr-1" />
-                    {unlockedBadges.length}
-                  </Badge>
-                )}
-                {scenario.authorMoneyHealth > 80 && (
-                  <Badge variant="outline" className="text-xs h-5 border-green-500/50 text-green-500">
-                    <Heart className="w-3 h-3 mr-1" />
-                    {scenario.authorMoneyHealth}
-                  </Badge>
-                )}
               </div>
-              
+
               <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                {isHot && (
-                  <span className="flex items-center gap-0.5 text-orange-500">
-                    <Flame className="w-3 h-3" />
-                    Hot
-                  </span>
-                )}
                 <span className="flex items-center gap-1">
                   <MessageCircle className="w-3 h-3" />
                   {scenario.commentCount}
@@ -204,6 +175,12 @@ export default function Community() {
   const [category, setCategory] = useState<string>("all");
   const [votingId, setVotingId] = useState<string | null>(null);
 
+  // Track visit for daily mission
+  useEffect(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    sessionStorage.setItem(`visitedCommunity:${today}`, "1");
+  }, []);
+
   const { data: scenarios, isLoading } = useQuery<CommunityScenario[]>({
     queryKey: ["/api/community/scenarios", { category, sortBy }],
     queryFn: async () => {
@@ -216,10 +193,6 @@ export default function Community() {
     },
   });
 
-  const { data: realistOfWeek } = useQuery<CommunityScenario[]>({
-    queryKey: ["/api/community/realest-of-week"],
-  });
-
   const voteMutation = useMutation({
     mutationFn: async ({ scenarioId, type }: { scenarioId: string; type: "up" | "down" }) => {
       setVotingId(scenarioId);
@@ -227,7 +200,6 @@ export default function Community() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/community/scenarios"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/community/realest-of-week"] });
     },
     onSettled: () => {
       setVotingId(null);
@@ -256,10 +228,7 @@ export default function Community() {
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div>
-            <h1 className="font-bold text-lg" data-testid="text-page-title">Community</h1>
-            <p className="text-xs text-muted-foreground">Real scenarios, real advice</p>
-          </div>
+          <h1 className="font-bold text-lg" data-testid="text-page-title">Community</h1>
         </div>
         <Button
           className="btn-gold border-0 font-semibold"
@@ -271,38 +240,8 @@ export default function Community() {
         </Button>
       </header>
 
-      <main className="container max-w-2xl mx-auto p-4 space-y-6">
-        {realistOfWeek && realistOfWeek.length > 0 && realistOfWeek[0].isRealistOfWeek && (
-          <Card className="border-2 border-orange-500/30 bg-gradient-to-br from-orange-500/10 via-red-500/5 to-transparent" data-testid="card-realest-of-week">
-            <CardHeader className="pb-2">
-              <div className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center">
-                  <Trophy className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Flame className="w-4 h-4 text-orange-500" />
-                    Realest Scenario of the Week
-                  </CardTitle>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-2">
-              <ScenarioCard
-                scenario={realistOfWeek[0]}
-                onVote={(type) => voteMutation.mutate({ scenarioId: realistOfWeek[0].id, type })}
-                onClick={() => navigate(`/community/${realistOfWeek[0].id}`)}
-                isVoting={votingId === realistOfWeek[0].id}
-                showBadge
-              />
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Top Creators Leaderboard */}
-        <CreatorLeaderboard limit={5} showTitle={true} />
-
-        <div className="space-y-3 sticky top-[61px] z-40 bg-background/90 backdrop-blur-sm -mx-4 px-4 py-3 border-b border-border/30">
+      <main className="container max-w-2xl mx-auto p-4 space-y-4">
+        <div className="space-y-2 sticky top-[61px] z-40 bg-background/90 backdrop-blur-sm -mx-4 px-4 py-2 border-b border-border/30">
           <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
             {categories.map((cat) => {
               const CatIcon = CATEGORY_ICONS[cat.id];
@@ -360,7 +299,6 @@ export default function Community() {
                   onVote={(type) => voteMutation.mutate({ scenarioId: scenario.id, type })}
                   onClick={() => navigate(`/community/${scenario.id}`)}
                   isVoting={votingId === scenario.id}
-                  showBadge
                 />
               </motion.div>
             ))

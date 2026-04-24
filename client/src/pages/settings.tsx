@@ -69,6 +69,8 @@ import {
 import { useSound } from "@/hooks/use-sound";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/components/theme-provider";
+import { useTheme as useWeeklyTheme } from "@/hooks/use-theme";
+import { ThemePickerModal } from "@/components/theme-picker-modal";
 import { ReferralCard } from "@/components/referral-card";
 import { AnimatedAvatar } from "@/components/animated-avatar";
 import type { User } from "@shared/schema";
@@ -140,6 +142,8 @@ export default function Settings() {
   const { theme, setTheme } = useTheme();
 
   const [lowPressureOpen, setLowPressureOpen] = useState(false);
+  const [themePickerOpen, setThemePickerOpen] = useState(false);
+  const weeklyTheme = useWeeklyTheme();
   const [hapticEnabled, setHapticEnabled] = useState(
     () => localStorage.getItem("hapticEnabled") !== "false"
   );
@@ -174,8 +178,8 @@ export default function Settings() {
     },
     onError: () => {
       toast({
-        title: "Error",
-        description: "Failed to update settings.",
+        title: "Couldn't update settings",
+        description: "Please try again in a moment.",
         variant: "destructive",
       });
     },
@@ -196,8 +200,8 @@ export default function Settings() {
     },
     onError: (error: any) => {
       toast({
-        title: "Error",
-        description: error?.message || "Failed to delete account. Please try again or contact support.",
+        title: "Couldn't delete account",
+        description: error?.message || "Please try again, or reach out to support if it keeps happening.",
         variant: "destructive",
       });
     },
@@ -275,7 +279,7 @@ export default function Settings() {
         {/* ─── Profile Banner ───────────────────────────────── */}
         <Card
           className="relative cursor-pointer overflow-hidden border-0 bg-gradient-to-br from-card via-card to-primary/5 dark:to-primary/10 rounded-2xl"
-          onClick={() => navigate("/profile")}
+          onClick={() => navigate("/profile-setup?edit=true")}
           data-testid="card-profile-banner"
         >
           <CardContent className="p-5">
@@ -452,6 +456,18 @@ export default function Settings() {
           <SectionHeader>Features</SectionHeader>
           <Card className="overflow-hidden rounded-2xl" data-testid="card-features">
             <SettingsRow
+              icon={Sparkles}
+              iconClassName="bg-gradient-to-br from-emerald-500/20 to-teal-500/20 text-emerald-500"
+              label="Weekly Theme"
+              description={
+                weeklyTheme.currentDef
+                  ? `${weeklyTheme.currentDef.label} · ${weeklyTheme.canChange ? "Tap to change" : "Locked until Monday"}`
+                  : "Pick a topic for this week's drops"
+              }
+              onClick={() => setThemePickerOpen(true)}
+            />
+            <Separator />
+            <SettingsRow
               icon={BookOpen}
               iconClassName="bg-gradient-to-br from-yellow-500/20 to-amber-500/20 text-yellow-600"
               label="Financial Tips Library"
@@ -509,12 +525,11 @@ export default function Settings() {
                 {friends && friends.length > 0 ? (
                   <div className="space-y-1">
                     {friends.slice(0, 5).map((friend, index) => (
-                      <Link
+                      <div
                         key={friend.id}
-                        href={`/profile/${friend.id}`}
                         data-testid={`friend-rank-${friend.id}`}
                       >
-                        <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
+                        <div className="flex items-center gap-3 p-2 rounded-lg transition-colors">
                           <span className="text-xs font-bold text-muted-foreground w-5 text-center tabular-nums">
                             #{index + 1}
                           </span>
@@ -542,7 +557,7 @@ export default function Settings() {
                             )}
                           </div>
                         </div>
-                      </Link>
+                      </div>
                     ))}
                   </div>
                 ) : (
@@ -792,6 +807,7 @@ export default function Settings() {
         </footer>
 
       </main>
+      <ThemePickerModal open={themePickerOpen} onOpenChange={setThemePickerOpen} />
     </div>
   );
 }

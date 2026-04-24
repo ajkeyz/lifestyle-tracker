@@ -3,49 +3,64 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ActivityFeed, type ActivityItem } from "@/components/activity-feed";
 import { AnimatedAvatar } from "@/components/animated-avatar";
 import { Badge } from "@/components/ui/badge";
 import { AmbientBackground } from "@/components/ambient-background";
-import { GradientStripe } from "@/components/gradient-stripe";
 import {
   Users2,
   ChevronRight,
-  Trophy,
-  MessageSquare,
   Sparkles,
   Flame,
-  TrendingUp,
   UserPlus,
-  Bell,
   Loader2,
+  Copy,
+  Check,
+  Share2,
+  Settings,
+  EyeOff,
+  Users,
+  Lock,
 } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation, Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import type { User as UserType, CommunityScenario } from "@shared/schema";
+import { useProgression } from "@/hooks/use-progression";
+import type { User as UserType } from "@shared/schema";
 
 export default function Social() {
   const [, navigate] = useLocation();
   const qc = useQueryClient();
   const { toast } = useToast();
-  const [nudgedFriends, setNudgedFriends] = useState<Set<string>>(new Set());
+  const [copied, setCopied] = useState(false);
+  const { unlocks } = useProgression();
+  const coopUnlocked = unlocks.coop.unlocked;
 
-  const nudgeMutation = useMutation({
-    mutationFn: async (friendId: string) => {
-      const res = await apiRequest("POST", `/api/friends/${friendId}/nudge`);
-      return res.json();
-    },
-    onSuccess: (_, friendId) => {
-      setNudgedFriends((prev) => new Set(prev).add(friendId));
-      toast({ title: "Nudge sent!", description: "Your friend will get a reminder to play." });
-    },
-    onError: (err: Error) => {
-      toast({ title: "Can't nudge", description: err.message || "Try again later.", variant: "destructive" });
-    },
-  });
+  const handleCopyUsername = async (username: string) => {
+    try {
+      await navigator.clipboard.writeText(username);
+      setCopied(true);
+      toast({ title: "Username copied!", description: "Share it with friends so they can find you." });
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast({ title: "Couldn't copy", description: "Please copy the username manually.", variant: "destructive" });
+    }
+  };
+
+  const handleShareUsername = async (username: string) => {
+    const shareText = `Add me on Lifestyle Creep! My username is: ${username}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "Add me on Lifestyle Creep", text: shareText });
+      } catch (err) {
+        if ((err as Error).name !== "AbortError") handleCopyUsername(username);
+      }
+    } else {
+      handleCopyUsername(username);
+    }
+  };
 
   // Mark social activity as read when this screen mounts
   useEffect(() => {
@@ -76,15 +91,6 @@ export default function Social() {
     queryKey: ["/api/friends"],
   });
 
-  // Community hot posts
-  const { data: hotPosts, isLoading: postsLoading } = useQuery<CommunityScenario[]>({
-    queryKey: ["/api/community/scenarios", { sortBy: "hot", limit: 5 }],
-    queryFn: async () => {
-      const res = await fetch("/api/community/scenarios?sortBy=hot");
-      return res.json();
-    },
-  });
-
   const topFriends = friends?.slice(0, 5) ?? [];
 
   return (
@@ -112,27 +118,95 @@ export default function Social() {
       </header>
 
       <main className="container max-w-2xl mx-auto p-4 space-y-4">
+        {/* ═══ You: identity + share + privacy ═══ */}
+        {user && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Card className="p-4 rounded-2xl space-y-3" data-testid="card-you">
+              <div className="flex items-center gap-3">
+                <AnimatedAvatar
+                  avatarId={user.avatar || "cosmic-cat"}
+                  size="xs"
+                  isAnimated={false}
+                  className="w-11 h-11 [&>div]:w-11 [&>div]:h-11"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-sm font-semibold truncate">@{user.username}</h2>
+                    {user.isProfilePrivate && (
+                      <Badge variant="outline" className="gap-1 h-5 text-[10px]" data-testid="badge-private">
+                        <EyeOff className="w-2.5 h-2.5" />
+                        Private
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">You control what others see</p>
+                </div>
+                <Link href="/profile-setup?edit=true">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 shrink-0"
+                    data-testid="button-edit-profile"
+                    aria-label="Edit profile"
+                  >
+                    <Settings className="w-4 h-4" />
+                  </Button>
+                </Link>
+              </div>
+
+              {/* Share username row */}
+              <div className="flex gap-2">
+                <Input
+                  value={user.username}
+                  readOnly
+                  className="font-mono text-sm h-9"
+                  data-testid="input-username-share"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 shrink-0"
+                  onClick={() => handleCopyUsername(user.username)}
+                  data-testid="button-copy-username"
+                  aria-label="Copy username"
+                >
+                  {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 shrink-0"
+                  onClick={() => handleShareUsername(user.username)}
+                  data-testid="button-share-username"
+                  aria-label="Share username"
+                >
+                  <Share2 className="w-4 h-4" />
+                </Button>
+              </div>
+            </Card>
+          </motion.div>
+        )}
+
         {/* ═══ SECTION 1: Activity Feed (Primary) ═══ */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
         >
-          <Card className="relative overflow-hidden rounded-2xl" data-testid="card-activity-feed">
-            <GradientStripe variant="primary" />
+          <Card className="rounded-2xl" data-testid="card-activity-feed">
             <div className="flex items-center gap-2 p-4 pb-2">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/20">
-                <Sparkles className="w-4.5 h-4.5 text-white" />
-              </div>
-              <div className="flex-1">
-                <h2 className="text-sm font-semibold">Activity</h2>
-                {friendsActivity && friendsActivity.friendsPlayedToday > 0 && (
-                  <p className="text-[11px] text-muted-foreground">
-                    {friendsActivity.friendsPlayedToday} friend
-                    {friendsActivity.friendsPlayedToday !== 1 ? "s" : ""} played today
-                  </p>
-                )}
-              </div>
+              <Sparkles className="w-4 h-4 text-primary" />
+              <h2 className="text-sm font-semibold flex-1">Activity</h2>
+              {friendsActivity && friendsActivity.friendsPlayedToday > 0 && (
+                <span className="text-[11px] text-muted-foreground">
+                  {friendsActivity.friendsPlayedToday} friend
+                  {friendsActivity.friendsPlayedToday !== 1 ? "s" : ""} played today
+                </span>
+              )}
             </div>
             <ActivityFeed
               activities={friendsActivity?.recentActivity ?? []}
@@ -148,19 +222,14 @@ export default function Social() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.05 }}
         >
-          <Card className="p-4 relative overflow-hidden rounded-2xl" data-testid="card-social-friends">
-            <GradientStripe variant="primary" />
+          <Card className="p-4 rounded-2xl" data-testid="card-social-friends">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/20">
-                  <Trophy className="w-4.5 h-4.5 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold">Friends</h3>
-                  <p className="text-[11px] text-muted-foreground">
-                    {friends?.length ?? 0} friend{(friends?.length ?? 0) !== 1 ? "s" : ""}
-                  </p>
-                </div>
+                <Users2 className="w-4 h-4 text-primary" />
+                <h3 className="text-sm font-semibold">Friends</h3>
+                <span className="text-[11px] text-muted-foreground">
+                  {friends?.length ?? 0}
+                </span>
               </div>
               <Button
                 variant="ghost"
@@ -189,16 +258,15 @@ export default function Social() {
             ) : topFriends.length > 0 ? (
               <div className="space-y-1">
                 {topFriends.map((friend, index) => (
-                  <Link
+                  <div
                     key={friend.id}
-                    href={`/profile/${friend.id}`}
                     data-testid={`social-friend-${friend.id}`}
                   >
                     <motion.div
                       initial={{ opacity: 0, x: -8 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: index * 0.04 }}
-                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/30 transition-colors cursor-pointer"
+                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/30 transition-colors"
                     >
                       {/* Rank + Avatar */}
                       <div className="relative">
@@ -237,35 +305,37 @@ export default function Social() {
                         </div>
                       </div>
 
-                      {/* Nudge button */}
-                      {friend.streak === 0 && !nudgedFriends.has(friend.id) && (
+                      {/* Play Coop button — disabled if coop locked */}
+                      {coopUnlocked ? (
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
-                          className="h-7 px-2 text-xs gap-1 text-muted-foreground hover:text-primary flex-shrink-0"
+                          className="h-7 px-2.5 text-xs gap-1 text-primary border-primary/30 hover:bg-primary/10 flex-shrink-0"
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            nudgeMutation.mutate(friend.id);
+                            navigate(`/coop-lobby?invite=${friend.id}`);
                           }}
-                          disabled={nudgeMutation.isPending}
-                          data-testid={`button-nudge-${friend.id}`}
+                          data-testid={`button-play-coop-${friend.id}`}
                         >
-                          {nudgeMutation.isPending ? (
-                            <Loader2 className="w-3 h-3 animate-spin" />
-                          ) : (
-                            <Bell className="w-3 h-3" />
-                          )}
-                          Nudge
+                          <Users className="w-3 h-3" />
+                          Play Co-op
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2.5 text-xs gap-1 text-muted-foreground/40 border-border/40 cursor-not-allowed flex-shrink-0"
+                          disabled
+                          title={unlocks.coop.condition || "Co-op is locked"}
+                          data-testid={`button-play-coop-locked-${friend.id}`}
+                        >
+                          <Lock className="w-3 h-3" />
+                          Co-op
                         </Button>
                       )}
-                      {nudgedFriends.has(friend.id) && (
-                        <Badge variant="outline" className="text-[10px] h-5 flex-shrink-0 text-green-500 border-green-500/30">
-                          Nudged
-                        </Badge>
-                      )}
                     </motion.div>
-                  </Link>
+                  </div>
                 ))}
               </div>
             ) : (
@@ -288,118 +358,7 @@ export default function Social() {
           </Card>
         </motion.div>
 
-        {/* ═══ SECTION 3: Community (Tertiary) ═══ */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.1 }}
-        >
-          <Card className="p-4 relative overflow-hidden rounded-2xl" data-testid="card-social-community">
-            <GradientStripe variant="primary" />
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/20">
-                  <MessageSquare className="w-4.5 h-4.5 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold">Community</h3>
-                  <p className="text-xs text-muted-foreground">Real scenarios, real advice</p>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="gap-1"
-                onClick={() => navigate("/community")}
-                data-testid="button-view-community-social"
-              >
-                View All
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
-
-            {postsLoading ? (
-              <div className="space-y-2">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="p-3 rounded-lg bg-muted/20">
-                    <Skeleton className="h-4 w-3/4 mb-2" />
-                    <Skeleton className="h-3 w-1/2" />
-                  </div>
-                ))}
-              </div>
-            ) : hotPosts && hotPosts.length > 0 ? (
-              <div className="space-y-2">
-                {hotPosts.slice(0, 3).map((post, i) => (
-                  <motion.div
-                    key={post.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    whileTap={{ scale: 0.98 }}
-                    transition={{ delay: i * 0.06 }}
-                    className="p-3 rounded-lg bg-muted/30 cursor-pointer hover:bg-muted/50 border border-transparent hover:border-border/50 transition-all"
-                    onClick={() => navigate(`/community/${post.id}`)}
-                    data-testid={`social-community-post-${post.id}`}
-                  >
-                    <div className="flex items-start gap-2">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium line-clamp-1">{post.title}</p>
-                        <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
-                          {post.context}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-1.5 flex-shrink-0">
-                        {post.upvotes + post.downvotes + post.commentCount >= 10 && (
-                          <Badge
-                            variant="outline"
-                            className="text-[10px] h-5 border-orange-500/30 text-orange-500 px-1.5"
-                          >
-                            <Flame className="w-2.5 h-2.5 mr-0.5" />
-                            Hot
-                          </Badge>
-                        )}
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <TrendingUp className="w-3 h-3 text-primary" />
-                          <span>{post.upvotes}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                      <AnimatedAvatar
-                        avatarId={post.authorAvatar || "cosmic-cat"}
-                        size="xs"
-                      />
-                      <span>{post.authorUsername}</span>
-                      <span>·</span>
-                      <span>{post.commentCount} comments</span>
-                    </div>
-                  </motion.div>
-                ))}
-
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full gap-1 text-xs mt-1"
-                  onClick={() => navigate("/community/submit")}
-                  data-testid="button-submit-scenario-social"
-                >
-                  Share a real scenario
-                </Button>
-              </div>
-            ) : (
-              <div className="text-center py-4 text-sm text-muted-foreground">
-                <p className="mb-1">Your question might save someone money tonight.</p>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="mt-1"
-                  onClick={() => navigate("/community/submit")}
-                >
-                  Share a real scenario
-                </Button>
-              </div>
-            )}
-          </Card>
-        </motion.div>
+        {/* Community section removed — accessible via home page preview + bottom nav */}
       </main>
     </div>
   );

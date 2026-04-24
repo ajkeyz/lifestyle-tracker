@@ -266,8 +266,8 @@ export default function CommunityDetail() {
     },
     onError: () => {
       toast({
-        title: "Error",
-        description: "Failed to add comment. Please try again.",
+        title: "Couldn't post your comment",
+        description: "Please try again in a moment.",
         variant: "destructive",
       });
     },
@@ -293,8 +293,8 @@ export default function CommunityDetail() {
     },
     onError: () => {
       toast({
-        title: "Error",
-        description: "Failed to add reply. Please try again.",
+        title: "Couldn't post your reply",
+        description: "Please try again in a moment.",
         variant: "destructive",
       });
     },
@@ -360,6 +360,11 @@ export default function CommunityDetail() {
               </Badge>
               {scenario.type === "hypothetical" && (
                 <Badge variant="secondary">Hypothetical</Badge>
+              )}
+              {scenario.type === "demo" && (
+                <Badge className="text-[10px] bg-violet-500/15 text-violet-600 dark:text-violet-400 border border-violet-500/25 hover:bg-violet-500/20">
+                  DEMO
+                </Badge>
               )}
             </div>
 

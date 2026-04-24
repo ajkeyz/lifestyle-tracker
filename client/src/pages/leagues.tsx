@@ -646,14 +646,14 @@ export default function Leagues() {
           />
         )}
 
-        <Button 
-          variant="ghost" 
-          className="w-full" 
-          onClick={() => navigate("/")}
-          data-testid="button-back-home"
+        <Button
+          variant="ghost"
+          className="w-full"
+          onClick={() => navigate("/play-hub")}
+          data-testid="button-back-play-hub"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Home
+          Back to Play
         </Button>
       </main>
     </div>

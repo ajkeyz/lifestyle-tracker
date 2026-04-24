@@ -144,8 +144,8 @@ export function DebugScreen({ open, onOpenChange }: DebugScreenProps) {
               endpoint="/api/debug/unlock-all"
             />
             <DebugAction
-              label="Reset User Data"
-              description="Reset to fresh new-user state"
+              label="Reset User & Onboarding"
+              description="Wipes data + onboarding to test new-user flow"
               icon={<Trash2 className="w-4 h-4" />}
               endpoint="/api/debug/reset-user"
               destructive
@@ -241,6 +241,7 @@ function DebugAction({
 }) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<"success" | "error" | null>(null);
+  const isResetUser = endpoint === "/api/debug/reset-user";
 
   const handleClick = async () => {
     if (destructive && !confirm(`Are you sure? This will ${label.toLowerCase()}.`)) return;
@@ -250,6 +251,20 @@ function DebugAction({
       const res = await fetch(endpoint, { method: "POST" });
       if (res.ok) {
         setResult("success");
+        // For reset-user, also clear all client-side session/local state so the
+        // onboarding flow runs fresh on next page load.
+        if (isResetUser) {
+          try {
+            sessionStorage.clear();
+            localStorage.removeItem("dailyProgressCollapsed");
+            localStorage.removeItem("lifestyle_tracker_flags");
+            localStorage.removeItem("profileNudgeDismissed");
+          } catch {}
+          queryClient.clear();
+          // Reload to trigger onboarding/profile-setup flow
+          setTimeout(() => window.location.assign("/"), 600);
+          return;
+        }
         queryClient.invalidateQueries({ queryKey: ["/api/user"] });
         queryClient.invalidateQueries({ queryKey: ["/api/daily-drop"] });
         queryClient.invalidateQueries({ queryKey: ["/api/streak-calendar"] });

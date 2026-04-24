@@ -2,9 +2,7 @@ import { useLocation, Link } from "wouter";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { AnimatedAvatar } from "@/components/animated-avatar";
-import { Home, Gamepad2, Users2, User } from "lucide-react";
-import type { User as UserType } from "@shared/schema";
+import { Home, Gamepad2, Users2 } from "lucide-react";
 
 interface NavItem {
   path: string;
@@ -16,7 +14,6 @@ interface NavItem {
 
 export function BottomNav() {
   const [location] = useLocation();
-  const { data: user } = useQuery<UserType>({ queryKey: ["/api/user"] });
 
   // Check for unread social activity
   const { data: socialUnread } = useQuery<{ hasUnread: boolean }>({
@@ -28,7 +25,6 @@ export function BottomNav() {
     { path: "/", icon: Home, label: "Home" },
     { path: "/play-hub", icon: Gamepad2, label: "Play" },
     { path: "/social", icon: Users2, label: "Social", showDot: socialUnread?.hasUnread },
-    { path: "/profile", icon: User, label: "Profile" },
   ];
 
   const isActive = (path: string) => {
@@ -45,7 +41,6 @@ export function BottomNav() {
         {navItems.map((item) => {
           const active = isActive(item.path);
           const Icon = item.icon;
-          const isProfile = item.label === "Profile";
 
           return (
             <Link
@@ -68,34 +63,18 @@ export function BottomNav() {
                     transition={{ type: "spring", stiffness: 500, damping: 30 }}
                   />
                 )}
-                {isProfile && user?.avatar ? (
-                  <div
-                    className={cn(
-                      "w-6 h-6 rounded-full overflow-hidden",
-                      active && "ring-2 ring-primary ring-offset-1 ring-offset-background"
-                    )}
-                  >
-                    <AnimatedAvatar
-                      avatarId={user.avatar}
-                      size="xs"
-                      isAnimated={false}
-                      className="w-6 h-6 [&>div]:w-6 [&>div]:h-6"
+                <div className="relative">
+                  <Icon className={cn("w-5 h-5", active && "animate-bounce-subtle")} />
+                  {/* Notification dot */}
+                  {item.showDot && !active && (
+                    <motion.div
+                      className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: "spring", stiffness: 500 }}
                     />
-                  </div>
-                ) : (
-                  <div className="relative">
-                    <Icon className={cn("w-5 h-5", active && "animate-bounce-subtle")} />
-                    {/* Notification dot */}
-                    {item.showDot && !active && (
-                      <motion.div
-                        className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500"
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ type: "spring", stiffness: 500 }}
-                      />
-                    )}
-                  </div>
-                )}
+                  )}
+                </div>
                 <span className="text-[10px] font-medium">{item.label}</span>
               </motion.div>
             </Link>

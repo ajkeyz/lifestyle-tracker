@@ -97,6 +97,12 @@ export default function TipsLibrary() {
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedTip, setExpandedTip] = useState<string | null>(null);
   
+  // Track visit for daily mission
+  useEffect(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    sessionStorage.setItem(`visitedTips:${today}`, "1");
+  }, []);
+
   // Update category from URL param on mount
   useEffect(() => {
     if (initialCategory && CATEGORIES.some(c => c.id === initialCategory)) {

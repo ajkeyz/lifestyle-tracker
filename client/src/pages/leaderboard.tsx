@@ -45,8 +45,9 @@ export default function Leaderboard() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate("/")}
-            data-testid="button-back-home"
+            onClick={() => navigate("/social")}
+            data-testid="button-back-social"
+            aria-label="Back to Social"
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>

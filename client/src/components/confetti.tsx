@@ -9,8 +9,18 @@ interface ConfettiOptions {
   colors?: string[];
 }
 
+// Skip every confetti burst when the user has prefers-reduced-motion enabled.
+// Confetti is the loudest animation in the app — flashing colors, particle
+// motion, and sustained 3–4s bursts. Honoring the OS preference is a basic
+// accessibility requirement, not a nicety.
+function prefersReducedMotion(): boolean {
+  if (typeof window === "undefined" || !window.matchMedia) return false;
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
 export function useConfetti() {
   const fireConfetti = useCallback((options: ConfettiOptions = {}) => {
+    if (prefersReducedMotion()) return;
     const defaults: ConfettiOptions = {
       particleCount: 100,
       spread: 70,
@@ -25,6 +35,7 @@ export function useConfetti() {
   }, []);
 
   const firePerfectScore = useCallback(() => {
+    if (prefersReducedMotion()) return;
     const isExperimental = isFeatureEnabled("experimental_animations");
     const duration = isExperimental ? 4000 : 3000;
     const end = Date.now() + duration;
@@ -66,6 +77,7 @@ export function useConfetti() {
   }, []);
 
   const fireStreakMilestone = useCallback((milestone: number) => {
+    if (prefersReducedMotion()) return;
     const isExperimental = isFeatureEnabled("experimental_animations");
     const colors =
       milestone >= 100
@@ -118,6 +130,7 @@ export function useConfetti() {
   }, []);
 
   const fireAchievement = useCallback(() => {
+    if (prefersReducedMotion()) return;
     confetti({
       particleCount: 80,
       spread: 60,
@@ -127,6 +140,7 @@ export function useConfetti() {
   }, []);
 
   const fireMiniCorrect = useCallback(() => {
+    if (prefersReducedMotion()) return;
     confetti({
       particleCount: 25,
       spread: 45,
@@ -139,6 +153,7 @@ export function useConfetti() {
   }, []);
 
   const fireMiniIncorrect = useCallback(() => {
+    if (prefersReducedMotion()) return;
     // Subtle red particles falling for incorrect answer
     confetti({
       particleCount: 10,

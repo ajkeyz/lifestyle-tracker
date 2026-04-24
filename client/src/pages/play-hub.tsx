@@ -3,18 +3,18 @@ import { motion } from "framer-motion";
 import { AppLogo } from "@/components/app-logo";
 import { AmbientBackground } from "@/components/ambient-background";
 import { ModeCard } from "@/components/mode-card";
-import { Mascot, getMascotContextDialogue, type MascotContext } from "@/components/mascot";
 import { useProgression } from "@/hooks/use-progression";
+import { useTheme } from "@/hooks/use-theme";
 import { toast } from "@/hooks/use-toast";
 import {
   Play,
   Gamepad2,
   Users,
   Settings,
-  ChevronRight,
-  CheckCircle2,
   Flame,
-  RefreshCw,
+  Zap,
+  Target,
+  Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -26,6 +26,7 @@ export default function PlayHub() {
   const [, navigate] = useLocation();
   const { user: authUser } = useAuth();
   const { unlocks, user } = useProgression();
+  const { currentDef: themeDef } = useTheme();
 
   const handleModeClick = (mode: GameModeId, path: string) => {
     if (!unlocks[mode].unlocked) {
@@ -41,15 +42,16 @@ export default function PlayHub() {
   const hasPlayedToday = user?.todayResult != null;
   const dailyDropPath = hasPlayedToday
     ? "/results"
-    : user?.mode
+    : user?.weeklyTheme
       ? "/play"
       : "/setup";
 
+  const themeLabel = themeDef?.label ?? "this week's theme";
   const gridModes = [
     {
       id: "arcade" as GameModeId,
       title: "Arcade",
-      description: "Speed rounds & bonuses",
+      description: `Speed rounds · ${themeLabel}`,
       icon: <Gamepad2 className="w-5 h-5 text-white" />,
       gradient: "bg-gradient-to-br from-purple-500 to-pink-500",
       path: "/arcade",
@@ -94,128 +96,53 @@ export default function PlayHub() {
       </header>
 
       <main className="container max-w-2xl mx-auto px-4 pt-4 pb-6 space-y-4">
-        {/* ── Featured: Daily Drop ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35 }}
-        >
-          <Card
-            className={cn(
-              "relative overflow-hidden rounded-2xl cursor-pointer hover-elevate border border-transparent hover:border-primary/20 transition-all duration-200",
-              hasPlayedToday && "border-emerald-500/20"
-            )}
-            onClick={() => navigate(dailyDropPath)}
-            data-testid="mode-card-daily-drop"
+        {/* ── Quick Stats ── */}
+        {user && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="grid grid-cols-3 gap-2"
           >
-            {/* Gradient accent bar */}
-            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-400 via-primary to-emerald-600 rounded-t-2xl" />
-
-            <div className="p-4 flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-emerald-600 flex items-center justify-center shadow-lg shadow-primary/25 flex-shrink-0">
-                {hasPlayedToday ? (
-                  <CheckCircle2 className="w-5.5 h-5.5 text-white" />
-                ) : (
-                  <Play className="w-5 h-5 text-white ml-0.5" />
-                )}
+            {[
+              { icon: Zap, label: "XP", value: user.totalScore, color: "text-yellow-400" },
+              { icon: Flame, label: "Streak", value: `${user.streak}d`, color: user.streak >= 3 ? "text-orange-400" : "text-muted-foreground" },
+              { icon: Target, label: "Games", value: Math.max(user.gamesPlayed, user.todayResult ? 1 : 0), color: "text-blue-400" },
+            ].map((stat) => (
+              <div key={stat.label} className="flex items-center gap-2 p-2.5 rounded-xl bg-card/50 border border-border/50">
+                <stat.icon className={cn("w-3.5 h-3.5", stat.color)} />
+                <span className="text-sm font-bold tabular-nums">{stat.value}</span>
+                <span className="text-[10px] text-muted-foreground">{stat.label}</span>
               </div>
+            ))}
+          </motion.div>
+        )}
 
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-bold text-[15px]">Daily Drop</h3>
-                  {hasPlayedToday && (
-                    <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-400">
-                      Done
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {hasPlayedToday
-                    ? "View your results & insights"
-                    : "5 real-life money decisions · 2-4 min"}
-                </p>
-              </div>
-
-              <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-            </div>
-
-            {/* Streak indicator when active */}
-            {(user?.streak ?? 0) > 0 && (
-              <div className="px-4 pb-3 pt-0">
-                <div className="flex items-center gap-1.5 text-[11px] text-amber-400/80">
-                  <Flame className="w-3 h-3" />
-                  <span>{user?.streak} day streak</span>
-                </div>
-              </div>
-            )}
-
-            {/* Replay option */}
-            {hasPlayedToday && (
-              <div className="px-4 pb-3 pt-0">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full gap-2 text-xs h-8 text-muted-foreground hover:text-foreground"
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    try {
-                      const res = await fetch("/api/daily-drop/replay", { method: "POST" });
-                      if (res.ok) {
-                        const { queryClient } = await import("@/lib/queryClient");
-                        queryClient.setQueryData(["/api/user"], (old: any) =>
-                          old ? { ...old, todayResult: null } : old
-                        );
-                        navigate("/play");
-                      }
-                    } catch { toast({ title: "Replay failed", description: "Could not start replay. Try again.", variant: "destructive" }); }
-                  }}
-                  data-testid="button-replay-hub"
-                >
-                  <RefreshCw className="w-3 h-3" />
-                  Replay Today's Drop
-                </Button>
-              </div>
-            )}
-          </Card>
-        </motion.div>
-
-        {/* ── Section label ── */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.1, duration: 0.3 }}
-          className="flex items-center gap-2 pt-1"
-        >
-          <p className="text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-[0.12em] px-0.5">
-            Game Modes
-          </p>
-          <div className="flex-1 h-px bg-border/40" />
-        </motion.div>
-
-        {/* ── Cleo ── */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.15, duration: 0.3 }}
-          className="flex justify-center py-2"
-        >
-          <Mascot
-            mood="hyped"
-            size="sm"
-            showBubble={true}
-            speechDelay={1400}
-            context={{ screen: "play-hub", username: user?.username, streak: user?.streak ?? 0 } as MascotContext}
-          />
-        </motion.div>
-
-        {/* ── Mode List ── */}
+        {/* ── Game Modes ── */}
         <div className="space-y-2">
+          {/* Daily Drop as first mode */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <ModeCard
+              title="Daily Drop"
+              description={hasPlayedToday ? "View your results" : `5 decisions · ${themeLabel}`}
+              icon={<Play className="w-5 h-5 text-white ml-0.5" />}
+              gradient="bg-gradient-to-br from-primary to-emerald-600"
+              unlock={{ unlocked: true, progress: 1 }}
+              onClick={() => navigate(dailyDropPath)}
+              badge={hasPlayedToday ? "Done" : undefined}
+            />
+          </motion.div>
+
           {gridModes.map((mode, i) => (
             <motion.div
               key={mode.id}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.12 + i * 0.05, duration: 0.3 }}
+              transition={{ delay: 0.05 + i * 0.05, duration: 0.3 }}
             >
               <ModeCard
                 title={mode.title}
@@ -224,11 +151,34 @@ export default function PlayHub() {
                 gradient={mode.gradient}
                 unlock={unlocks[mode.id]}
                 onClick={() => handleModeClick(mode.id, mode.path)}
-                badge={mode.badge}
               />
             </motion.div>
           ))}
         </div>
+
+        {/* ── Recent Scores ── */}
+        {user?.gameHistory && user.gameHistory.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.3 }}
+          >
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Star className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-[0.12em]">Recent Scores</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {user.gameHistory.slice(-3).reverse().map((game, i) => (
+                  <Card key={i} className="p-2.5 text-center">
+                    <p className="text-lg font-bold tabular-nums">{game.score}</p>
+                    <p className="text-[10px] text-muted-foreground">{new Date(game.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</p>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
       </main>
     </div>
   );

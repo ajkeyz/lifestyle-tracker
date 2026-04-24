@@ -78,8 +78,8 @@ export default function NotificationsSetup() {
     } catch (error) {
       console.error("Notification permission error:", error);
       toast({
-        title: "Something went wrong",
-        description: "Could not enable notifications. Try again later.",
+        title: "Couldn't enable notifications",
+        description: "Try again in a moment, or skip for now.",
         variant: "destructive",
       });
     }

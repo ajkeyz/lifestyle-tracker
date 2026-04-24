@@ -40,9 +40,11 @@ export function DailyProgressCard({
 
   if (missions.length === 0) return null;
 
-  // Progress calculations
-  const totalSlots = Math.min(missions.length + completedIds.length, 3);
-  const completedSlots = Math.min(completedIds.length, totalSlots);
+  // Progress calculations — count missions that are done (claimed or check passes)
+  const completedSlots = missions.filter(
+    (m) => completedIds.includes(m.id) || m.check(context)
+  ).length;
+  const totalSlots = missions.length;
 
   return (
     <motion.div
@@ -65,7 +67,7 @@ export function DailyProgressCard({
           </div>
 
           <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-semibold leading-tight">Daily Progress</h3>
+            <h3 className="text-sm font-semibold leading-tight">Today's Goals</h3>
             <p className="text-[11px] text-muted-foreground">
               {completedSlots} of {totalSlots} missions complete
             </p>

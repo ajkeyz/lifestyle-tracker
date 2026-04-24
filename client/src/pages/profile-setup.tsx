@@ -125,7 +125,7 @@ export default function ProfileSetup() {
           title: "Profile updated",
           description: "Your changes have been saved.",
         });
-        navigate("/profile", { replace: true });
+        navigate("/social", { replace: true });
       } else if (isPostGame) {
         toast({
           title: "Profile set up!",
@@ -138,8 +138,8 @@ export default function ProfileSetup() {
     },
     onError: (error: Error) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to save profile. Please try again.",
+        title: "Couldn't save profile",
+        description: error.message || "Please try again in a moment.",
         variant: "destructive",
       });
     },
@@ -207,8 +207,7 @@ export default function ProfileSetup() {
                     size="sm"
                     showBubble={true}
                     speechDelay={1400}
-                    message="Let's set up your look!"
-                    context={{ screen: "home", username: "", streak: 0 } satisfies MascotContext}
+                    context={{ screen: "profile-setup" } satisfies MascotContext}
                   />
                 </motion.div>
 

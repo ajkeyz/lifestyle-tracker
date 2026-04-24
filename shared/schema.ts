@@ -32,6 +32,8 @@ export interface DailyDrop {
   id: string;
   dropNumber: number;
   date: string;
+  /** Theme the drop was generated for (null for legacy pre-theme drops) */
+  theme: string | null;
   scenarios: Scenario[];
 }
 
@@ -132,6 +134,8 @@ export interface User {
   referralCount: number;
   friendIds: string[];
   membershipTier: "free" | "plus" | "pro";
+  weeklyTheme: string | null;
+  themeWeekStart: string | null;
   arcadePlaysToday: number;
   arcadeLastPlayedDate: string | null;
   moneyPhilosophy: string;
@@ -375,7 +379,7 @@ export interface UserBadge {
 }
 
 // Community Mode types
-export type ScenarioType = "real" | "hypothetical";
+export type ScenarioType = "real" | "hypothetical" | "demo";
 
 export interface CommunityScenario {
   id: string;

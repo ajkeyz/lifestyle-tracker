@@ -26,7 +26,16 @@ export type MascotMood =
 
 // Rich context passed to mascot for context-aware dialogue
 export interface MascotContext {
-  screen?: "home" | "game" | "results" | "coop-lobby" | "survival-lobby" | "arcade" | "play-hub";
+  screen?:
+    | "home"
+    | "game"
+    | "results"
+    | "coop-lobby"
+    | "survival-lobby"
+    | "arcade"
+    | "play-hub"
+    | "setup"
+    | "profile-setup";
   // Game context
   wasCorrect?: boolean;
   wasTimeout?: boolean;
@@ -54,6 +63,8 @@ interface MascotProps {
   /** Delay in ms before the speech bubble first appears (default 1200) */
   speechDelay?: number;
   disableTapBubble?: boolean;
+  /** Force the speech bubble to a specific side (bypasses auto-detection) */
+  forceBubbleSide?: "right" | "left" | "top" | "bottom";
   className?: string;
   onClick?: () => void;
   animate?: boolean;
@@ -1804,6 +1815,21 @@ const CONTEXT_DIALOGUE: Record<string, string[]> = {
     "Your training grounds. Pick a mode and let's go.",
     "Every mode is a new way to outsmart lifestyle creep.",
   ],
+  setup_theme: [
+    "Pick a theme — it sets the tone for your whole week.",
+    "What's been on your mind, {name}? Pick a theme that fits.",
+    "Themes lock in for a week. Pick something that scratches an itch.",
+    "Each theme = different scenarios. Choose your battlefield.",
+    "Heads up: you can swap themes once a week, every Monday.",
+    "Your week, your theme. What's it gonna be?",
+  ],
+  profile_setup: [
+    "Let's get you set up — pick an avatar that feels like you.",
+    "Almost done, {name}. A few more details and we're rolling.",
+    "Your profile is how you'll show up on leaderboards. Make it yours.",
+    "Quick setup, big payoff. Stick with me.",
+    "Looking sharp already. Let's wrap this.",
+  ],
 };
 
 // ============================================================
@@ -1918,6 +1944,8 @@ function resolveContextKey(ctx: MascotContext): string | null {
   if (screen === "survival-lobby") return "survival_lobby";
   if (screen === "arcade") return "arcade_lobby";
   if (screen === "play-hub") return "play_hub";
+  if (screen === "setup") return "setup_theme";
+  if (screen === "profile-setup") return "profile_setup";
 
   return null;
 }
@@ -2083,7 +2111,7 @@ function SpeechBubble({ message, position = "right", mood }: {
   return (
     <div
       ref={positionRef}
-      className="absolute z-20"
+      className="absolute z-30"
       style={{
         ...positionStyle,
         maxWidth: `min(280px, calc(100vw - ${EDGE_PAD * 2}px))`,
@@ -2104,7 +2132,7 @@ function SpeechBubble({ message, position = "right", mood }: {
             className="absolute"
             style={{
               ...tailBase[position],
-              background: "hsl(var(--card) / 0.96)",
+              background: "hsl(var(--card))",
               border: `1px solid ${accentColor}25`,
               zIndex: -1,
             }}
@@ -2112,7 +2140,7 @@ function SpeechBubble({ message, position = "right", mood }: {
           <motion.div
             className="rounded-2xl px-4 py-3 max-w-[280px] min-w-[100px] backdrop-blur-md"
             style={{
-              background: "hsl(var(--card) / 0.96)",
+              background: "hsl(var(--card))",
               border: `1.5px solid ${accentColor}25`,
               boxShadow: `0 8px 32px ${accentColor}15, 0 2px 8px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.08)`,
             }}
@@ -2188,6 +2216,7 @@ export function Mascot({
   showBubble = true,
   speechDelay = 1200,
   disableTapBubble = false,
+  forceBubbleSide,
   className,
   onClick,
   animate: shouldAnimateProp = true,
@@ -2244,10 +2273,11 @@ export function Mascot({
 
   // ── Smart bubble side detection ─────────────────────────────
   const [bubbleSide, setBubbleSide] = useState<BubbleSide>(
-    size === "xs" || size === "sm" ? "top" : "right"
+    forceBubbleSide ?? (size === "xs" || size === "sm" ? "top" : "right")
   );
 
   const detectBubbleSide = useCallback(() => {
+    if (forceBubbleSide) { setBubbleSide(forceBubbleSide); return; }
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const vw = window.innerWidth;

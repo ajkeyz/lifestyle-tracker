@@ -57,7 +57,7 @@ const CommunitySubmit = lazy(() => import("@/pages/community-submit"));
 const TipsLibrary = lazy(() => import("@/pages/tips-library"));
 const Admin = lazy(() => import("@/pages/admin"));
 const AdminScenarioBuilder = lazy(() => import("@/pages/admin-scenario-builder"));
-const Profile = lazy(() => import("@/pages/profile"));
+// Profile page disabled — relevant pieces moved to Social page
 const Friends = lazy(() => import("@/pages/friends"));
 const CoopLobby = lazy(() => import("@/pages/coop-lobby"));
 const CoopGame = lazy(() => import("@/pages/coop-game"));
@@ -141,7 +141,8 @@ function PlayHubGuard() {
     membershipTier: user.membershipTier,
   });
 
-  if (!unlocks.playHub.unlocked) {
+  // Unlock Play Hub if user has played at least 1 game OR has a todayResult
+  if (!unlocks.playHub.unlocked && !user.todayResult) {
     setTimeout(() => {
       toast({
         title: "Complete your first Drop",
@@ -202,8 +203,7 @@ function AuthenticatedRouter() {
             <Route path="/admin/scenario-builder" component={AdminScenarioBuilder} />
             <Route path="/admin/scenario-builder/:id" component={AdminScenarioBuilder} />
             <Route path="/social" component={Social} />
-            <Route path="/profile" component={Profile} />
-            <Route path="/profile/:userId" component={Profile} />
+            {/* Profile routes disabled — username/share/edit moved to Social */}
             <Route path="/friends" component={Friends} />
             <Route path="/coop-lobby">
               {() => <GuardedRoute mode="coop" component={CoopLobby} />}

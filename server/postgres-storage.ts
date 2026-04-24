@@ -1,5 +1,5 @@
 import { randomBytes } from "crypto";
-import { eq, and, or, desc, sql, like, ilike, inArray, aliasedTable } from "drizzle-orm";
+import { eq, and, or, desc, sql, like, ilike, inArray, aliasedTable, lt } from "drizzle-orm";
 import { db } from "./db";
 import { appSchema } from "./db";
 import type { IStorage } from "./storage";
@@ -220,6 +220,8 @@ export class PostgresStorage implements IStorage {
       referralCount: 0,
       friendIds: [],
       membershipTier: "free" as const,
+      weeklyTheme: null,
+      themeWeekStart: null,
       arcadePlaysToday: 0,
       arcadeLastPlayedDate: null,
       moneyPhilosophy: "",
@@ -579,6 +581,8 @@ export class PostgresStorage implements IStorage {
       referralCount: dbUser.referralCount,
       friendIds: dbUser.friendIds || [],
       membershipTier,
+      weeklyTheme: dbUser.weeklyTheme ?? null,
+      themeWeekStart: dbUser.themeWeekStart ?? null,
       arcadePlaysToday: dbUser.arcadePlaysToday || 0,
       arcadeLastPlayedDate: dbUser.arcadeLastPlayedDate || null,
       moneyPhilosophy: dbUser.moneyPhilosophy || "",
@@ -599,52 +603,41 @@ export class PostgresStorage implements IStorage {
   // GAME OPERATIONS
   // ============================================
 
-  async getDailyDrop(): Promise<DailyDrop> {
+  async getDailyDrop(theme?: string): Promise<DailyDrop> {
     const today = getTodayDateString();
     const dropNumber = getDayNumber();
+    // Resolve theme — fall back to default if caller didn't provide one
+    const { THEME_BY_ID, DEFAULT_THEME, isValidThemeId } = await import("@shared/lib/themes");
+    const resolvedTheme = theme && isValidThemeId(theme) ? theme : DEFAULT_THEME;
+    const themeDef = THEME_BY_ID[resolvedTheme];
 
-    // Check if drop exists in database for today
+    // Check if drop exists in database for (today, theme)
     const existingDrop = await db
       .select()
       .from(appSchema.dailyDrops)
-      .where(eq(appSchema.dailyDrops.date, today))
+      .where(and(
+        eq(appSchema.dailyDrops.date, today),
+        eq(appSchema.dailyDrops.theme, resolvedTheme),
+      ))
       .limit(1);
 
     if (existingDrop.length > 0) {
       return existingDrop[0] as DailyDrop;
     }
 
-    // Generate new drop for today
-    const todayScenarios = getDailyScenarios(dropNumber);
-    let shuffledScenarios = todayScenarios.map(scenario =>
+    // Generate new drop for (today, theme) — pull 5 scenarios from the theme's category pool
+    const { getScenariosForTheme } = await import("./static-scenarios");
+    const seed = `${today}-${resolvedTheme}`;
+    const themedScenarios = getScenariosForTheme(themeDef.categories, 5, seed);
+    let shuffledScenarios = themedScenarios.map(scenario =>
       shuffleScenarioChoices(scenario, today)
     );
-
-    // Mystery Scenario Friday: Add 6th bonus question on Fridays (UTC timezone)
-    const dayOfWeek = new Date(today + 'T00:00:00Z').getUTCDay();
-    const isFriday = dayOfWeek === 5;
-    if (isFriday) {
-      // Get a random "mystery" scenario from a different day
-      const mysteryDayIndex = Math.floor(Math.random() * 30);
-      const mysteryScenarios = getDailyScenarios(mysteryDayIndex + 1);
-      if (!mysteryScenarios || mysteryScenarios.length === 0) {
-        console.warn("No mystery scenarios available for Friday bonus");
-      }
-      const mysteryScenario = mysteryScenarios?.[Math.floor(Math.random() * mysteryScenarios.length)];
-
-      if (mysteryScenario) {
-        const enhancedMystery = {
-          ...mysteryScenario,
-          id: crypto.randomUUID(),
-        };
-        shuffledScenarios.push(shuffleScenarioChoices(enhancedMystery, today));
-      }
-    }
 
     const newDrop: DailyDrop = {
       id: crypto.randomUUID(),
       dropNumber,
       date: today,
+      theme: resolvedTheme,
       scenarios: shuffledScenarios,
     };
 
@@ -653,16 +646,23 @@ export class PostgresStorage implements IStorage {
       id: newDrop.id,
       dropNumber,
       date: today,
+      theme: resolvedTheme,
       scenarios: shuffledScenarios as any,
     });
 
-    console.log(`Created new daily drop for day ${dropNumber} (${today})`);
-
-    // NOTE: todayResult is validated in submitGame() by checking user.lastPlayedDate !== today
-    // We don't reset all users here to avoid race conditions at midnight
-    // Instead, results naturally become stale when date changes
+    console.log(`Created new daily drop for day ${dropNumber} (${today}) theme=${resolvedTheme}`);
 
     return newDrop;
+  }
+
+  async getDailyDropById(dropId: string): Promise<DailyDrop | undefined> {
+    if (!dropId) return undefined;
+    const result = await db
+      .select()
+      .from(appSchema.dailyDrops)
+      .where(eq(appSchema.dailyDrops.id, dropId))
+      .limit(1);
+    return result.length > 0 ? (result[0] as DailyDrop) : undefined;
   }
 
   async submitGame(sessionId: string, submission: SubmitGame, prefetchedDrop?: DailyDrop, prefetchedUser?: User): Promise<UserGameResult> {
@@ -1322,46 +1322,69 @@ export class PostgresStorage implements IStorage {
   // ============================================
 
   async useStreakFreeze(userId: string): Promise<{ success: boolean; message: string }> {
-    const user = await this.getUser(userId);
-    if (!user) return { success: false, message: "User not found" };
-
-    if (user.freezeTokens <= 0) {
-      return { success: false, message: "No freeze tokens available" };
-    }
-
+    // Atomic: a double-tap of "use freeze" must not consume two freezes for one
+    // day, and the token count must never go negative. We re-read the user
+    // INSIDE the transaction so concurrent callers see each other's writes.
     const today = getTodayDateString();
-    if (user.frozenDates.includes(today)) {
-      return { success: false, message: "Today is already frozen" };
-    }
+    return await db.transaction(async (tx) => {
+      const rows = await tx
+        .select()
+        .from(appSchema.lifestyleUsers)
+        .where(eq(appSchema.lifestyleUsers.id, userId))
+        .limit(1);
+      if (rows.length === 0) return { success: false, message: "User not found" };
+      const user = rows[0];
 
-    if (user.lastPlayedDate === today) {
-      return { success: false, message: "You've already played today" };
-    }
+      const freezeTokens = user.freezeTokens ?? 0;
+      const frozenDates = (user.frozenDates as string[]) ?? [];
+      const streakCalendar = (user.streakCalendar as StreakDay[]) ?? [];
 
-    const newStreakCalendar = [...user.streakCalendar];
-    const todayIndex = newStreakCalendar.findIndex(d => d.date === today);
-    if (todayIndex >= 0) {
-      newStreakCalendar[todayIndex] = { ...newStreakCalendar[todayIndex], frozen: true };
-    } else {
-      newStreakCalendar.push({ date: today, played: false, frozen: true });
-    }
+      if (freezeTokens <= 0) return { success: false, message: "No freeze tokens available" };
+      if (frozenDates.includes(today)) return { success: false, message: "Today is already frozen" };
+      if (user.lastPlayedDate === today) return { success: false, message: "You've already played today" };
 
-    await this.updateUser(userId, {
-      freezeTokens: user.freezeTokens - 1,
-      frozenDates: [...user.frozenDates, today],
-      streakCalendar: newStreakCalendar,
+      const newStreakCalendar = [...streakCalendar];
+      const todayIndex = newStreakCalendar.findIndex(d => d.date === today);
+      if (todayIndex >= 0) {
+        newStreakCalendar[todayIndex] = { ...newStreakCalendar[todayIndex], frozen: true };
+      } else {
+        newStreakCalendar.push({ date: today, played: false, frozen: true });
+      }
+
+      // Conditional UPDATE with `freezeTokens > 0` clause is the actual race
+      // guard — even if two transactions read the same value, only one can
+      // satisfy the WHERE clause once the other commits.
+      const updateResult = await tx
+        .update(appSchema.lifestyleUsers)
+        .set({
+          freezeTokens: sql`${appSchema.lifestyleUsers.freezeTokens} - 1`,
+          frozenDates: [...frozenDates, today],
+          streakCalendar: newStreakCalendar,
+          updatedAt: new Date(),
+        })
+        .where(and(
+          eq(appSchema.lifestyleUsers.id, userId),
+          sql`${appSchema.lifestyleUsers.freezeTokens} > 0`,
+          sql`NOT (${appSchema.lifestyleUsers.frozenDates} @> ${JSON.stringify([today])}::jsonb)`,
+        ))
+        .returning({ id: appSchema.lifestyleUsers.id });
+
+      if (updateResult.length === 0) {
+        return { success: false, message: "Freeze unavailable — already used or no tokens" };
+      }
+      return { success: true, message: "Streak frozen for today" };
     });
-
-    return { success: true, message: "Streak frozen for today" };
   }
 
   async addFreezeToken(userId: string, count: number = 1): Promise<User | undefined> {
-    const user = await this.getUser(userId);
-    if (!user) return undefined;
-
+    // Atomic increment — never read-then-write. Multiple concurrent grants
+    // (e.g. mission completion + admin grant) all stack correctly.
     await db
       .update(appSchema.lifestyleUsers)
-      .set({ freezeTokens: user.freezeTokens + count })
+      .set({
+        freezeTokens: sql`${appSchema.lifestyleUsers.freezeTokens} + ${count}`,
+        updatedAt: new Date(),
+      })
       .where(eq(appSchema.lifestyleUsers.id, userId));
 
     return this.getUser(userId);
@@ -1993,88 +2016,90 @@ export class PostgresStorage implements IStorage {
   }
 
   async voteComment(userId: string, commentId: string, voteType: "up" | "down"): Promise<CommunityComment | undefined> {
-    // Check if user already voted
-    const existingVote = await db
-      .select()
-      .from(appSchema.communityVotes)
-      .where(
-        and(
-          eq(appSchema.communityVotes.userId, userId),
-          eq(appSchema.communityVotes.commentId, commentId)
+    // Wrap the read-modify-write in a transaction to prevent race conditions
+    // (concurrent votes from same user creating duplicate rows or stale counts).
+    // Combined with the UNIQUE(commentId, userId) index on community_votes,
+    // this provides full safety.
+    await db.transaction(async (tx) => {
+      const existingVote = await tx
+        .select()
+        .from(appSchema.communityVotes)
+        .where(
+          and(
+            eq(appSchema.communityVotes.userId, userId),
+            eq(appSchema.communityVotes.commentId, commentId),
+          ),
         )
-      )
-      .limit(1);
+        .limit(1);
 
-    if (existingVote.length > 0) {
-      const oldVote = existingVote[0];
+      if (existingVote.length > 0) {
+        const oldVote = existingVote[0];
 
-      if (oldVote.type === voteType) {
-        // Remove vote
-        await db
-          .delete(appSchema.communityVotes)
-          .where(eq(appSchema.communityVotes.id, oldVote.id));
+        if (oldVote.type === voteType) {
+          // Remove vote
+          await tx
+            .delete(appSchema.communityVotes)
+            .where(eq(appSchema.communityVotes.id, oldVote.id));
 
-        // Update comment counts
-        if (voteType === "up") {
-          await db
-            .update(appSchema.communityComments)
-            .set({ upvotes: sql`${appSchema.communityComments.upvotes} - 1` })
-            .where(eq(appSchema.communityComments.id, commentId));
+          if (voteType === "up") {
+            await tx
+              .update(appSchema.communityComments)
+              .set({ upvotes: sql`${appSchema.communityComments.upvotes} - 1` })
+              .where(eq(appSchema.communityComments.id, commentId));
+          } else {
+            await tx
+              .update(appSchema.communityComments)
+              .set({ downvotes: sql`${appSchema.communityComments.downvotes} - 1` })
+              .where(eq(appSchema.communityComments.id, commentId));
+          }
         } else {
-          await db
-            .update(appSchema.communityComments)
-            .set({ downvotes: sql`${appSchema.communityComments.downvotes} - 1` })
-            .where(eq(appSchema.communityComments.id, commentId));
+          // Change vote
+          await tx
+            .update(appSchema.communityVotes)
+            .set({ type: voteType })
+            .where(eq(appSchema.communityVotes.id, oldVote.id));
+
+          if (voteType === "up") {
+            await tx
+              .update(appSchema.communityComments)
+              .set({
+                upvotes: sql`${appSchema.communityComments.upvotes} + 1`,
+                downvotes: sql`${appSchema.communityComments.downvotes} - 1`,
+              })
+              .where(eq(appSchema.communityComments.id, commentId));
+          } else {
+            await tx
+              .update(appSchema.communityComments)
+              .set({
+                upvotes: sql`${appSchema.communityComments.upvotes} - 1`,
+                downvotes: sql`${appSchema.communityComments.downvotes} + 1`,
+              })
+              .where(eq(appSchema.communityComments.id, commentId));
+          }
         }
       } else {
-        // Change vote
-        await db
-          .update(appSchema.communityVotes)
-          .set({ type: voteType })
-          .where(eq(appSchema.communityVotes.id, oldVote.id));
+        // New vote
+        await tx.insert(appSchema.communityVotes).values({
+          id: crypto.randomUUID(),
+          scenarioId: null,
+          commentId,
+          userId,
+          type: voteType,
+        });
 
-        // Update comment counts
         if (voteType === "up") {
-          await db
+          await tx
             .update(appSchema.communityComments)
-            .set({
-              upvotes: sql`${appSchema.communityComments.upvotes} + 1`,
-              downvotes: sql`${appSchema.communityComments.downvotes} - 1`,
-            })
+            .set({ upvotes: sql`${appSchema.communityComments.upvotes} + 1` })
             .where(eq(appSchema.communityComments.id, commentId));
         } else {
-          await db
+          await tx
             .update(appSchema.communityComments)
-            .set({
-              upvotes: sql`${appSchema.communityComments.upvotes} - 1`,
-              downvotes: sql`${appSchema.communityComments.downvotes} + 1`,
-            })
+            .set({ downvotes: sql`${appSchema.communityComments.downvotes} + 1` })
             .where(eq(appSchema.communityComments.id, commentId));
         }
       }
-    } else {
-      // New vote
-      await db.insert(appSchema.communityVotes).values({
-        id: crypto.randomUUID(),
-        scenarioId: null,
-        commentId,
-        userId,
-        type: voteType,
-      });
-
-      // Update comment counts
-      if (voteType === "up") {
-        await db
-          .update(appSchema.communityComments)
-          .set({ upvotes: sql`${appSchema.communityComments.upvotes} + 1` })
-          .where(eq(appSchema.communityComments.id, commentId));
-      } else {
-        await db
-          .update(appSchema.communityComments)
-          .set({ downvotes: sql`${appSchema.communityComments.downvotes} + 1` })
-          .where(eq(appSchema.communityComments.id, commentId));
-      }
-    }
+    });
 
     // Return updated comment
     const commentResult = await db
@@ -2175,16 +2200,16 @@ export class PostgresStorage implements IStorage {
   }
 
   async isAdmin(userId: string): Promise<boolean> {
-    // Hardcoded admin check - in production you'd have an admin table or flag
-    // For now, check if user is a moderator with special privileges
-    const moderatorResult = await db
-      .select()
-      .from(appSchema.moderators)
-      .where(eq(appSchema.moderators.userId, userId))
+    // Real super-admin check — reads the `isAdmin` flag on lifestyle_users.
+    // Moderators are tracked separately in the `moderators` table and gain
+    // a narrower set of privileges via `isModerator()` + `requireAdmin`.
+    if (!userId) return false;
+    const result = await db
+      .select({ isAdmin: appSchema.lifestyleUsers.isAdmin })
+      .from(appSchema.lifestyleUsers)
+      .where(eq(appSchema.lifestyleUsers.id, userId))
       .limit(1);
-
-    // Could add additional admin-specific logic here
-    return moderatorResult.length > 0;
+    return result.length > 0 && result[0].isAdmin === true;
   }
 
   async isModerator(userId: string): Promise<boolean> {
@@ -2584,7 +2609,46 @@ export class PostgresStorage implements IStorage {
     }));
   }
 
+  // Remove stale coop sessions so the table doesn't grow forever.
+  // Safe to call opportunistically (e.g. on session create). No-op if nothing
+  // expired. Thresholds err on the generous side so mid-game blips don't nuke
+  // an active match.
+  private async cleanupExpiredCoopSessions(): Promise<void> {
+    try {
+      const now = Date.now();
+      const oneHourAgo = new Date(now - 60 * 60 * 1000);
+      const threeHoursAgo = new Date(now - 3 * 60 * 60 * 1000);
+      const oneDayAgo = new Date(now - 24 * 60 * 60 * 1000);
+
+      await db.delete(appSchema.coopSessions).where(
+        or(
+          // Waiting invites never accepted, older than 1h
+          and(
+            eq(appSchema.coopSessions.status, "waiting"),
+            lt(appSchema.coopSessions.createdAt, oneHourAgo)
+          ),
+          // In-progress sessions idle > 3h (abandoned)
+          and(
+            eq(appSchema.coopSessions.status, "playing"),
+            lt(appSchema.coopSessions.createdAt, threeHoursAgo)
+          ),
+          // Completed sessions older than 24h — results page is a one-time view
+          and(
+            eq(appSchema.coopSessions.status, "completed"),
+            lt(appSchema.coopSessions.createdAt, oneDayAgo)
+          )
+        )
+      );
+    } catch (err) {
+      // Cleanup failure must never break a live call — just log it.
+      console.error("[coop] cleanupExpiredCoopSessions failed:", err);
+    }
+  }
+
   async createCoopSession(hostId: string, mode: CoopMode = "daily", arcadeGameIndex: number | null = null, invitedUserId: string | null = null): Promise<CoopSession> {
+    // Opportunistic GC — low-frequency operation (only on new session creation)
+    await this.cleanupExpiredCoopSessions();
+
     const host = await this.getUser(hostId);
     if (!host) throw new Error("Host user not found");
 
@@ -2880,15 +2944,27 @@ export class PostgresStorage implements IStorage {
     }
 
     const arcadeGameIndex = gameIndex !== undefined ? gameIndex : arcadePlaysToday;
-    const scenarios = getArcadeScenarios(dayNumber, arcadeGameIndex);
+
+    // Resolve user's weekly theme — fall back to default if not set
+    const { THEME_BY_ID, DEFAULT_THEME, isValidThemeId } = await import("@shared/lib/themes");
+    const resolvedTheme = user.weeklyTheme && isValidThemeId(user.weeklyTheme)
+      ? user.weeklyTheme
+      : DEFAULT_THEME;
+    const themeDef = THEME_BY_ID[resolvedTheme];
+
+    // Different seed per gameIndex → different question shuffle, same theme pool
+    const { getScenariosForTheme } = await import("./static-scenarios");
+    const seed = `${today}-arcade-${resolvedTheme}-${arcadeGameIndex}`;
+    const scenarios = getScenariosForTheme(themeDef.categories, 5, seed);
     const shuffledScenarios = scenarios.map(scenario =>
       shuffleScenarioChoices(scenario, today + "-arcade-" + arcadeGameIndex)
     );
 
     return {
-      id: `arcade-${today}-${arcadeGameIndex}`,
+      id: `arcade-${today}-${resolvedTheme}-${arcadeGameIndex}`,
       dropNumber: dayNumber,
       date: today,
+      theme: resolvedTheme,
       scenarios: shuffledScenarios,
     };
   }
@@ -2905,6 +2981,8 @@ export class PostgresStorage implements IStorage {
     const membershipTier = user.membershipTier || "free";
     const maxPlays = ARCADE_LIMITS[membershipTier] || 1;
 
+    // arcadeDropId format: `arcade-${date}-${theme}-${gameIndex}`
+    // (legacy format `arcade-${date}-${gameIndex}` falls back to last segment as gameIndex)
     const parts = submission.arcadeDropId.split("-");
     const arcadeGameIndex = parseInt(parts[parts.length - 1]) || 0;
 
@@ -2926,7 +3004,17 @@ export class PostgresStorage implements IStorage {
     }
 
     const dayNumber = getDayNumber();
-    const rawScenarios = getArcadeScenarios(dayNumber, arcadeGameIndex);
+    // Re-derive the SAME scenarios the user played using the user's weekly theme.
+    // Must match the seed/categories used in getArcadeDrop() exactly so that the
+    // scenario IDs the client submitted line up with what we score against.
+    const { THEME_BY_ID, DEFAULT_THEME, isValidThemeId } = await import("@shared/lib/themes");
+    const resolvedTheme = user.weeklyTheme && isValidThemeId(user.weeklyTheme)
+      ? user.weeklyTheme
+      : DEFAULT_THEME;
+    const themeDef = THEME_BY_ID[resolvedTheme];
+    const { getScenariosForTheme } = await import("./static-scenarios");
+    const seed = `${today}-arcade-${resolvedTheme}-${arcadeGameIndex}`;
+    const rawScenarios = getScenariosForTheme(themeDef.categories, 5, seed);
     const scenarios = rawScenarios.map(scenario =>
       shuffleScenarioChoices(scenario, today + "-arcade-" + arcadeGameIndex)
     );

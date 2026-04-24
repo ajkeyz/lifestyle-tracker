@@ -186,7 +186,7 @@ export default function Friends() {
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50">
       <header className="flex items-center justify-between gap-2 p-4 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/")} data-testid="button-back-home" aria-label="Back to home">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/social")} data-testid="button-back-social" aria-label="Back to Social">
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <AppLogo size="sm" />
@@ -245,12 +245,9 @@ export default function Friends() {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.05 }}
                   >
-                    <Link
-                      href={`/profile/${friend.id}`}
-                      data-testid={`link-friend-profile-${friend.id}`}
-                    >
+                    <div data-testid={`link-friend-profile-${friend.id}`}>
                       <div
-                        className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
+                        className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 transition-colors"
                         data-testid={`friend-row-${friend.id}`}
                       >
                         <span className="text-sm font-bold text-muted-foreground w-6">#{index + 1}</span>
@@ -279,9 +276,8 @@ export default function Friends() {
                             )}
                           </div>
                         </div>
-                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
                       </div>
-                    </Link>
+                    </div>
                   </motion.div>
                 ))}
               </div>

@@ -102,7 +102,7 @@ export default function CoopResults() {
               <div className="mx-auto mb-4">
                 <Mascot
                   mood={isWinner ? "celebrating" : isTie ? "happy" : "encouraging"}
-                  size="md"
+                  size="lg"
                   showBubble={true}
                   speechDelay={1200}
                   context={mascotContext}

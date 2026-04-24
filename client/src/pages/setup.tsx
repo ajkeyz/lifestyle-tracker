@@ -5,117 +5,67 @@ import { Button } from "@/components/ui/button";
 import { AmbientBackground } from "@/components/ambient-background";
 import { Mascot, type MascotContext } from "@/components/mascot";
 import {
-  Laptop,
-  Globe,
+  TrendingUp,
+  Home,
+  ShoppingBag,
+  CreditCard,
   ShieldAlert,
-  GraduationCap,
-  Briefcase,
+  Users,
   ChevronRight,
   Check,
-  ArrowLeft
+  ArrowLeft,
+  type LucideIcon,
 } from "lucide-react";
 import { AppLogo } from "@/components/app-logo";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { User, GameMode } from "@shared/schema";
+import type { User } from "@shared/schema";
 import { cn } from "@/lib/utils";
+import { THEMES, type ThemeId } from "@shared/lib/themes";
+import { useTheme } from "@/hooks/use-theme";
 
-interface ModeOption {
-  id: GameMode;
-  title: string;
-  description: string;
-  bestFor: string;
-  icon: typeof Laptop;
-  gradient: string;
-}
-
-const modes: ModeOption[] = [
-  {
-    id: "tech",
-    title: "Tech Mode",
-    description: "High income, high volatility. RSUs, stock options, and startup decisions.",
-    bestFor: "Software engineers & tech workers",
-    icon: Laptop,
-    gradient: "from-blue-500 to-cyan-500",
-  },
-  {
-    id: "global",
-    title: "Global Citizen Mode",
-    description: "Travel deals, FX rates, and experience-based spending decisions.",
-    bestFor: "Travelers & remote workers",
-    icon: Globe,
-    gradient: "from-green-500 to-emerald-500",
-  },
-  {
-    id: "scam",
-    title: "Fraud Defense Mode",
-    description: "Spot scams, phishing attempts, and protect your money from thieves.",
-    bestFor: "Everyone (but especially seniors)",
-    icon: ShieldAlert,
-    gradient: "from-red-500 to-orange-500",
-  },
-  {
-    id: "student",
-    title: "Student Mode",
-    description: "Low cash, high temptation. Learn to resist FOMO and build habits.",
-    bestFor: "Students & early career",
-    icon: GraduationCap,
-    gradient: "from-purple-500 to-pink-500",
-  },
-  {
-    id: "boss",
-    title: "Boss Mode",
-    description: "Family, bills, and pressure. Balance responsibilities with goals.",
-    bestFor: "Parents & providers",
-    icon: Briefcase,
-    gradient: "from-amber-500 to-yellow-500",
-  },
-];
+const ICON_MAP: Record<string, LucideIcon> = {
+  TrendingUp,
+  Home,
+  ShoppingBag,
+  CreditCard,
+  ShieldAlert,
+  Users,
+};
 
 export default function Setup() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const [selectedMode, setSelectedMode] = useState<GameMode | null>(null);
+  const [selectedTheme, setSelectedTheme] = useState<ThemeId | null>(null);
+  const { setTheme, isPending } = useTheme();
 
   const { data: user } = useQuery<User>({
     queryKey: ["/api/user"],
   });
 
-  const setModeMutation = useMutation({
-    mutationFn: async (mode: GameMode) => {
-      const res = await apiRequest("POST", "/api/set-mode", { mode });
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      navigate("/play");
-    },
-    onError: () => {
+  const handleContinue = async () => {
+    if (!selectedTheme) return;
+    try {
+      await setTheme(selectedTheme);
+      navigate("/");
+    } catch (err) {
       toast({
-        title: "Error",
-        description: "Failed to set mode. Please try again.",
+        title: "Couldn't set theme",
+        description: (err as Error)?.message || "Please try again in a moment.",
         variant: "destructive",
       });
-    },
-  });
-
-  const handleContinue = () => {
-    if (selectedMode) {
-      setModeMutation.mutate(selectedMode);
     }
   };
 
+  // If user already has a theme, skip setup
   useEffect(() => {
-    if (user?.mode) {
-      navigate("/play");
+    if (user?.weeklyTheme) {
+      navigate("/");
     }
-  }, [user?.mode, navigate]);
+  }, [user?.weeklyTheme, navigate]);
 
-  if (user?.mode) {
-    return null;
-  }
+  if (user?.weeklyTheme) return null;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 dark:from-background dark:via-background dark:to-card/50 relative overflow-x-clip">
@@ -138,30 +88,29 @@ export default function Setup() {
           transition={{ duration: 0.4 }}
         >
           <h1 className="text-2xl md:text-3xl font-display font-semibold mb-2 tracking-[-0.02em]" data-testid="text-setup-title">
-            Choose Your Mode
+            Pick this week's theme
           </h1>
           <p className="text-muted-foreground" data-testid="text-setup-description">
-            Pick a scenario style that matches your life
+            All your daily drops and arcade games will focus on this topic until next Monday
           </p>
         </motion.div>
 
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.15, type: "spring", stiffness: 300, damping: 20 }}
-                  className="flex justify-center py-2"
-                >
-                  <Mascot
-                    mood="waving"
-                    size="sm"
-                    showBubble={true}
-                    speechDelay={1400}
-                    message="Pick what fits your life!"
-                    context={{ screen: "home", username: "", streak: 0 } satisfies MascotContext}
-                  />
-                </motion.div>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.15, type: "spring", stiffness: 300, damping: 20 }}
+          className="flex justify-center py-2"
+        >
+          <Mascot
+            mood="waving"
+            size="sm"
+            showBubble={true}
+            speechDelay={1400}
+            context={{ screen: "setup" } satisfies MascotContext}
+          />
+        </motion.div>
 
-        <motion.div 
+        <motion.div
           className="space-y-3"
           initial="hidden"
           animate="visible"
@@ -169,20 +118,20 @@ export default function Setup() {
             hidden: { opacity: 0 },
             visible: {
               opacity: 1,
-              transition: { staggerChildren: 0.1, delayChildren: 0.2 }
-            }
+              transition: { staggerChildren: 0.06, delayChildren: 0.2 },
+            },
           }}
         >
-          {modes.map((mode) => {
-            const Icon = mode.icon;
-            const isSelected = selectedMode === mode.id;
+          {THEMES.map((theme) => {
+            const Icon = ICON_MAP[theme.icon] ?? ShoppingBag;
+            const isSelected = selectedTheme === theme.id;
 
             return (
               <motion.div
-                key={mode.id}
+                key={theme.id}
                 variants={{
                   hidden: { opacity: 0, x: -20 },
-                  visible: { opacity: 1, x: 0 }
+                  visible: { opacity: 1, x: 0 },
                 }}
                 transition={{ duration: 0.3 }}
                 whileTap={{ scale: 0.98 }}
@@ -190,19 +139,14 @@ export default function Setup() {
                 <Card
                   className={cn(
                     "p-4 cursor-pointer transition-all border-2",
-                    isSelected
-                      ? "border-primary bg-primary/5"
-                      : "border-transparent hover-elevate"
+                    isSelected ? "border-primary bg-primary/5" : "border-transparent hover-elevate",
                   )}
-                  onClick={() => setSelectedMode(mode.id)}
-                  data-testid={`card-mode-${mode.id}`}
+                  onClick={() => setSelectedTheme(theme.id)}
+                  data-testid={`card-theme-${theme.id}`}
                 >
                   <div className="flex items-start gap-4">
                     <motion.div
-                      className={cn(
-                        "w-12 h-12 rounded-md flex items-center justify-center flex-shrink-0 bg-gradient-to-br",
-                        mode.gradient
-                      )}
+                      className={cn("w-12 h-12 rounded-md flex items-center justify-center flex-shrink-0", theme.gradient)}
                       animate={isSelected ? { scale: [1, 1.1, 1] } : {}}
                       transition={{ duration: 0.3 }}
                     >
@@ -210,8 +154,8 @@ export default function Setup() {
                     </motion.div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-semibold" data-testid={`text-mode-title-${mode.id}`}>
-                          {mode.title}
+                        <h3 className="font-semibold" data-testid={`text-theme-title-${theme.id}`}>
+                          {theme.label}
                         </h3>
                         {isSelected && (
                           <motion.div
@@ -223,28 +167,10 @@ export default function Setup() {
                           </motion.div>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground mt-1" data-testid={`text-mode-description-${mode.id}`}>
-                        {mode.description}
-                      </p>
-                      <p className="text-xs text-accent mt-2" data-testid={`text-mode-bestfor-${mode.id}`}>
-                        Best for: {mode.bestFor}
+                      <p className="text-sm text-muted-foreground mt-1" data-testid={`text-theme-description-${theme.id}`}>
+                        {theme.description}
                       </p>
                     </div>
-                    <Button
-                      size="sm"
-                      variant={isSelected ? "default" : "outline"}
-                      className="flex-shrink-0 self-center"
-                      data-testid={`button-select-${mode.id}`}
-                    >
-                      {isSelected ? (
-                        <>
-                          <Check className="w-3 h-3 mr-1" />
-                          Selected
-                        </>
-                      ) : (
-                        "Select"
-                      )}
-                    </Button>
                   </div>
                 </Card>
               </motion.div>
@@ -255,18 +181,16 @@ export default function Setup() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.8 }}
+          transition={{ duration: 0.4, delay: 0.6 }}
         >
           <Button
             size="lg"
             className="w-full h-14 text-lg font-semibold btn-premium border-0"
-            disabled={!selectedMode || setModeMutation.isPending}
+            disabled={!selectedTheme || isPending}
             onClick={handleContinue}
             data-testid="button-continue"
           >
-            {setModeMutation.isPending ? (
-              "Setting up..."
-            ) : (
+            {isPending ? "Setting up..." : (
               <>
                 Continue
                 <ChevronRight className="w-5 h-5 ml-2" />
@@ -275,14 +199,14 @@ export default function Setup() {
           </Button>
         </motion.div>
 
-        <motion.p 
-          className="text-center text-xs text-muted-foreground" 
-          data-testid="text-mode-note"
+        <motion.p
+          className="text-center text-xs text-muted-foreground"
+          data-testid="text-theme-note"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.4, delay: 1 }}
+          transition={{ duration: 0.4, delay: 0.8 }}
         >
-          You can change your mode anytime from settings
+          You can change your theme each Monday from the home page
         </motion.p>
       </main>
     </div>

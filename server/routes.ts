@@ -106,19 +106,30 @@ setInterval(() => {
 // In-memory cache for idempotency - tracks in-flight submissions
 const submissionCache: Map<string, Promise<any>> = new Map();
 
+// Rate-limit key combines session ID AND client IP. Using IP alone would
+// throttle shared NAT users (offices, schools) — using session alone allows
+// trivial bypass by clearing cookies. Combining both means an attacker needs
+// to rotate IPs (much harder) to evade the limit.
+function getRateLimitId(req: Request): string {
+  const sessionId = getSessionId(req);
+  // Trust X-Forwarded-For first hop (Express must be configured with `trust proxy`)
+  const ip = (req.ip || req.socket?.remoteAddress || "unknown").split(",")[0].trim();
+  return `${ip}::${sessionId}`;
+}
+
 function rateLimit(key: string, maxRequests: number, windowMs: number) {
   return (req: Request, res: Response, next: Function) => {
-    const sessionId = getSessionId(req);
+    const id = getRateLimitId(req);
 
     if (!rateLimiters.has(key)) {
       rateLimiters.set(key, new Map());
     }
     const limiter = rateLimiters.get(key)!;
     const now = Date.now();
-    const entry = limiter.get(sessionId);
+    const entry = limiter.get(id);
 
     if (!entry || now > entry.resetAt) {
-      limiter.set(sessionId, { count: 1, resetAt: now + windowMs });
+      limiter.set(id, { count: 1, resetAt: now + windowMs });
       return next();
     }
 
@@ -140,7 +151,8 @@ export async function registerRoutes(
     app.use(testAuthMiddleware);
   }
 
-  app.get("/api/user", async (req: Request, res: Response) => {
+  // Auth required — own user data is sensitive (PII, financial metrics, badges)
+  app.get("/api/user", requireAuth, async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
       const user = await storage.getOrCreateUser(sessionId);
@@ -151,31 +163,44 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/user/:userId", async (req: Request, res: Response) => {
+  // Auth required to prevent unauthenticated user enumeration.
+  // Private profiles return a stripped-down response that doesn't even
+  // reveal the privacy flag (return same shape as a non-existent user
+  // for unauthorized viewers).
+  app.get("/api/user/:userId", requireAuth, async (req: Request, res: Response) => {
     try {
       const userId = req.params.userId as string;
+      // Validate userId format (UUID or session ID — rough check)
+      if (!userId || userId.length < 4 || userId.length > 64) {
+        return res.status(400).json({ error: "Invalid user id" });
+      }
+      const viewerId = getSessionId(req);
       const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
-      
-      // Return safe public profile data only
-      if (user.isProfilePrivate) {
+
+      const isOwn = userId === viewerId;
+      const viewerCanSeeFullProfile =
+        isOwn || (!user.isProfilePrivate);
+
+      if (!viewerCanSeeFullProfile) {
+        // Private profile and viewer is not the owner — return minimal info
+        // and do NOT leak the isProfilePrivate flag itself.
         return res.json({
           id: user.id,
           username: user.username,
           avatar: user.avatar,
-          isProfilePrivate: true,
+          bio: "",
           moneyHealth: 0,
           streak: 0,
           highestStreak: 0,
           gamesPlayed: 0,
           badges: [],
-          bio: "",
         });
       }
-      
-      // Public profile - return safe subset of fields
+
+      // Public profile or own profile — return safe subset
       res.json({
         id: user.id,
         username: user.username,
@@ -186,7 +211,8 @@ export async function registerRoutes(
         highestStreak: user.highestStreak,
         gamesPlayed: user.gamesPlayed,
         badges: user.badges,
-        isProfilePrivate: false,
+        // Only leak the flag to the owner themselves
+        ...(isOwn ? { isProfilePrivate: user.isProfilePrivate } : {}),
       });
     } catch (error) {
       console.error("Error getting user by ID:", error);
@@ -263,7 +289,18 @@ export async function registerRoutes(
 
   app.get("/api/daily-drop", async (req: Request, res: Response) => {
     try {
-      const drop = await storage.getDailyDrop();
+      // Resolve the user's weekly theme (if logged in) so they get a themed drop
+      let theme: string | undefined;
+      try {
+        const sessionId = getSessionId(req);
+        if (sessionId) {
+          const user = await storage.getUser(sessionId);
+          if (user?.weeklyTheme) theme = user.weeklyTheme;
+        }
+      } catch {
+        // Not authed — fall back to default theme inside getDailyDrop
+      }
+      const drop = await storage.getDailyDrop(theme);
       res.json(drop);
     } catch (error) {
       console.error("Error getting daily drop:", error);
@@ -280,11 +317,23 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Invalid submission data" });
       }
 
-      // PERF: Fetch user + daily drop in PARALLEL (single round-trip).
-      const [user, dailyDrop] = await Promise.all([
-        storage.getUser(sessionId),
-        storage.getDailyDrop(),
-      ]);
+      // PERF: Fetch user first so we have their current state for submitGame.
+      const user = await storage.getUser(sessionId);
+
+      // Score against the drop the client actually played (by dropId), not the
+      // drop tied to their CURRENT weeklyTheme. This prevents a mid-game theme
+      // switch from invalidating an otherwise-valid submission. Falls back to
+      // theme-based lookup if dropId isn't found (legacy / test clients).
+      let dailyDrop = await storage.getDailyDropById(parsed.data.dropId);
+      if (!dailyDrop) {
+        dailyDrop = await storage.getDailyDrop(user?.weeklyTheme ?? undefined);
+      } else {
+        // Guard against stale dropIds from prior days — the drop must be today's.
+        const today = new Date().toISOString().split("T")[0];
+        if (dailyDrop.date !== today) {
+          return res.status(400).json({ error: "Drop is not today's quiz" });
+        }
+      }
 
       // Fast-fail: skip entirely if already played (but allow replays where todayResult was cleared)
       const today = new Date().toISOString().split("T")[0];
@@ -377,7 +426,7 @@ export async function registerRoutes(
     try {
       const sessionId = getSessionId(req);
       const parsed = setModeSchema.safeParse(req.body);
-      
+
       if (!parsed.success) {
         return res.status(400).json({ error: "Invalid mode" });
       }
@@ -390,6 +439,56 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error setting mode:", error);
       res.status(500).json({ error: "Failed to set mode" });
+    }
+  });
+
+  // ─── Weekly Theme ───────────────────────────────────────────────────────
+  app.get("/api/theme", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const user = await storage.getUser(sessionId);
+      const { isThemeChangeAllowed, getNextThemeChangeAt, isValidThemeId } = await import("@shared/lib/themes");
+      const current = user?.weeklyTheme && isValidThemeId(user.weeklyTheme) ? user.weeklyTheme : null;
+      res.json({
+        current,
+        weekStart: user?.themeWeekStart ?? null,
+        canChange: isThemeChangeAllowed(user?.themeWeekStart),
+        nextChangeAt: getNextThemeChangeAt(),
+      });
+    } catch (error) {
+      console.error("Error fetching theme:", error);
+      res.status(500).json({ error: "Failed to fetch theme" });
+    }
+  });
+
+  app.post("/api/theme", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const sessionId = getSessionId(req);
+      const { isValidThemeId, isThemeChangeAllowed, getCurrentWeekStart } = await import("@shared/lib/themes");
+      const themeId = String(req.body?.theme || "");
+      if (!isValidThemeId(themeId)) {
+        return res.status(400).json({ error: "Invalid theme" });
+      }
+      const user = await storage.getUser(sessionId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      // Allow change only if it's a new week (or the user has never picked)
+      if (!isThemeChangeAllowed(user.themeWeekStart)) {
+        return res.status(403).json({
+          error: "Theme can only be changed once per week (Monday UTC).",
+          weekStart: user.themeWeekStart,
+        });
+      }
+      const weekStart = getCurrentWeekStart();
+      const updated = await storage.updateUser(sessionId, {
+        weeklyTheme: themeId as any,
+        themeWeekStart: weekStart as any,
+      });
+      res.json({ theme: themeId, weekStart, user: updated });
+    } catch (error) {
+      console.error("Error setting theme:", error);
+      res.status(500).json({ error: "Failed to set theme" });
     }
   });
 
@@ -1152,23 +1251,41 @@ export async function registerRoutes(
     if (!isDevMode) return res.status(403).json({ error: "Debug endpoints disabled" });
     try {
       const sessionId = getSessionId(req);
+      // Full reset to brand-new-user state — clears game data AND onboarding/profile
+      // so the onboarding flow, profile setup, and tutorials can be tested again.
       const updated = await storage.updateUser(sessionId, {
+        // Game state
         gamesPlayed: 0,
         streak: 0,
         highestStreak: 0,
         totalScore: 0,
         moneyHealth: 50,
-        freezeTokens: 0,
+        freezeTokens: 1,
         bonusArcadePlays: 0,
         claimedMissions: [],
         todayResult: null,
+        lastPlayedDate: null,
         perfectGames: 0,
+        scamStreak: 0,
+        hadPreviousStreak: false,
         arcadePlaysToday: 0,
+        arcadeLastPlayedDate: null,
         gameHistory: [],
         categoryStats: [],
         friendIds: [],
         badges: [],
         referralCount: 0,
+        frozenDates: [],
+        streakCalendar: [],
+        // Onboarding & profile state — reset to fresh state
+        onboardingComplete: false,
+        profileSetupComplete: false,
+        mode: null,
+        bio: "",
+        moneyPhilosophy: "",
+        whyImHere: "",
+        // Backdate creation so account looks fresh (mission tier 1)
+        createdAt: new Date().toISOString() as any,
       });
       res.json({ success: true, user: updated });
     } catch (error) {
@@ -1493,8 +1610,10 @@ export async function registerRoutes(
     }
   };
 
-  // Check if user is admin
-  app.get("/api/admin/check", async (req: Request, res: Response) => {
+  // Check if user is admin — must be authenticated.
+  // Anonymous callers get 401 rather than a misleading { isAdmin: false }
+  // so the client can distinguish "not logged in" from "logged in, not admin".
+  app.get("/api/admin/check", requireAuth, async (req: Request, res: Response) => {
     try {
       const sessionId = getSessionId(req);
       const isAdmin = await storage.isAdmin(sessionId);
@@ -2024,6 +2143,15 @@ export async function registerRoutes(
       const { sessionId } = req.params;
       const { scenarioId, choiceLabel } = req.body;
 
+      // Verify participation BEFORE mutating session state (IDOR defense)
+      const existing = await storage.getCoopSession(sessionId);
+      if (!existing) {
+        return res.status(404).json({ error: "Session not found" });
+      }
+      if (existing.hostId !== userId && existing.guestId !== userId) {
+        return res.status(403).json({ error: "Not a participant in this session" });
+      }
+
       const session = await storage.submitCoopAnswer(sessionId, userId, scenarioId, choiceLabel);
       if (!session) {
         return res.status(404).json({ error: "Session not found" });
@@ -2110,9 +2238,12 @@ export async function registerRoutes(
     try {
       const userId = getSessionId(req);
       const { sessionId } = req.params;
-      // Verify participation before returning results
+      // Verify participation before returning results — fail closed if no session
       const session = await storage.getCoopSession(sessionId);
-      if (session && session.hostId !== userId && session.guestId !== userId) {
+      if (!session) {
+        return res.status(404).json({ error: "Session not found" });
+      }
+      if (session.hostId !== userId && session.guestId !== userId) {
         return res.status(403).json({ error: "Not a participant in this session" });
       }
       const result = await storage.getCoopGameResult(sessionId);
