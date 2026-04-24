@@ -1983,88 +1983,90 @@ export class PostgresStorage implements IStorage {
   }
 
   async voteComment(userId: string, commentId: string, voteType: "up" | "down"): Promise<CommunityComment | undefined> {
-    // Check if user already voted
-    const existingVote = await db
-      .select()
-      .from(appSchema.communityVotes)
-      .where(
-        and(
-          eq(appSchema.communityVotes.userId, userId),
-          eq(appSchema.communityVotes.commentId, commentId)
+    // Wrap the read-modify-write in a transaction to prevent race conditions
+    // (concurrent votes from same user creating duplicate rows or stale counts).
+    // Combined with the UNIQUE(commentId, userId) index on community_votes,
+    // this provides full safety.
+    await db.transaction(async (tx) => {
+      const existingVote = await tx
+        .select()
+        .from(appSchema.communityVotes)
+        .where(
+          and(
+            eq(appSchema.communityVotes.userId, userId),
+            eq(appSchema.communityVotes.commentId, commentId),
+          ),
         )
-      )
-      .limit(1);
+        .limit(1);
 
-    if (existingVote.length > 0) {
-      const oldVote = existingVote[0];
+      if (existingVote.length > 0) {
+        const oldVote = existingVote[0];
 
-      if (oldVote.type === voteType) {
-        // Remove vote
-        await db
-          .delete(appSchema.communityVotes)
-          .where(eq(appSchema.communityVotes.id, oldVote.id));
+        if (oldVote.type === voteType) {
+          // Remove vote
+          await tx
+            .delete(appSchema.communityVotes)
+            .where(eq(appSchema.communityVotes.id, oldVote.id));
 
-        // Update comment counts
-        if (voteType === "up") {
-          await db
-            .update(appSchema.communityComments)
-            .set({ upvotes: sql`${appSchema.communityComments.upvotes} - 1` })
-            .where(eq(appSchema.communityComments.id, commentId));
+          if (voteType === "up") {
+            await tx
+              .update(appSchema.communityComments)
+              .set({ upvotes: sql`${appSchema.communityComments.upvotes} - 1` })
+              .where(eq(appSchema.communityComments.id, commentId));
+          } else {
+            await tx
+              .update(appSchema.communityComments)
+              .set({ downvotes: sql`${appSchema.communityComments.downvotes} - 1` })
+              .where(eq(appSchema.communityComments.id, commentId));
+          }
         } else {
-          await db
-            .update(appSchema.communityComments)
-            .set({ downvotes: sql`${appSchema.communityComments.downvotes} - 1` })
-            .where(eq(appSchema.communityComments.id, commentId));
+          // Change vote
+          await tx
+            .update(appSchema.communityVotes)
+            .set({ type: voteType })
+            .where(eq(appSchema.communityVotes.id, oldVote.id));
+
+          if (voteType === "up") {
+            await tx
+              .update(appSchema.communityComments)
+              .set({
+                upvotes: sql`${appSchema.communityComments.upvotes} + 1`,
+                downvotes: sql`${appSchema.communityComments.downvotes} - 1`,
+              })
+              .where(eq(appSchema.communityComments.id, commentId));
+          } else {
+            await tx
+              .update(appSchema.communityComments)
+              .set({
+                upvotes: sql`${appSchema.communityComments.upvotes} - 1`,
+                downvotes: sql`${appSchema.communityComments.downvotes} + 1`,
+              })
+              .where(eq(appSchema.communityComments.id, commentId));
+          }
         }
       } else {
-        // Change vote
-        await db
-          .update(appSchema.communityVotes)
-          .set({ type: voteType })
-          .where(eq(appSchema.communityVotes.id, oldVote.id));
+        // New vote
+        await tx.insert(appSchema.communityVotes).values({
+          id: crypto.randomUUID(),
+          scenarioId: null,
+          commentId,
+          userId,
+          type: voteType,
+        });
 
-        // Update comment counts
         if (voteType === "up") {
-          await db
+          await tx
             .update(appSchema.communityComments)
-            .set({
-              upvotes: sql`${appSchema.communityComments.upvotes} + 1`,
-              downvotes: sql`${appSchema.communityComments.downvotes} - 1`,
-            })
+            .set({ upvotes: sql`${appSchema.communityComments.upvotes} + 1` })
             .where(eq(appSchema.communityComments.id, commentId));
         } else {
-          await db
+          await tx
             .update(appSchema.communityComments)
-            .set({
-              upvotes: sql`${appSchema.communityComments.upvotes} - 1`,
-              downvotes: sql`${appSchema.communityComments.downvotes} + 1`,
-            })
+            .set({ downvotes: sql`${appSchema.communityComments.downvotes} + 1` })
             .where(eq(appSchema.communityComments.id, commentId));
         }
       }
-    } else {
-      // New vote
-      await db.insert(appSchema.communityVotes).values({
-        id: crypto.randomUUID(),
-        scenarioId: null,
-        commentId,
-        userId,
-        type: voteType,
-      });
-
-      // Update comment counts
-      if (voteType === "up") {
-        await db
-          .update(appSchema.communityComments)
-          .set({ upvotes: sql`${appSchema.communityComments.upvotes} + 1` })
-          .where(eq(appSchema.communityComments.id, commentId));
-      } else {
-        await db
-          .update(appSchema.communityComments)
-          .set({ downvotes: sql`${appSchema.communityComments.downvotes} + 1` })
-          .where(eq(appSchema.communityComments.id, commentId));
-      }
-    }
+    });
 
     // Return updated comment
     const commentResult = await db
@@ -2165,16 +2167,16 @@ export class PostgresStorage implements IStorage {
   }
 
   async isAdmin(userId: string): Promise<boolean> {
-    // Hardcoded admin check - in production you'd have an admin table or flag
-    // For now, check if user is a moderator with special privileges
-    const moderatorResult = await db
-      .select()
-      .from(appSchema.moderators)
-      .where(eq(appSchema.moderators.userId, userId))
+    // Real super-admin check — reads the `isAdmin` flag on lifestyle_users.
+    // Moderators are tracked separately in the `moderators` table and gain
+    // a narrower set of privileges via `isModerator()` + `requireAdmin`.
+    if (!userId) return false;
+    const result = await db
+      .select({ isAdmin: appSchema.lifestyleUsers.isAdmin })
+      .from(appSchema.lifestyleUsers)
+      .where(eq(appSchema.lifestyleUsers.id, userId))
       .limit(1);
-
-    // Could add additional admin-specific logic here
-    return moderatorResult.length > 0;
+    return result.length > 0 && result[0].isAdmin === true;
   }
 
   async isModerator(userId: string): Promise<boolean> {

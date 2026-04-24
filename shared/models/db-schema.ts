@@ -69,6 +69,11 @@ export const lifestyleUsers = pgTable("lifestyle_users", {
   // Membership
   membershipTier: varchar("membership_tier", { length: 20 }).notNull().default("free"), // free, plus, pro
 
+  // Admin/Authorization — separate from moderators table.
+  // Super-admin grants full privileged endpoints (bans, scenario publishing, push reminders, etc.).
+  // Moderators are separately tracked in the `moderators` table; this column is the elevated role.
+  isAdmin: boolean("is_admin").notNull().default(false),
+
   // Weekly Theme — drives Daily Drop & Arcade content for the week
   weeklyTheme: varchar("weekly_theme", { length: 50 }), // null until first picked
   themeWeekStart: varchar("theme_week_start", { length: 10 }), // YYYY-MM-DD of Monday this theme was set

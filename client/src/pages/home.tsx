@@ -139,6 +139,19 @@ export default function Home() {
     }
   }, [user, userLoading]);
 
+  // If onboarding is done but no theme picked yet, send user to /setup to pick one.
+  // Without a theme, the daily-drop query 404s and the home hero shows a broken state.
+  useEffect(() => {
+    if (
+      user &&
+      user.onboardingComplete &&
+      !user.weeklyTheme &&
+      !userLoading
+    ) {
+      navigate("/setup");
+    }
+  }, [user, userLoading, navigate]);
+
   const { data: dailyDrop } = useQuery<DailyDrop>({ queryKey: ["/api/daily-drop"] });
 
 

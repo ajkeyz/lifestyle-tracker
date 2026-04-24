@@ -289,9 +289,40 @@ export default function Results() {
   }, [result, user, leaderboard]);
 
   if (!result) {
+    // Still loading user data, or briefly waiting for the submission to land
+    // (see grace-period retry logic above). Show a soft loading state.
+    const stillLoading = userLoading || redirectAttempts.current < 2;
+    if (stillLoading) {
+      return (
+        <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20 flex items-center justify-center">
+          <p className="text-muted-foreground" data-testid="text-no-results">Loading results...</p>
+        </div>
+      );
+    }
+    // Grace period expired with no result — give the user a clear way out
+    // instead of a blank screen, in case the auto-redirect fails or feels slow.
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20 flex items-center justify-center">
-        <p className="text-muted-foreground" data-testid="text-no-results">Loading results...</p>
+      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/30 flex items-center justify-center px-4">
+        <div className="max-w-md w-full text-center space-y-4">
+          <h2 className="text-xl font-bold" data-testid="text-no-results-title">
+            No results yet today
+          </h2>
+          <p className="text-sm text-muted-foreground" data-testid="text-no-results-message">
+            Play today's drop to see your score, IQ, and money health here.
+          </p>
+          <div className="flex flex-col gap-2 pt-2">
+            <Button onClick={() => navigate("/game")} data-testid="button-play-now">
+              Play today's drop
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => navigate("/")}
+              data-testid="button-back-home-empty"
+            >
+              Back to Home
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }

@@ -10,6 +10,15 @@ import { authStorage } from "./storage";
 
 const isDevBypass = process.env.DEV_AUTH_BYPASS === "true";
 
+// SAFETY: Never allow DEV_AUTH_BYPASS in production. Fail fast at startup.
+if (isDevBypass && process.env.NODE_ENV === "production") {
+  throw new Error(
+    "FATAL: DEV_AUTH_BYPASS=true is not allowed in production. " +
+    "This flag bypasses all authentication and must only be used in dev/test environments. " +
+    "Remove the env var or set NODE_ENV to something other than 'production'.",
+  );
+}
+
 const DEV_USER_CLAIMS = {
   sub: "dev-local-user",
   email: "dev@localhost",
@@ -45,8 +54,11 @@ export function getSession() {
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: !isDevBypass,
-      sameSite: isDevBypass ? "lax" as const : "none" as const,
+      // Always require HTTPS in production. Allow http in dev only.
+      secure: process.env.NODE_ENV === "production",
+      // "lax" is correct for both dev and prod; "none" was needed historically
+      // for cross-site Replit OIDC iframe but unconditionally weakens CSRF defense.
+      sameSite: "lax" as const,
       maxAge: sessionTtl,
     },
   });

@@ -11,6 +11,11 @@ const httpServer = createServer(app);
 
 const isProduction = process.env.NODE_ENV === "production";
 
+// Trust the first reverse proxy (e.g. Vercel, Replit, nginx) so that
+// req.ip reflects the real client IP rather than the proxy address.
+// This is required for IP-based rate limiting and accurate logging.
+app.set("trust proxy", 1);
+
 declare module "http" {
   interface IncomingMessage {
     rawBody: unknown;
