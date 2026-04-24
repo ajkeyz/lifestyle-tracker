@@ -1284,8 +1284,19 @@ export async function registerRoutes(
         bio: "",
         moneyPhilosophy: "",
         whyImHere: "",
-        // Backdate creation so account looks fresh (mission tier 1)
-        createdAt: new Date().toISOString() as any,
+        // Identity — reset to brand-new-user defaults so Cleo doesn't keep
+        // calling them by their previous username, and the profile-setup
+        // step has something generic to overwrite. Matches `getOrCreateUser`.
+        username: `Player${Math.floor(Math.random() * 9999)}`,
+        avatar: "cat",
+        // Weekly theme — clear so the post-onboarding redirect sends the
+        // user to /setup to pick one (matches true new-user experience).
+        weeklyTheme: null,
+        themeWeekStart: null,
+        // Backdate creation so account looks fresh (mission tier 1).
+        // Must be a Date object — drizzle's timestamp column rejects strings
+        // and the `as any` cast that used to be here just hid the type error.
+        createdAt: new Date(),
       });
       res.json({ success: true, user: updated });
     } catch (error) {
@@ -1298,7 +1309,7 @@ export async function registerRoutes(
     if (!isDevMode) return res.status(403).json({ error: "Debug endpoints disabled" });
     try {
       const sessionId = getSessionId(req);
-      const tenDaysAgo = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString();
+      const tenDaysAgo = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000);
       const sampleHistory = Array.from({ length: 15 }, (_, i) => ({
         date: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
         score: 250 + Math.floor(Math.random() * 250),
