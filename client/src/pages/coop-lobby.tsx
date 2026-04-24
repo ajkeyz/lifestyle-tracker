@@ -145,8 +145,8 @@ export default function CoopLobby() {
     },
     onError: () => {
       toast({
-        title: "Error",
-        description: "Failed to create session. Please try again.",
+        title: "Couldn't create session",
+        description: "Please try again in a moment.",
         variant: "destructive",
       });
     },
@@ -181,8 +181,8 @@ export default function CoopLobby() {
     },
     onError: () => {
       toast({
-        title: "Error",
-        description: "Failed to start game. Make sure your friend has joined.",
+        title: "Couldn't start the game",
+        description: "Make sure your friend has joined, then try again.",
         variant: "destructive",
       });
     },

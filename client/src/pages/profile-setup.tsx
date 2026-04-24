@@ -138,8 +138,8 @@ export default function ProfileSetup() {
     },
     onError: (error: Error) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to save profile. Please try again.",
+        title: "Couldn't save profile",
+        description: error.message || "Please try again in a moment.",
         variant: "destructive",
       });
     },

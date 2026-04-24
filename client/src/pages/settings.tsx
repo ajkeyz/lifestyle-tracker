@@ -178,8 +178,8 @@ export default function Settings() {
     },
     onError: () => {
       toast({
-        title: "Error",
-        description: "Failed to update settings.",
+        title: "Couldn't update settings",
+        description: "Please try again in a moment.",
         variant: "destructive",
       });
     },
@@ -200,8 +200,8 @@ export default function Settings() {
     },
     onError: (error: any) => {
       toast({
-        title: "Error",
-        description: error?.message || "Failed to delete account. Please try again or contact support.",
+        title: "Couldn't delete account",
+        description: error?.message || "Please try again, or reach out to support if it keeps happening.",
         variant: "destructive",
       });
     },

@@ -266,8 +266,8 @@ export default function CommunityDetail() {
     },
     onError: () => {
       toast({
-        title: "Error",
-        description: "Failed to add comment. Please try again.",
+        title: "Couldn't post your comment",
+        description: "Please try again in a moment.",
         variant: "destructive",
       });
     },
@@ -293,8 +293,8 @@ export default function CommunityDetail() {
     },
     onError: () => {
       toast({
-        title: "Error",
-        description: "Failed to add reply. Please try again.",
+        title: "Couldn't post your reply",
+        description: "Please try again in a moment.",
         variant: "destructive",
       });
     },

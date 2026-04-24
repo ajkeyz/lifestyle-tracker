@@ -279,8 +279,8 @@ export default function Arcade() {
     },
     onError: () => {
       toast({
-        title: "Error",
-        description: "Failed to submit your answers. Please try again.",
+        title: "Couldn't submit your answers",
+        description: "Please try again in a moment.",
         variant: "destructive",
       });
     },

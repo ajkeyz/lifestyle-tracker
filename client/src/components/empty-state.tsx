@@ -69,7 +69,7 @@ const emptyStateConfig: Record<EmptyStateType, {
   "no-results": {
     icon: Target,
     defaultTitle: "No results yet",
-    defaultDescription: "Play today's daily drop to see your results here!",
+    defaultDescription: "Play today's drop to see your results here.",
     gradient: "from-red-500 to-rose-500",
   },
   "no-badges": {

@@ -33,8 +33,8 @@ export function ReferralCard() {
     },
     onError: (error: Error) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to apply referral code.",
+        title: "Couldn't apply referral",
+        description: error.message || "Double-check the code and try again.",
         variant: "destructive",
       });
     },

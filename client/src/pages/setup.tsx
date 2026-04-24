@@ -51,8 +51,8 @@ export default function Setup() {
       navigate("/");
     } catch (err) {
       toast({
-        title: "Error",
-        description: (err as Error)?.message || "Failed to set theme. Please try again.",
+        title: "Couldn't set theme",
+        description: (err as Error)?.message || "Please try again in a moment.",
         variant: "destructive",
       });
     }

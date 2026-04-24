@@ -281,7 +281,7 @@ export default function ArcadeResults() {
             >
               <Mascot
                 mood={percentage >= 80 ? "celebrating" : percentage >= 60 ? "happy" : percentage >= 40 ? "encouraging" : "sad"}
-                size="md"
+                size="lg"
                 showBubble={true}
                 speechDelay={1200}
                 context={mascotContext}
@@ -419,10 +419,10 @@ export default function ArcadeResults() {
               size="lg"
               className="w-full h-12 text-base"
               onClick={() => navigate("/play-hub")}
-              data-testid="button-go-home"
+              data-testid="button-back-play-hub-bottom"
             >
               <Home className="w-5 h-5 mr-2" />
-              Back to Home
+              Back to Play
             </Button>
           </motion.div>
 

@@ -311,8 +311,8 @@ export default function Results() {
             Play today's drop to see your score, IQ, and money health here.
           </p>
           <div className="flex flex-col gap-2 pt-2">
-            <Button onClick={() => navigate("/game")} data-testid="button-play-now">
-              Play today's drop
+            <Button onClick={() => navigate("/play")} data-testid="button-play-now">
+              Play Today's Drop
             </Button>
             <Button
               variant="ghost"
